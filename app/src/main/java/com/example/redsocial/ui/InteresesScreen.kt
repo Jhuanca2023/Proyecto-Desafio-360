@@ -75,13 +75,14 @@ fun InteresesScreen(navController: NavController, authViewModel: AuthViewModel) 
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
-            // Barra de progreso
+            // Barra de progreso dinámica
+            val progreso = seleccionados.size / 3f
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                Text("Step 1/3", color = Color.White, fontSize = 13.sp)
-                Text("Step 1/3", color = Color.White, fontSize = 13.sp)
+                Text("Paso 1/3", color = Color.White, fontSize = 13.sp)
+                Text("Seleccionados: ${seleccionados.size}/3", color = Color.White, fontSize = 13.sp)
             }
             Box(
                 modifier = Modifier
@@ -91,7 +92,7 @@ fun InteresesScreen(navController: NavController, authViewModel: AuthViewModel) 
             ) {
                 Box(
                     modifier = Modifier
-                        .fillMaxWidth(0.4f)
+                        .fillMaxWidth(progreso.coerceAtMost(1f))
                         .height(6.dp)
                         .background(Color.White, shape = RoundedCornerShape(3.dp))
                 )
