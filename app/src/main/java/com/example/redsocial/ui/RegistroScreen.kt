@@ -41,6 +41,7 @@ fun RegistroScreen(navController: NavController, authViewModel: AuthViewModel = 
     var fechaNacimiento by remember { mutableStateOf("") }
     var genero by remember { mutableStateOf("") }
     var aceptaTerminos by remember { mutableStateOf(false) }
+    var mostrarExito by remember { mutableStateOf(false) }
     val authState by authViewModel.authState.collectAsState()
     val scaffoldState = rememberScaffoldState()
     val scope = rememberCoroutineScope()
@@ -55,12 +56,31 @@ fun RegistroScreen(navController: NavController, authViewModel: AuthViewModel = 
     }
 
     LaunchedEffect(mensaje) {
+        if (mensaje == "¡Registro exitoso!") {
+            mostrarExito = true
+        }
         mensaje?.let {
             scope.launch {
                 scaffoldState.snackbarHostState.showSnackbar(it)
                 authViewModel.limpiarMensaje()
             }
         }
+    }
+
+    if (mostrarExito) {
+        AlertDialog(
+            onDismissRequest = {},
+            title = { Text("¡Registro exitoso!") },
+            text = { Text("Tu cuenta ha sido creada correctamente.") },
+            confirmButton = {
+                Button(onClick = {
+                    mostrarExito = false
+                    navController.navigate("intereses") { popUpTo("registro") { inclusive = true } }
+                }) {
+                    Text("Continuar")
+                }
+            }
+        )
     }
 
     Scaffold(

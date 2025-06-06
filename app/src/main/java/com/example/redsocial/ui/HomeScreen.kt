@@ -15,9 +15,28 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.ui.text.font.FontWeight
 import com.example.redsocial.AuthViewModel
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.compose.runtime.LaunchedEffect
+import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.auth.FirebaseAuth
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.mutableStateOf
 
 @Composable
 fun HomeScreen(navController: NavController, authViewModel: AuthViewModel = viewModel()) {
+    val nombreUsuarioState = remember { mutableStateOf("") }
+    val nombreUsuario = nombreUsuarioState.value
+    val user = FirebaseAuth.getInstance().currentUser
+
+    LaunchedEffect(user) {
+        user?.let {
+            FirebaseFirestore.getInstance().collection("usuarios").document(it.uid)
+                .get()
+                .addOnSuccessListener { doc ->
+                    nombreUsuarioState.value = doc.getString("nombreUsuario") ?: ""
+                }
+        }
+    }
+
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -28,7 +47,7 @@ fun HomeScreen(navController: NavController, authViewModel: AuthViewModel = view
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
-            Text("¡Bienvenido a la página principal!", color = Color.White, fontSize = 22.sp, fontWeight = FontWeight.Bold)
+            Text("¡Bienvenido $nombreUsuario!", color = Color.White, fontSize = 22.sp, fontWeight = FontWeight.Bold)
             Spacer(modifier = Modifier.height(32.dp))
             Button(
                 onClick = {

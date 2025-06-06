@@ -18,12 +18,42 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.foundation.layout.FlowRow
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.firestore.FirebaseFirestore
 
 @Composable
 fun InteresesScreen(navController: NavController, authViewModel: AuthViewModel) {
     val intereses = listOf("Arte", "Deporte", "Música", "Lectura", "Viajar", "Cocinar", "Tecnología", "Moda", "Películas", "Juego", "Fotografía", "Escribiendo")
     val seleccionados = remember { mutableStateListOf<String>() }
     val authState by authViewModel.authState.collectAsState()
+    var mostrarExito by remember { mutableStateOf(false) }
+    val user = FirebaseAuth.getInstance().currentUser
+
+    fun guardarInteresesYContinuar() {
+        user?.let {
+            FirebaseFirestore.getInstance().collection("usuarios").document(it.uid)
+                .update("intereses", seleccionados)
+                .addOnSuccessListener {
+                    mostrarExito = true
+                }
+        }
+    }
+
+    if (mostrarExito) {
+        AlertDialog(
+            onDismissRequest = {},
+            title = { Text("¡Intereses guardados!") },
+            text = { Text("Tus intereses han sido guardados correctamente.") },
+            confirmButton = {
+                Button(onClick = {
+                    mostrarExito = false
+                    navController.navigate("home") { popUpTo("intereses") { inclusive = true } }
+                }) {
+                    Text("Continuar")
+                }
+            }
+        )
+    }
 
     LaunchedEffect(authState) {
         if (authState is AuthState.Success) {
@@ -97,7 +127,7 @@ fun InteresesScreen(navController: NavController, authViewModel: AuthViewModel) 
             }
             Spacer(modifier = Modifier.height(24.dp))
             Button(
-                onClick = { authViewModel.saveIntereses(seleccionados) },
+                onClick = { guardarInteresesYContinuar() },
                 enabled = seleccionados.size >= 3,
                 modifier = Modifier.fillMaxWidth().height(48.dp),
                 colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFA259FF)),
