@@ -20,6 +20,7 @@ import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.auth.FirebaseAuth
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.ui.text.style.TextAlign
 
 @Composable
 fun HomeScreen(navController: NavController, authViewModel: AuthViewModel = viewModel()) {
@@ -55,7 +56,7 @@ fun HomeScreen(navController: NavController, authViewModel: AuthViewModel = view
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
-            Text("¡Bienvenido ${if (nombreUsuario.isNotBlank()) nombreUsuario else nombreGoogle}!", color = Color.White, fontSize = 22.sp, fontWeight = FontWeight.Bold)
+            Text("¡Bienvenido ${if (nombreUsuario.isNotBlank()) nombreUsuario else nombreGoogle}!", color = Color.White, fontSize = 22.sp, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center)
             Spacer(modifier = Modifier.height(32.dp))
             Button(
                 onClick = {
