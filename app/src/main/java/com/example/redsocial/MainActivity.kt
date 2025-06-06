@@ -42,6 +42,8 @@ class MainActivity : ComponentActivity() {
                     LaunchedEffect(authState) {
                         if (authState is AuthState.Success) {
                             navController.navigate("home") { popUpTo(0) }
+                        } else if (authState is AuthState.Idle || authState is AuthState.Error || authState is AuthState.Guest) {
+                            navController.navigate("bienvenida") { popUpTo(0) }
                         }
                     }
                     NavHost(navController = navController, startDestination = "bienvenida") {
@@ -49,7 +51,13 @@ class MainActivity : ComponentActivity() {
                         composable("login") { LoginScreen(navController, authViewModel) }
                         composable("registro") { RegistroScreen(navController, authViewModel) }
                         composable("intereses") { InteresesScreen(navController, authViewModel) }
-                        composable("home") { HomeScreen(navController) }
+                        composable("home") {
+                            if (authState is AuthState.Success) {
+                                HomeScreen(navController)
+                            } else {
+                                LaunchedEffect(Unit) { navController.navigate("bienvenida") { popUpTo(0) } }
+                            }
+                        }
                     }
                 }
             }

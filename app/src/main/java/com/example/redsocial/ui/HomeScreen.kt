@@ -24,7 +24,9 @@ import androidx.compose.runtime.mutableStateOf
 @Composable
 fun HomeScreen(navController: NavController, authViewModel: AuthViewModel = viewModel()) {
     val nombreUsuarioState = remember { mutableStateOf("") }
+    val nombreGoogleState = remember { mutableStateOf("") }
     val nombreUsuario = nombreUsuarioState.value
+    val nombreGoogle = nombreGoogleState.value
     val user = FirebaseAuth.getInstance().currentUser
 
     LaunchedEffect(user) {
@@ -32,7 +34,13 @@ fun HomeScreen(navController: NavController, authViewModel: AuthViewModel = view
             FirebaseFirestore.getInstance().collection("usuarios").document(it.uid)
                 .get()
                 .addOnSuccessListener { doc ->
-                    nombreUsuarioState.value = doc.getString("nombreUsuario") ?: ""
+                    val nombreFirestore = doc.getString("nombreUsuario")
+                    if (!nombreFirestore.isNullOrBlank()) {
+                        nombreUsuarioState.value = nombreFirestore
+                    } else {
+                        // Si no hay nombre en Firestore, uso el displayName de Google o el correo
+                        nombreGoogleState.value = it.displayName ?: it.email?.substringBefore("@") ?: "Usuario"
+                    }
                 }
         }
     }
@@ -47,7 +55,7 @@ fun HomeScreen(navController: NavController, authViewModel: AuthViewModel = view
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
-            Text("¡Bienvenido $nombreUsuario!", color = Color.White, fontSize = 22.sp, fontWeight = FontWeight.Bold)
+            Text("¡Bienvenido ${if (nombreUsuario.isNotBlank()) nombreUsuario else nombreGoogle}!", color = Color.White, fontSize = 22.sp, fontWeight = FontWeight.Bold)
             Spacer(modifier = Modifier.height(32.dp))
             Button(
                 onClick = {
