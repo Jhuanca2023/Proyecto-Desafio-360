@@ -48,7 +48,10 @@ fun AppNavigation() {
     val navController = rememberNavController()
     val authViewModel: AuthViewModel = viewModel()
 
-    NavHost(navController = navController, startDestination = "login") {
+    NavHost(navController = navController, startDestination = "bienvenida") {
+        composable("bienvenida") {
+            BienvenidaScreen(navController = navController, authViewModel = authViewModel)
+        }
         composable("login") {
             LoginScreen(navController = navController, authViewModel = authViewModel)
         }
