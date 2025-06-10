@@ -46,11 +46,15 @@ import androidx.compose.material.Icon
 import androidx.compose.material.IconButton
 import androidx.compose.material.OutlinedTextField
 import androidx.compose.material.TextFieldDefaults
+import androidx.browser.customtabs.CustomTabsIntent
+import android.net.Uri
 
 @Composable
 fun LoginScreen(navController: NavController, authViewModel: AuthViewModel = viewModel()) {
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
+    var mostrarDialogoRecuperacion by remember { mutableStateOf(false) }
+    var emailRecuperacion by remember { mutableStateOf("") }
     val authState by authViewModel.authState.collectAsState(initial = AuthState.Idle)
     val scaffoldState = rememberScaffoldState()
     val scope = rememberCoroutineScope()
@@ -58,6 +62,20 @@ fun LoginScreen(navController: NavController, authViewModel: AuthViewModel = vie
     var mostrarExito by remember { mutableStateOf(false) }
     val context = LocalContext.current
     var mostrarPassword by remember { mutableStateOf(false) }
+
+    fun launchGitHubLogin() {
+        try {
+            val customTabsIntent = CustomTabsIntent.Builder()
+                .setShowTitle(true)
+                .build()
+            val githubAuthUrl = authViewModel.getGitHubAuthUrl()
+            customTabsIntent.launchUrl(context, Uri.parse(githubAuthUrl))
+        } catch (e: Exception) {
+            scope.launch {
+                scaffoldState.snackbarHostState.showSnackbar("Error al iniciar la autenticación con GitHub")
+            }
+        }
+    }
 
     LaunchedEffect(authState) {
         when (authState) {
@@ -96,11 +114,74 @@ fun LoginScreen(navController: NavController, authViewModel: AuthViewModel = vie
         }
     }
 
-    // GitHub: flujo base (debes completar con tu OAuth)
-    fun launchGitHubLogin() {
-        // Aquí deberías lanzar tu intent de OAuth de GitHub
-        // Por ejemplo, abrir un CustomTab o WebView con la URL de autorización
-        // Cuando recibas el token, llama a authViewModel.loginWithGitHub(token)
+    // Maneja el resultado de la autenticación de GitHub
+    LaunchedEffect(Unit) {
+        val activity = context as? Activity
+        activity?.intent?.data?.let { uri ->
+            if (uri.toString().startsWith(AuthViewModel.GITHUB_REDIRECT_URI)) {
+                uri.getQueryParameter("code")?.let { code ->
+                    authViewModel.handleGitHubCallback(code)
+                }
+            }
+        }
+    }
+
+    // Diálogo de recuperación de contraseña
+    if (mostrarDialogoRecuperacion) {
+        AlertDialog(
+            onDismissRequest = { mostrarDialogoRecuperacion = false },
+            title = { Text("Recuperar Contraseña", color = Color.White) },
+            text = {
+                Column {
+                    Text(
+                        "Ingresa tu correo electrónico y te enviaremos las instrucciones para recuperar tu contraseña.",
+                        color = Color.White,
+                        modifier = Modifier.padding(bottom = 16.dp)
+                    )
+                    OutlinedTextField(
+                        value = emailRecuperacion,
+                        onValueChange = { emailRecuperacion = it },
+                        label = { Text("Correo electrónico", color = Color.White) },
+                        singleLine = true,
+                        colors = TextFieldDefaults.outlinedTextFieldColors(
+                            textColor = Color.White,
+                            focusedBorderColor = Color.White,
+                            unfocusedBorderColor = Color(0xFFBDBDBD),
+                            cursorColor = Color.White
+                        )
+                    )
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        if (emailRecuperacion.isBlank()) {
+                            scope.launch {
+                                scaffoldState.snackbarHostState.showSnackbar("Por favor, ingresa tu correo electrónico")
+                            }
+                        } else if (!android.util.Patterns.EMAIL_ADDRESS.matcher(emailRecuperacion).matches()) {
+                            scope.launch {
+                                scaffoldState.snackbarHostState.showSnackbar("Por favor, ingresa un correo válido")
+                            }
+                        } else {
+                            authViewModel.resetPassword(emailRecuperacion)
+                            mostrarDialogoRecuperacion = false
+                            emailRecuperacion = ""
+                        }
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFA259FF))
+                ) {
+                    Text("Enviar", color = Color.White)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { mostrarDialogoRecuperacion = false }) {
+                    Text("Cancelar", color = Color.White)
+                }
+            },
+            containerColor = Color(0xFF2D1846),
+            textContentColor = Color.White
+        )
     }
 
     if (mostrarExito) {
@@ -191,7 +272,7 @@ fun LoginScreen(navController: NavController, authViewModel: AuthViewModel = vie
                 )
 
                 TextButton(
-                    onClick = { /* TODO: Recuperar contraseña */ },
+                    onClick = { mostrarDialogoRecuperacion = true },
                     modifier = Modifier.align(Alignment.End)
                 ) {
                     Text("¿Olvidaste tu contraseña?", color = Color(0xFFBDBDBD), fontSize = 13.sp)
