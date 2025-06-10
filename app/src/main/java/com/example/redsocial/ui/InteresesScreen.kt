@@ -1,145 +1,107 @@
 package com.example.redsocial.ui
 
-import androidx.compose.foundation.background
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.selection.toggleable
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
-import androidx.navigation.NavController
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.navigation.NavController
 import com.example.redsocial.AuthViewModel
-import com.example.redsocial.AuthState
-import androidx.compose.runtime.getValue
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.foundation.layout.FlowRow
-import com.google.firebase.auth.FirebaseAuth
-import com.google.firebase.firestore.FirebaseFirestore
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun InteresesScreen(navController: NavController, authViewModel: AuthViewModel) {
-    val intereses = listOf("Arte", "Deporte", "Música", "Lectura", "Viajar", "Cocinar", "Tecnología", "Moda", "Películas", "Juego", "Fotografía", "Escribiendo")
-    val seleccionados = remember { mutableStateListOf<String>() }
-    val authState by authViewModel.authState.collectAsState()
-    var mostrarExito by remember { mutableStateOf(false) }
-    val user = FirebaseAuth.getInstance().currentUser
-
-    fun guardarInteresesYContinuar() {
-        user?.let {
-            FirebaseFirestore.getInstance().collection("usuarios").document(it.uid)
-                .update("intereses", seleccionados)
-                .addOnSuccessListener {
-                    mostrarExito = true
-                }
-        }
-    }
-
-    if (mostrarExito) {
-        AlertDialog(
-            onDismissRequest = {},
-            title = { Text("¡Intereses guardados!") },
-            text = { Text("Tus intereses han sido guardados correctamente.") },
-            confirmButton = {
-                Button(onClick = {
-                    mostrarExito = false
-                    navController.navigate("home") { popUpTo("intereses") { inclusive = true } }
-                }) {
-                    Text("Continuar")
-                }
-            }
-        )
-    }
-
-    LaunchedEffect(authState) {
-        if (authState is AuthState.Success) {
-            navController.navigate("home") { popUpTo("intereses") { inclusive = true } }
-        }
-    }
-
-    Box(
+    var interesesSeleccionados by remember { mutableStateOf(setOf<String>()) }
+    val intereses = listOf(
+        "Música", "Deportes", "Arte", "Tecnología", "Viajes", 
+        "Comida", "Moda", "Cine", "Literatura", "Fotografía",
+        "Gaming", "Fitness", "Naturaleza", "Ciencia", "Baile"
+    )
+    
+    Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color(0xFF181818)),
-        contentAlignment = Alignment.Center
+            .padding(16.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth(0.95f)
-                .background(Color(0xFF2D1846), shape = RoundedCornerShape(24.dp))
-                .padding(24.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center
+        Text(
+            text = "Selecciona tus intereses",
+            style = MaterialTheme.typography.headlineMedium,
+            modifier = Modifier.padding(vertical = 16.dp)
+        )
+        
+        FlowRow(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            // Barra de progreso dinámica
-            val progreso = seleccionados.size / 3f
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                Text("Paso 1/3", color = Color.White, fontSize = 13.sp)
-                Text("Seleccionados: ${seleccionados.size}/3", color = Color.White, fontSize = 13.sp)
-            }
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(6.dp)
-                    .background(Color(0xFFBDBDBD), shape = RoundedCornerShape(3.dp))
-            ) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth(progreso.coerceAtMost(1f))
-                        .height(6.dp)
-                        .background(Color.White, shape = RoundedCornerShape(3.dp))
-                )
-            }
-            Spacer(modifier = Modifier.height(16.dp))
-            Text("En que estas Interesado????", fontSize = 20.sp, color = Color.White, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center)
-            Spacer(modifier = Modifier.height(8.dp))
-            Text("Seleccione al menos 3 intereses para comenzar", color = Color(0xFFBDBDBD), fontSize = 13.sp, textAlign = TextAlign.Center)
-            Spacer(modifier = Modifier.height(16.dp))
-            // Chips de intereses en filas de 3
-            val chunkedIntereses = intereses.chunked(3)
-            chunkedIntereses.forEach { fila ->
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    modifier = Modifier.fillMaxWidth(),
-                ) {
-                    fila.forEach { interes ->
-                        Button(
-                            onClick = {
-                                if (seleccionados.contains(interes)) seleccionados.remove(interes)
-                                else seleccionados.add(interes)
-                            },
-                            colors = if (seleccionados.contains(interes)) ButtonDefaults.buttonColors(containerColor = Color(0xFFA259FF)) else ButtonDefaults.buttonColors(containerColor = Color(0xFF3D2C5A)),
-                            shape = RoundedCornerShape(50),
-                            contentPadding = PaddingValues(horizontal = 18.dp, vertical = 6.dp),
-                            elevation = ButtonDefaults.buttonElevation(0.dp),
-                            modifier = Modifier.padding(vertical = 4.dp)
-                        ) {
-                            Text(interes, color = Color.White, fontSize = 14.sp)
+            intereses.forEach { interes ->
+                InteresChip(
+                    interes = interes,
+                    selected = interesesSeleccionados.contains(interes),
+                    onSelectedChange = { selected ->
+                        interesesSeleccionados = if (selected) {
+                            interesesSeleccionados + interes
+                        } else {
+                            interesesSeleccionados - interes
                         }
                     }
+                )
+            }
+        }
+        
+        Spacer(modifier = Modifier.weight(1f))
+        
+        Button(
+            onClick = {
+                authViewModel.saveIntereses(interesesSeleccionados.toList())
+                navController.navigate("home") {
+                    popUpTo("intereses") { inclusive = true }
                 }
-            }
-            Spacer(modifier = Modifier.height(24.dp))
-            Button(
-                onClick = { guardarInteresesYContinuar() },
-                enabled = seleccionados.size >= 3,
-                modifier = Modifier.fillMaxWidth().height(48.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFA259FF)),
-                shape = RoundedCornerShape(12.dp)
-            ) {
-                Text("Hecho", color = Color.White, fontWeight = FontWeight.Bold)
-            }
-            Spacer(modifier = Modifier.height(8.dp))
-            TextButton(onClick = { navController.navigate("home") }) {
-                Text("Skip", color = Color(0xFFBDBDBD), fontSize = 13.sp)
-            }
+            },
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 16.dp),
+            enabled = interesesSeleccionados.isNotEmpty()
+        ) {
+            Text("Continuar")
+        }
+    }
+}
+
+@Composable
+fun InteresChip(
+    interes: String,
+    selected: Boolean,
+    onSelectedChange: (Boolean) -> Unit
+) {
+    Surface(
+        modifier = Modifier.padding(4.dp),
+        shape = RoundedCornerShape(16.dp),
+        color = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surface,
+        border = BorderStroke(
+            width = 1.dp,
+            color = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.12f)
+        )
+    ) {
+        Row(modifier = Modifier
+            .toggleable(
+                value = selected,
+                onValueChange = onSelectedChange
+            )
+            .padding(horizontal = 12.dp, vertical = 8.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = interes,
+                style = MaterialTheme.typography.bodyMedium,
+                color = if (selected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface
+            )
         }
     }
 } 

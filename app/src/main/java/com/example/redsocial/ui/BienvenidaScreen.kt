@@ -7,6 +7,9 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -14,14 +17,27 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.redsocial.AuthViewModel
+import com.example.redsocial.AuthState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.navigation.NavController
 
 @Composable
 fun BienvenidaScreen(navController: NavController, authViewModel: AuthViewModel = viewModel()) {
+    val authState by authViewModel.authState.collectAsState(initial = AuthState.Idle)
+
+    LaunchedEffect(authState) {
+        when (authState) {
+            is AuthState.Success -> {
+                navController.navigate("home") {
+                    popUpTo("bienvenida") { inclusive = true }
+                }
+            }
+            else -> {}
+        }
+    }
+
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -40,7 +56,7 @@ fun BienvenidaScreen(navController: NavController, authViewModel: AuthViewModel 
             Text(
                 text = "¡Bienvenido a Desafíos 360!",
                 fontSize = 28.sp,
-                color = Color(0xFF6C63FF),
+                color = Color.White,
                 fontWeight = FontWeight.Bold,
                 textAlign = TextAlign.Center
             )
