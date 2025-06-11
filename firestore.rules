@@ -1,0 +1,49 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Función para verificar si el usuario está autenticado
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    // Función para verificar si el usuario es el propietario del documento
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    // Reglas para la colección de usuarios
+    match /usuarios/{userId} {
+      // Permitir lectura del perfil público a cualquier usuario autenticado
+      allow read: if isAuthenticated();
+      
+      // Permitir búsqueda de nombres de usuario
+      allow list: if isAuthenticated() 
+        && request.query.limit <= 10 
+        && request.query.filters.size() == 1
+        && request.query.filters[0].op == '=='
+        && request.query.filters[0].path == 'nombreUsuario';
+      
+      // Permitir crear un nuevo perfil
+      allow create: if isAuthenticated() 
+        && request.auth.uid == userId
+        && request.resource.data.keys().hasAll(['email', 'nombreUsuario', 'nombreCompleto'])
+        && request.resource.data.email is string
+        && request.resource.data.nombreUsuario is string
+        && request.resource.data.nombreCompleto is string;
+      
+      // Permitir actualizar solo al propietario
+      allow update: if isOwner(userId)
+        && request.resource.data.diff(resource.data).affectedKeys()
+          .hasAny(['nombreUsuario', 'nombreCompleto', 'photoUrl', 'intereses', 'biografia', 'genero', 'fechaNacimiento']);
+      
+      // Permitir eliminar solo al propietario
+      allow delete: if isOwner(userId);
+    }
+
+    // Reglas para otras colecciones
+    match /{collection}/{document=**} {
+      allow read, write: if isAuthenticated();
+    }
+  }
+}

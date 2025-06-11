@@ -14,7 +14,7 @@
       },
       "oauth_client": [
         {
-          "client_id": "69022461707-4nt8s8jptham7pul99f8vag7nlpe0aeq.apps.googleusercontent.com",
+          "client_id": "69022461707-tgo5qbgutpse3768uasivgfogpadnfsl.apps.googleusercontent.com",
           "client_type": 1,
           "android_info": {
             "package_name": "com.example.redsocial",
@@ -22,7 +22,7 @@
           }
         },
         {
-          "client_id": "69022461707-g2d0h024s7udf0r9jkq93fal1pb83v1i.apps.googleusercontent.com",
+          "client_id": "69022461707-usdr27j6clhvfq8mrsdkvls5d0apitvc.apps.googleusercontent.com",
           "client_type": 3
         }
       ],
@@ -35,7 +35,7 @@
         "appinvite_service": {
           "other_platform_oauth_client": [
             {
-              "client_id": "69022461707-g2d0h024s7udf0r9jkq93fal1pb83v1i.apps.googleusercontent.com",
+              "client_id": "69022461707-usdr27j6clhvfq8mrsdkvls5d0apitvc.apps.googleusercontent.com",
               "client_type": 3
             }
           ]
