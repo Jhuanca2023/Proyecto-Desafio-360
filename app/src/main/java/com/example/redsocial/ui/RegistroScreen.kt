@@ -33,6 +33,7 @@ import androidx.compose.material.Icon
 import androidx.compose.material.IconButton
 import androidx.compose.material.OutlinedTextField
 import androidx.compose.material.TextFieldDefaults
+import kotlinx.coroutines.delay
 
 @Composable
 fun RegistroScreen(navController: NavController, authViewModel: AuthViewModel = viewModel()) {
@@ -52,9 +53,10 @@ fun RegistroScreen(navController: NavController, authViewModel: AuthViewModel = 
 
     LaunchedEffect(authState) {
         when (authState) {
-            is AuthState.Success -> {
-                navController.navigate("intereses") {
-                    popUpTo("registro") { inclusive = true }
+            is AuthState.RegistrationCompleted -> {
+                delay(1500)
+                navController.navigate("login") {
+                    popUpTo("bienvenida") { inclusive = false }
                 }
             }
             is AuthState.Error -> {/* El mensaje de error se muestra en el Snackbar */}
