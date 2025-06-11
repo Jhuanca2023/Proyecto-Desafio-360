@@ -56,7 +56,11 @@ fun BienvenidaScreen(navController: NavController, authViewModel: AuthViewModel 
         )
 
         Button(
-            onClick = { navController.navigate("registro") },
+            onClick = { 
+                navController.navigate("registro") {
+                    launchSingleTop = true
+                }
+            },
             modifier = Modifier
                 .fillMaxWidth()
                 .height(56.dp),

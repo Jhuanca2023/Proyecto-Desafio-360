@@ -30,6 +30,7 @@ sealed class AuthState {
     data class Error(val message: String) : AuthState()
     object Guest : AuthState()
     data class NeedsIntereses(val user: FirebaseUser?) : AuthState()
+    object RegistrationCompleted : AuthState()
 }
 
 class AuthViewModel(app: Application) : AndroidViewModel(app) {
@@ -216,8 +217,10 @@ class AuthViewModel(app: Application) : AndroidViewModel(app) {
                             .set(userData)
                             .await()
 
-                        _mensaje.value = "¡Registro exitoso! Configura tus intereses."
-                        _authState.value = AuthState.NeedsIntereses(user)
+                        // Cerramos sesión para que el usuario tenga que hacer login explícitamente
+                        auth.signOut()
+                        _mensaje.value = "¡Registro exitoso! Por favor, inicia sesión con tu correo y contraseña."
+                        _authState.value = AuthState.RegistrationCompleted
                         onSuccess?.invoke()
                     } catch (e: Exception) {
                         // Si falla la creación del perfil, eliminamos la cuenta de autenticación
