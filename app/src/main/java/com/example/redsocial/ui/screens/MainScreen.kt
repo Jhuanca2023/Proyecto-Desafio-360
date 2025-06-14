@@ -81,7 +81,7 @@ fun NavigationGraph(
             )
         }
         composable(NavigationItem.Explore.route) {
-            ExploreScreen()
+            ExploreScreen(navController)
         }
         composable(NavigationItem.Create.route) {
             CreateScreen()

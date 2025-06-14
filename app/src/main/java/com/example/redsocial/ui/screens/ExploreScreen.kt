@@ -19,9 +19,10 @@ import coil.compose.AsyncImage
 import com.example.redsocial.ui.components.ChipPreview
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.Comment
+import androidx.navigation.NavController
 
 @Composable
-fun ExploreScreen(onVerDesafio: (String) -> Unit = {}) {
+fun ExploreScreen(navController: NavController) {
     var searchQuery by remember { mutableStateOf("") }
     var challenges by remember { mutableStateOf(listOf<ChallengeCardData>()) }
     var isLoading by remember { mutableStateOf(true) }
@@ -74,7 +75,9 @@ fun ExploreScreen(onVerDesafio: (String) -> Unit = {}) {
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
                 items(challenges) { challenge ->
-                    ChallengePreviewCardFirestore(challenge, onVerDesafio)
+                    ChallengePreviewCardFirestore(challenge) { challengeId ->
+                        navController.navigate("detalleDesafio/$challengeId")
+                    }
                 }
             }
         }
