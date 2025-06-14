@@ -78,7 +78,7 @@ fun HomeScreen(
         Box(modifier = Modifier.padding(paddingValues)) {
             when (selectedTab) {
                 0 -> ChallengesFeed(challenges)
-                else -> {} // Las otras pestañas se manejan a través de la navegación
+                else -> {}
             }
         }
     }
@@ -100,7 +100,7 @@ fun ChallengeCard(challenge: ChallengePreview) {
             .fillMaxWidth()
             .height(600.dp)
     ) {
-        // Aquí irá el contenido del desafío (video/imagen)
+        //  contenido del desafío (video/imagen)
         // Información del desafío
         Column(
             modifier = Modifier

@@ -36,7 +36,7 @@ fun ChallengePreviewCard(
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
             challenge.coverImageUrl?.let { url ->
-                // Aquí podrías usar Coil o Glide para cargar la imagen desde la URL
+                //cargar la imagen desde la URL
                 // Image(painter = rememberImagePainter(url), contentDescription = "Imagen de portada", modifier = Modifier.fillMaxWidth().height(120.dp))
             }
             Text(challenge.title, style = MaterialTheme.typography.titleLarge)

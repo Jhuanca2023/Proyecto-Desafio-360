@@ -10,10 +10,10 @@ class RedSocialApp : Application() {
         super.onCreate()
         
         try {
-            // Inicializar Firebase
+            // Firebase
             FirebaseApp.initializeApp(this)
             
-            // Configurar Firestore para persistencia offline y mejor manejo de red
+
             val settings = FirebaseFirestoreSettings.Builder()
                 .setPersistenceEnabled(true)
                 .setCacheSizeBytes(FirebaseFirestoreSettings.CACHE_SIZE_UNLIMITED)
@@ -22,7 +22,7 @@ class RedSocialApp : Application() {
             val db = FirebaseFirestore.getInstance()
             db.firestoreSettings = settings
             
-            // Habilitar el almacenamiento en caché para la colección de usuarios
+            // almacenamiento en caché para la colección de usuarios
             db.collection(COLLECTION_USUARIOS)
                 .get()
                 .addOnSuccessListener { /* Cache inicializado */ }

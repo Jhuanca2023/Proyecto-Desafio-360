@@ -33,7 +33,7 @@ import androidx.compose.foundation.verticalScroll
 fun CreateScreen() {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
-    val clientId = "e88c7011ed88321" // <-- Pega aquí tu Client ID de Imgur
+    val clientId = "e88c7011ed88321" // <--  Imgur
 
     // Estados para los campos del formulario
     var title by remember { mutableStateOf("") }
@@ -167,7 +167,7 @@ fun CreateScreen() {
                                 uploadImageToImgur(bytes, clientId,
                                     onSuccess = { url ->
                                         imageUrl = url
-                                        // Guardar en Firestore
+
                                         saveChallengeToFirestore(
                                             title, description, category, duration, points, contentTypes, tags, privacy, deadline, imageUrl
                                         )
@@ -180,7 +180,7 @@ fun CreateScreen() {
                                 )
                             }
                         } ?: run {
-                            // Sin imagen, guardar directo
+
                             saveChallengeToFirestore(
                                 title, description, category, duration, points, contentTypes, tags, privacy, deadline, null
                             )
