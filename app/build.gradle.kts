@@ -78,7 +78,7 @@ dependencies {
     implementation("com.google.android.gms:play-services-auth:20.7.0") // Para Google Sign-In
 
     // GitHub Auth
-    implementation("com.squareup.okhttp3:okhttp:4.12.0")
+    implementation("com.squareup.okhttp3:okhttp:4.11.0")
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.5.1")
     implementation("androidx.browser:browser:1.7.0")
 
@@ -88,4 +88,6 @@ dependencies {
     // Material
     implementation("androidx.compose.material:material:1.5.4")
     implementation("androidx.compose.material:material-icons-extended")
+
+   
 }

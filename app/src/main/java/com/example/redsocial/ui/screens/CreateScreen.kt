@@ -1,31 +1,203 @@
 package com.example.redsocial.ui.screens
 
+import android.app.Activity
+import android.content.Intent
+import android.graphics.BitmapFactory
+import android.net.Uri
+import android.provider.MediaStore
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.firestore.FirebaseFirestore
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import okhttp3.*
+import org.json.JSONObject
+import java.io.InputStream
+import android.util.Base64
+import okio.IOException
 
 @Composable
 fun CreateScreen() {
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+    val clientId = "e88c7011ed88321" // <-- Pega aquí tu Client ID de Imgur
+
+    // Estados para los campos del formulario
+    var title by remember { mutableStateOf("") }
+    var description by remember { mutableStateOf("") }
+    var category by remember { mutableStateOf("") }
+    var duration by remember { mutableStateOf("") }
+    var points by remember { mutableStateOf(0) }
+    var contentTypes by remember { mutableStateOf(listOf<String>()) }
+    var tags by remember { mutableStateOf("") }
+    var privacy by remember { mutableStateOf("public") }
+    var deadline by remember { mutableStateOf("") }
+    var coverImageUri by remember { mutableStateOf<Uri?>(null) }
+    var coverImageBitmap by remember { mutableStateOf<android.graphics.Bitmap?>(null) }
+    var isLoading by remember { mutableStateOf(false) }
+    var errorMessage by remember { mutableStateOf<String?>(null) }
+
+    // Selector de imagen
+    val launcher = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri: Uri? ->
+        coverImageUri = uri
+        uri?.let {
+            val inputStream: InputStream? = context.contentResolver.openInputStream(it)
+            coverImageBitmap = BitmapFactory.decodeStream(inputStream)
+        }
+    }
+
     Column(
         modifier = Modifier
             .fillMaxSize()
             .padding(16.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
+        horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Text(
-            text = "Crear Desafío",
-            style = MaterialTheme.typography.headlineMedium
-        )
-        
-        Spacer(modifier = Modifier.height(16.dp))
-        
-        Text(
-            text = "Próximamente...",
-            style = MaterialTheme.typography.bodyLarge
-        )
+        Text("Crear Desafío", style = MaterialTheme.typography.headlineMedium)
+        Spacer(Modifier.height(16.dp))
+
+        OutlinedTextField(value = title, onValueChange = { title = it }, label = { Text("Título") })
+        OutlinedTextField(value = description, onValueChange = { description = it }, label = { Text("Descripción") })
+        OutlinedTextField(value = category, onValueChange = { category = it }, label = { Text("Categoría") })
+        OutlinedTextField(value = duration, onValueChange = { duration = it }, label = { Text("Duración") })
+        OutlinedTextField(value = points.toString(), onValueChange = { points = it.toIntOrNull() ?: 0 }, label = { Text("Puntos") })
+        OutlinedTextField(value = tags, onValueChange = { tags = it }, label = { Text("Etiquetas (separadas por coma)") })
+        OutlinedTextField(value = deadline, onValueChange = { deadline = it }, label = { Text("Fecha límite (opcional)") })
+        // Aquí puedes agregar chips para contentTypes y privacidad
+
+        Spacer(Modifier.height(8.dp))
+        Button(onClick = { launcher.launch("image/*") }) {
+            Text("Seleccionar imagen de portada")
+        }
+        coverImageBitmap?.let {
+            Image(bitmap = it.asImageBitmap(), contentDescription = "Imagen de portada", modifier = Modifier.size(120.dp))
+        }
+
+        Spacer(Modifier.height(16.dp))
+        Button(
+            onClick = {
+                isLoading = true
+                errorMessage = null
+                scope.launch(Dispatchers.IO) {
+                    try {
+                        var imageUrl: String? = null
+                        coverImageUri?.let { uri ->
+                            val inputStream = context.contentResolver.openInputStream(uri)
+                            val bytes = inputStream?.readBytes()
+                            if (bytes != null) {
+                                // Subir a Imgur
+                                uploadImageToImgur(bytes, clientId,
+                                    onSuccess = { url ->
+                                        imageUrl = url
+                                        // Guardar en Firestore
+                                        saveChallengeToFirestore(
+                                            title, description, category, duration, points, contentTypes, tags, privacy, deadline, imageUrl
+                                        )
+                                        isLoading = false
+                                    },
+                                    onError = { error ->
+                                        errorMessage = error
+                                        isLoading = false
+                                    }
+                                )
+                            }
+                        } ?: run {
+                            // Sin imagen, guardar directo
+                            saveChallengeToFirestore(
+                                title, description, category, duration, points, contentTypes, tags, privacy, deadline, null
+                            )
+                            isLoading = false
+                        }
+                    } catch (e: Exception) {
+                        errorMessage = e.message
+                        isLoading = false
+                    }
+                }
+            },
+            enabled = !isLoading
+        ) {
+            Text(if (isLoading) "Publicando..." else "Publicar Desafío")
+        }
+        errorMessage?.let { Text(it, color = MaterialTheme.colorScheme.error) }
     }
+}
+
+// Función para guardar en Firestore
+fun saveChallengeToFirestore(
+    title: String,
+    description: String,
+    category: String,
+    duration: String,
+    points: Int,
+    contentTypes: List<String>,
+    tags: String,
+    privacy: String,
+    deadline: String?,
+    imageUrl: String?
+) {
+    val user = FirebaseAuth.getInstance().currentUser
+    val challenge = hashMapOf(
+        "title" to title,
+        "description" to description,
+        "category" to category,
+        "duration" to duration,
+        "points" to points,
+        "contentTypes" to contentTypes,
+        "tags" to tags.split(",").map { it.trim() },
+        "privacy" to privacy,
+        "deadline" to deadline,
+        "coverImageUrl" to imageUrl,
+        "authorId" to (user?.uid ?: ""),
+        "authorName" to (user?.displayName ?: ""),
+        "authorAvatar" to (user?.photoUrl?.toString() ?: ""),
+        "likes" to 0,
+        "comments" to 0,
+        "timestamp" to System.currentTimeMillis()
+    )
+    FirebaseFirestore.getInstance().collection("desafios").add(challenge)
+}
+
+// Función para subir imagen a Imgur
+fun uploadImageToImgur(
+    imageBytes: ByteArray,
+    clientId: String,
+    onSuccess: (String) -> Unit,
+    onError: (String) -> Unit
+) {
+    val imageBase64 = Base64.encodeToString(imageBytes, Base64.DEFAULT)
+    val client = OkHttpClient()
+    val requestBody = FormBody.Builder()
+        .add("image", imageBase64)
+        .build()
+    val request = Request.Builder()
+        .url("https://api.imgur.com/3/image")
+        .addHeader("Authorization", "Client-ID $clientId")
+        .post(requestBody)
+        .build()
+
+    client.newCall(request).enqueue(object : Callback {
+        override fun onFailure(call: Call, e: IOException) {
+            onError(e.message ?: "Error desconocido")
+        }
+
+        override fun onResponse(call: Call, response: Response) {
+            val responseBody = response.body?.string()
+            if (response.isSuccessful && responseBody != null) {
+                val json = JSONObject(responseBody)
+                val link = json.getJSONObject("data").getString("link")
+                onSuccess(link)
+            } else {
+                onError("Error al subir la imagen: $responseBody")
+            }
+        }
+    })
 } 
