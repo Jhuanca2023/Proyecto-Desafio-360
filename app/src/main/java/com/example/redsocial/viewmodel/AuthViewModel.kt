@@ -196,11 +196,11 @@ class AuthViewModel(app: Application) : AndroidViewModel(app) {
 
                 if (user != null) {
                     try {
-                        // Ahora que el usuario está autenticado, verificamos el nombre de usuario
+
                         _mensaje.value = "Verificando disponibilidad del nombre de usuario..."
                         val uniqueUsername = generateUniqueUsername(nombreUsuario)
                         
-                        // Creamos el perfil del usuario
+                        // perfil del usuario
                         val userData = mapOf(
                             "email" to email,
                             "nombreCompleto" to nombreCompleto,
@@ -217,13 +217,13 @@ class AuthViewModel(app: Application) : AndroidViewModel(app) {
                             .set(userData)
                             .await()
 
-                        // Cerramos sesión para que el usuario tenga que hacer login explícitamente
+                        // Cerramos sesión
                         auth.signOut()
                         _mensaje.value = "¡Registro exitoso! Por favor, inicia sesión con tu correo y contraseña."
                         _authState.value = AuthState.RegistrationCompleted
                         onSuccess?.invoke()
                     } catch (e: Exception) {
-                        // Si falla la creación del perfil, eliminamos la cuenta de autenticación
+
                         try {
                             user.delete().await()
                         } catch (_: Exception) {}

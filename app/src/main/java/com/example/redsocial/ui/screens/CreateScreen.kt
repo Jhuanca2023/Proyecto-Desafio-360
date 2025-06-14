@@ -25,12 +25,15 @@ import org.json.JSONObject
 import java.io.InputStream
 import android.util.Base64
 import okio.IOException
+import com.example.redsocial.ui.components.ChipPreview
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 
 @Composable
 fun CreateScreen() {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
-    val clientId = "e88c7011ed88321" // <-- Pega aquí tu Client ID de Imgur
+    val clientId = "e88c7011ed88321" // <--  Imgur
 
     // Estados para los campos del formulario
     var title by remember { mutableStateOf("") }
@@ -56,9 +59,11 @@ fun CreateScreen() {
         }
     }
 
+    val scrollState = rememberScrollState()
     Column(
         modifier = Modifier
             .fillMaxSize()
+            .verticalScroll(scrollState)
             .padding(16.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
@@ -72,7 +77,27 @@ fun CreateScreen() {
         OutlinedTextField(value = points.toString(), onValueChange = { points = it.toIntOrNull() ?: 0 }, label = { Text("Puntos") })
         OutlinedTextField(value = tags, onValueChange = { tags = it }, label = { Text("Etiquetas (separadas por coma)") })
         OutlinedTextField(value = deadline, onValueChange = { deadline = it }, label = { Text("Fecha límite (opcional)") })
-        // Aquí puedes agregar chips para contentTypes y privacidad
+        // Selector de tipos de contenido permitidos
+        Spacer(Modifier.height(8.dp))
+        Text("Tipos de contenido permitidos para evidencia:", style = MaterialTheme.typography.bodyMedium)
+        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
+            val tipos = listOf("video", "imagen", "texto", "audio")
+            tipos.forEach { tipo ->
+                val seleccionado = contentTypes.contains(tipo)
+                Button(
+                    onClick = {
+                        contentTypes = if (seleccionado) contentTypes - tipo else contentTypes + tipo
+                    },
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = if (seleccionado) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant,
+                        contentColor = if (seleccionado) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface
+                    ),
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Text(tipo.replaceFirstChar { it.uppercase() })
+                }
+            }
+        }
 
         Spacer(Modifier.height(8.dp))
         Button(onClick = { launcher.launch("image/*") }) {
@@ -80,6 +105,50 @@ fun CreateScreen() {
         }
         coverImageBitmap?.let {
             Image(bitmap = it.asImageBitmap(), contentDescription = "Imagen de portada", modifier = Modifier.size(120.dp))
+        }
+
+        Spacer(Modifier.height(16.dp))
+        // Selector de visibilidad
+        Spacer(Modifier.height(8.dp))
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text("Visibilidad: ", style = MaterialTheme.typography.bodyMedium)
+            Switch(
+                checked = privacy == "public",
+                onCheckedChange = { checked -> privacy = if (checked) "public" else "private" }
+            )
+            Spacer(Modifier.width(8.dp))
+            Text(if (privacy == "public") "Público" else "Privado", style = MaterialTheme.typography.bodyMedium)
+        }
+
+        // Vista previa del desafío
+        Card(
+            modifier = Modifier.fillMaxWidth().padding(vertical = 16.dp),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+        ) {
+            Column(modifier = Modifier.padding(16.dp)) {
+                Text("Vista Previa del Desafío", style = MaterialTheme.typography.titleMedium)
+                Spacer(Modifier.height(8.dp))
+                coverImageBitmap?.let {
+                    Image(bitmap = it.asImageBitmap(), contentDescription = "Imagen de portada", modifier = Modifier.fillMaxWidth().height(120.dp))
+                }
+                Spacer(Modifier.height(8.dp))
+                Text(title, style = MaterialTheme.typography.titleLarge)
+                Text(description, style = MaterialTheme.typography.bodyMedium)
+                Row(modifier = Modifier.padding(vertical = 8.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    if (category.isNotBlank()) ChipPreview(category)
+                    if (duration.isNotBlank()) ChipPreview(duration)
+                    if (points > 0) ChipPreview("$points pts")
+                }
+                Spacer(Modifier.height(4.dp))
+                Text("Contenido aceptado:", style = MaterialTheme.typography.bodySmall)
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    contentTypes.forEach { tipo ->
+                        ChipPreview(tipo.replaceFirstChar { it.uppercase() })
+                    }
+                }
+                Spacer(Modifier.height(8.dp))
+                Text("Visibilidad: ${if (privacy == "public") "Público" else "Privado"}", style = MaterialTheme.typography.bodySmall)
+            }
         }
 
         Spacer(Modifier.height(16.dp))
@@ -98,7 +167,7 @@ fun CreateScreen() {
                                 uploadImageToImgur(bytes, clientId,
                                     onSuccess = { url ->
                                         imageUrl = url
-                                        // Guardar en Firestore
+
                                         saveChallengeToFirestore(
                                             title, description, category, duration, points, contentTypes, tags, privacy, deadline, imageUrl
                                         )
@@ -111,7 +180,7 @@ fun CreateScreen() {
                                 )
                             }
                         } ?: run {
-                            // Sin imagen, guardar directo
+
                             saveChallengeToFirestore(
                                 title, description, category, duration, points, contentTypes, tags, privacy, deadline, null
                             )

@@ -45,7 +45,7 @@ fun AppNavigation(authViewModel: AuthViewModel) {
         }
 
         composable("explore") {
-            ExploreScreen()
+            ExploreScreen(navController)
         }
 
         composable("create") {
@@ -66,6 +66,11 @@ fun AppNavigation(authViewModel: AuthViewModel) {
                 },
                 authViewModel = authViewModel
             )
+        }
+
+        composable("detalleDesafio/{challengeId}") { backStackEntry ->
+            val challengeId = backStackEntry.arguments?.getString("challengeId") ?: ""
+            DetalleDesafioScreen(challengeId = challengeId, navController = navController)
         }
     }
 } 
