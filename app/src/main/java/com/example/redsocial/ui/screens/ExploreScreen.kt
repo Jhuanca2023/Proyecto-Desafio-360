@@ -10,8 +10,8 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import com.example.redsocial.ui.components.Challenge
-import com.example.redsocial.ui.components.ChallengeCard
+import com.example.redsocial.ui.components.ChallengePreview
+import com.example.redsocial.ui.components.ChallengePreviewCard
 
 @Composable
 fun ExploreScreen() {
@@ -145,18 +145,14 @@ fun CategoriesSection() {
 
 @Composable
 fun ChallengesList() {
+    // Aquí deberías obtener los desafíos reales de Firestore
+    val challenges = listOf<ChallengePreview>() // Lista vacía por ahora
     LazyColumn(
         modifier = Modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        items(generateSampleChallenges()) { challenge ->
-            ChallengeCard(challenge = challenge, isCompact = true)
+        items(challenges) { challenge ->
+            ChallengePreviewCard(challenge = challenge)
         }
     }
-}
-
-private fun generateSampleChallenges() = listOf(
-    Challenge("1", "30-Day Sentadillas", "FitLife", 2300, 1200, 500, 100),
-    Challenge("2", "Pinta tu Atardecer Favorito", "ArtDaily", 1500, 800, 300, 150),
-    Challenge("3", "Reto Musical Semanal", "MusicPro", 3000, 1500, 700, 200)
-) 
+} 
