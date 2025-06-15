@@ -21,6 +21,9 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.Comment
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.ui.text.style.TextDecoration
+import androidx.compose.ui.text.withStyle
+import androidx.compose.foundation.clickable
 
 @Composable
 fun DetalleDesafioScreen(challengeId: String, navController: NavController) {
@@ -62,7 +65,11 @@ fun DetalleDesafioScreen(challengeId: String, navController: NavController) {
                 )
                 Spacer(Modifier.height(8.dp))
                 Text(data["title"] as? String ?: "", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
-                Text("Creado por @${data["authorName"] as? String ?: "Usuario"}", color = Color.Gray)
+                Text(
+                    text = "Creado por @${data["authorName"] as? String ?: "Usuario"}",
+                    color = Color.Gray,
+                    modifier = Modifier.clickable { navController.navigate("profile/${data["authorId"] as? String ?: ""}") }
+                )
                 Spacer(Modifier.height(8.dp))
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     ChipPreview("${(data["points"] as? Long ?: 0)} pts")
