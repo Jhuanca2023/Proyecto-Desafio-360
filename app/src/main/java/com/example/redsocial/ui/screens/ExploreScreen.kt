@@ -13,6 +13,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.example.redsocial.ui.components.ChallengePreview
 import com.example.redsocial.ui.components.ChallengePreviewCard
+import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.tasks.await
 import coil.compose.AsyncImage
@@ -20,12 +21,16 @@ import com.example.redsocial.ui.components.ChipPreview
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.Comment
 import androidx.navigation.NavController
+import androidx.compose.foundation.clickable
+import com.example.redsocial.ui.components.CommentsDialog
 
 @Composable
 fun ExploreScreen(navController: NavController) {
     var searchQuery by remember { mutableStateOf("") }
     var challenges by remember { mutableStateOf(listOf<ChallengeCardData>()) }
     var isLoading by remember { mutableStateOf(true) }
+    var selectedCategory by remember { mutableStateOf<String?>(null) }
+    var selectedDuration by remember { mutableStateOf<String?>(null) }
 
     LaunchedEffect(Unit) {
         isLoading = true
@@ -44,11 +49,19 @@ fun ExploreScreen(navController: NavController) {
                 nombreUsuario = nombreUsuario,
                 tags = (data["tags"] as? List<*>)?.mapNotNull { it as? String } ?: emptyList(),
                 likes = (data["likes"] as? Long)?.toInt() ?: 0,
-                comments = (data["comments"] as? Long)?.toInt() ?: 0
+                comments = (data["comments"] as? Long)?.toInt() ?: 0,
+                authorId = authorId,
+                duration = data["duration"] as? String ?: ""
             )
         }
         challenges = desafios
         isLoading = false
+    }
+
+    val filteredChallenges = challenges.filter { challenge ->
+        (selectedCategory == null || challenge.tags.any { it.equals(selectedCategory, ignoreCase = true) }) &&
+        (selectedDuration == null || challenge.duration.equals(selectedDuration, ignoreCase = true)) &&
+        (searchQuery.isEmpty() || challenge.title.contains(searchQuery, ignoreCase = true) || challenge.nombreUsuario.contains(searchQuery, ignoreCase = true))
     }
 
     Column(
@@ -63,8 +76,16 @@ fun ExploreScreen(navController: NavController) {
             placeholder = { Text("Buscar desafíos, creadores....") },
             leadingIcon = { Icon(Icons.Default.Search, "Buscar") }
         )
-        FiltersSection()
-        CategoriesSection()
+        FiltersSection(
+            selectedCategory = selectedCategory,
+            selectedDuration = selectedDuration,
+            onCategorySelected = { selectedCategory = it },
+            onDurationSelected = { selectedDuration = it },
+            onClearFilters = {
+                selectedCategory = null
+                selectedDuration = null
+            }
+        )
         if (isLoading) {
             Box(Modifier.fillMaxWidth().padding(32.dp), contentAlignment = Alignment.Center) {
                 CircularProgressIndicator()
@@ -74,10 +95,10 @@ fun ExploreScreen(navController: NavController) {
                 modifier = Modifier.fillMaxWidth(),
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                items(challenges) { challenge ->
-                    ChallengePreviewCardFirestore(challenge) { challengeId ->
+                items(filteredChallenges) { challenge ->
+                    ChallengePreviewCardFirestore(challenge, { challengeId ->
                         navController.navigate("detalleDesafio/$challengeId")
-                    }
+                    }, navController)
                 }
             }
         }
@@ -92,14 +113,58 @@ data class ChallengeCardData(
     val nombreUsuario: String,
     val tags: List<String>,
     val likes: Int,
-    val comments: Int
+    val comments: Int,
+    val authorId: String,
+    val duration: String
 )
 
 @Composable
 fun ChallengePreviewCardFirestore(
     challenge: ChallengeCardData,
-    onVerDesafio: (String) -> Unit
+    onVerDesafio: (String) -> Unit,
+    navController: NavController
 ) {
+    var showComments by remember { mutableStateOf(false) }
+    var currentLikes by remember { mutableStateOf(challenge.likes) }
+    var currentComments by remember { mutableStateOf(challenge.comments) }
+    var isLiked by remember { mutableStateOf(false) }
+    val currentUser = FirebaseAuth.getInstance().currentUser
+    val db = FirebaseFirestore.getInstance()
+
+    // Verificar si el usuario actual ya dio like
+    LaunchedEffect(challenge.id, currentUser?.uid) {
+        if (currentUser != null) {
+            val likeDoc = db.collection("desafios")
+                .document(challenge.id)
+                .collection("likes")
+                .document(currentUser.uid)
+                .get()
+                .await()
+            isLiked = likeDoc.exists()
+        }
+    }
+
+    // Escuchar cambios en los likes
+    LaunchedEffect(challenge.id) {
+        db.collection("desafios")
+            .document(challenge.id)
+            .addSnapshotListener { snapshot, _ ->
+                snapshot?.let {
+                    currentLikes = it.getLong("likes")?.toInt() ?: 0
+                }
+            }
+    }
+
+    // Escuchar cambios en los comentarios
+    LaunchedEffect(challenge.id) {
+        db.collection("desafios")
+            .document(challenge.id)
+            .collection("comentarios")
+            .addSnapshotListener { snapshot, _ ->
+                currentComments = snapshot?.size() ?: 0
+            }
+    }
+
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
@@ -120,18 +185,62 @@ fun ChallengePreviewCardFirestore(
                 ChipPreview("${challenge.points} pts")
             }
             Spacer(Modifier.height(4.dp))
-            Text("Por: @${challenge.nombreUsuario}", style = MaterialTheme.typography.bodySmall)
+            Text(
+                text = "Por: @${challenge.nombreUsuario}",
+                style = MaterialTheme.typography.bodySmall,
+                modifier = Modifier.clickable { navController.navigate("profile/${challenge.authorId}") }
+            )
             Row(Modifier.padding(vertical = 4.dp)) {
                 challenge.tags.forEach { tag ->
                     ChipPreview(tag)
                     Spacer(Modifier.width(4.dp))
                 }
             }
-            Row(Modifier.padding(vertical = 4.dp), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-                Icon(Icons.Default.Favorite, contentDescription = "Likes")
-                Text("${challenge.likes}")
-                Icon(Icons.Default.Comment, contentDescription = "Comentarios")
-                Text("${challenge.comments}")
+            Row(
+                Modifier.padding(vertical = 4.dp),
+                horizontalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                IconButton(
+                    onClick = {
+                        if (currentUser != null) {
+                            val likesRef = db.collection("desafios").document(challenge.id)
+                            val userLikeRef = likesRef.collection("likes").document(currentUser.uid)
+                            
+                            if (isLiked) {
+                                // Quitar like
+                                db.runTransaction { transaction ->
+                                    val snapshot = transaction.get(likesRef)
+                                    val currentLikes = snapshot.getLong("likes") ?: 0
+                                    transaction.update(likesRef, "likes", currentLikes - 1)
+                                    transaction.delete(userLikeRef)
+                                }
+                                isLiked = false
+                            } else {
+                                // Dar like
+                                db.runTransaction { transaction ->
+                                    val snapshot = transaction.get(likesRef)
+                                    val currentLikes = snapshot.getLong("likes") ?: 0
+                                    transaction.update(likesRef, "likes", currentLikes + 1)
+                                    transaction.set(userLikeRef, mapOf("timestamp" to System.currentTimeMillis()))
+                                }
+                                isLiked = true
+                            }
+                        }
+                    }
+                ) {
+                    Icon(
+                        Icons.Default.Favorite,
+                        contentDescription = "Likes",
+                        tint = if (isLiked) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
+                    )
+                }
+                Text("$currentLikes")
+                IconButton(
+                    onClick = { showComments = true }
+                ) {
+                    Icon(Icons.Default.Comment, contentDescription = "Comentarios")
+                }
+                Text("$currentComments")
             }
             Button(
                 onClick = { onVerDesafio(challenge.id) },
@@ -141,10 +250,25 @@ fun ChallengePreviewCardFirestore(
             }
         }
     }
+
+    if (showComments) {
+        CommentsDialog(
+            challengeId = challenge.id,
+            onDismiss = { showComments = false }
+        )
+    }
 }
 
 @Composable
-fun FiltersSection() {
+fun FiltersSection(
+    selectedCategory: String?,
+    selectedDuration: String?,
+    onCategorySelected: (String) -> Unit,
+    onDurationSelected: (String) -> Unit,
+    onClearFilters: () -> Unit
+) {
+    var showFilters by remember { mutableStateOf(true) }
+
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -162,15 +286,42 @@ fun FiltersSection() {
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             AssistChip(
-                onClick = { /* Limpiar filtros */ },
+                onClick = onClearFilters,
                 label = { Text("Limpiar Filtros") }
             )
+            selectedCategory?.let {
+                AssistChip(
+                    onClick = { onCategorySelected(it) },
+                    label = { Text(it) }
+                )
+            }
+            selectedDuration?.let {
+                AssistChip(
+                    onClick = { onDurationSelected(it) },
+                    label = { Text(it) }
+                )
+            }
         }
+    }
+
+    if (showFilters) {
+        CategoriesSection(
+            onCategorySelected = { category ->
+                onCategorySelected(category)
+                showFilters = false
+            }
+        )
+        DurationSection(
+            onDurationSelected = { duration ->
+                onDurationSelected(duration)
+                showFilters = false
+            }
+        )
     }
 }
 
 @Composable
-fun CategoriesSection() {
+fun CategoriesSection(onCategorySelected: (String) -> Unit) {
     val categories = listOf("Arte", "Deporte", "Música", "Ciencia", "Bienestar", "Tecnología")
     
     Column(
@@ -190,37 +341,16 @@ fun CategoriesSection() {
             items(categories) { category ->
                 FilterChip(
                     selected = false,
-                    onClick = { /* Seleccionar categoría */ },
+                    onClick = { onCategorySelected(category) },
                     label = { Text(category) }
                 )
             }
         }
     }
-    
-    // Dificultad
-    Column(
-        modifier = Modifier.padding(vertical = 8.dp)
-    ) {
-        Text(
-            text = "Dificultad",
-            style = MaterialTheme.typography.titleMedium
-        )
-        
-        LazyRow(
-            modifier = Modifier.padding(vertical = 8.dp),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            items(listOf("Fácil", "Medio", "Difícil")) { difficulty ->
-                FilterChip(
-                    selected = false,
-                    onClick = { /* Seleccionar dificultad */ },
-                    label = { Text(difficulty) }
-                )
-            }
-        }
-    }
-    
-    // Duración
+}
+
+@Composable
+fun DurationSection(onDurationSelected: (String) -> Unit) {
     Column(
         modifier = Modifier.padding(vertical = 8.dp)
     ) {
@@ -236,7 +366,7 @@ fun CategoriesSection() {
             items(listOf("1 día", "3 días", "1 Semana", "Flexible")) { duration ->
                 FilterChip(
                     selected = false,
-                    onClick = { /* Seleccionar duración */ },
+                    onClick = { onDurationSelected(duration) },
                     label = { Text(duration) }
                 )
             }
