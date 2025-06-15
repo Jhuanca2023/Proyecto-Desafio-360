@@ -89,5 +89,9 @@ dependencies {
     implementation("androidx.compose.material:material:1.5.4")
     implementation("androidx.compose.material:material-icons-extended")
 
-   
+
+        // Eliminada la línea incorrecta de implementación de OkHttp
+        implementation("com.google.firebase:firebase-firestore-ktx:24.10.3")
+        implementation("io.coil-kt:coil-compose:2.4.0")
+
 }

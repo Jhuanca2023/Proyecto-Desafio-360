@@ -12,7 +12,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.redsocial.ui.components.Challenge
+import com.example.redsocial.ui.components.ChallengePreview
+import com.example.redsocial.ui.components.ChipPreview
 import com.example.redsocial.ui.components.ChallengeCard
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -77,14 +78,14 @@ fun HomeScreen(
         Box(modifier = Modifier.padding(paddingValues)) {
             when (selectedTab) {
                 0 -> ChallengesFeed(challenges)
-                else -> {} // Las otras pestañas se manejan a través de la navegación
+                else -> {}
             }
         }
     }
 }
 
 @Composable
-fun ChallengesFeed(challenges: List<Challenge>) {
+fun ChallengesFeed(challenges: List<ChallengePreview>) {
     LazyColumn {
         items(challenges) { challenge ->
             ChallengeCard(challenge = challenge)
@@ -93,14 +94,13 @@ fun ChallengesFeed(challenges: List<Challenge>) {
 }
 
 @Composable
-fun ChallengeCard(challenge: Challenge) {
+fun ChallengeCard(challenge: ChallengePreview) {
     Box(
         modifier = Modifier
             .fillMaxWidth()
             .height(600.dp)
     ) {
-        // Aquí irá el contenido del desafío (video/imagen)
-        
+        //  contenido del desafío (video/imagen)
         // Información del desafío
         Column(
             modifier = Modifier
@@ -113,13 +113,11 @@ fun ChallengeCard(challenge: Challenge) {
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.onSurface
             )
-            
             Text(
-                text = "Por: ${challenge.author}",
+                text = challenge.description,
                 fontSize = 16.sp,
                 color = MaterialTheme.colorScheme.onSurface
             )
-            
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -129,46 +127,17 @@ fun ChallengeCard(challenge: Challenge) {
                 Button(onClick = { /* Participar */ }) {
                     Text("Participar")
                 }
-                
                 Button(onClick = { /* Ver categoría */ }) {
                     Text("Categoría")
                 }
             }
         }
-        
-        // Acciones laterales
-        Column(
-            modifier = Modifier
-                .align(Alignment.CenterEnd)
-                .padding(16.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(16.dp)
-        ) {
-            IconButton(onClick = { /* Like */ }) {
-                Icon(Icons.Default.Favorite, "Me gusta")
-            }
-            Text("${challenge.likes}")
-            
-            IconButton(onClick = { /* Comentar */ }) {
-                Icon(Icons.Default.Comment, "Comentar")
-            }
-            Text("${challenge.comments}")
-            
-            IconButton(onClick = { /* Compartir */ }) {
-                Icon(Icons.Default.Share, "Compartir")
-            }
-            Text("${challenge.shares}")
-            
-            IconButton(onClick = { /* Guardar */ }) {
-                Icon(Icons.Default.BookmarkBorder, "Guardar")
-            }
-            Text("${challenge.saves}")
-        }
+        // No mostrar acciones laterales
     }
 }
 
 private fun generateSampleChallenges() = listOf(
-    Challenge("1", "30-Day Sentadillas", "FitLife", 2300, 1200, 500, 100),
-    Challenge("2", "Pinta tu Atardecer Favorito", "ArtDaily", 1500, 800, 300, 150),
-    Challenge("3", "Reto Musical Semanal", "MusicPro", 3000, 1500, 700, 200)
+    ChallengePreview("1", "30-Day Sentadillas", "Desafío de sentadillas por 30 días", "Deporte", "30 días", 100, listOf("video", "imagen"), null),
+    ChallengePreview("2", "Pinta tu Atardecer Favorito", "Desafío de pintura de atardeceres", "Arte", "7 días", 50, listOf("imagen", "texto"), null),
+    ChallengePreview("3", "Reto Musical Semanal", "Desafío de música semanal", "Música", "1 semana", 75, listOf("audio", "video"), null)
 ) 
