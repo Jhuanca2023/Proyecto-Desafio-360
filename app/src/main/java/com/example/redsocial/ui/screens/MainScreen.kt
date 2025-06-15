@@ -91,10 +91,24 @@ fun NavigationGraph(
         }
         composable(NavigationItem.Profile.route) {
             ProfileScreen(
+                navController = navController,
                 authViewModel = authViewModel,
                 onSignOut = {
                     authViewModel.signOut()
-                    // Navegar a la pantalla de bienvenida
+                    navController.navigate("bienvenida") {
+                        popUpTo(navController.graph.startDestinationId) {
+                            inclusive = true
+                        }
+                    }
+                }
+            )
+        }
+        composable("ajustes") {
+            SettingsScreen(
+                navController = navController,
+                authViewModel = authViewModel,
+                onSignOut = {
+                    authViewModel.signOut()
                     navController.navigate("bienvenida") {
                         popUpTo(navController.graph.startDestinationId) {
                             inclusive = true

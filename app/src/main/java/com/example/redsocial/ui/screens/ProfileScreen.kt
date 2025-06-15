@@ -26,9 +26,12 @@ import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.People
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.Verified
+import androidx.compose.material.icons.filled.Settings
+import androidx.navigation.NavController
 
 @Composable
 fun ProfileScreen(
+    navController: NavController,
     onSignOut: () -> Unit,
     authViewModel: AuthViewModel
 ) {
@@ -53,7 +56,17 @@ fun ProfileScreen(
 
     Scaffold(
         modifier = Modifier.fillMaxSize(),
-        containerColor = Color(0xFF1A1333)
+        containerColor = Color(0xFF1A1333),
+        topBar = {
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(8.dp),
+                horizontalArrangement = Arrangement.End
+            ) {
+                IconButton(onClick = { navController.navigate("ajustes") }) {
+                    Icon(Icons.Default.Settings, contentDescription = "Ajustes", tint = Color.White)
+                }
+            }
+        }
     ) { paddingValues ->
         Column(
             modifier = Modifier
@@ -146,24 +159,6 @@ fun ProfileScreen(
                         }
                     }
                 }
-            }
-
-            // Botón de cerrar sesión
-            Button(
-                onClick = { onSignOut() },
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = Color(0xFFA259FF)
-                ),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(56.dp)
-                    .padding(vertical = 16.dp)
-            ) {
-                Text(
-                    text = "Cerrar Sesión",
-                    fontSize = 18.sp,
-                    fontWeight = FontWeight.Bold
-                )
             }
         }
     }

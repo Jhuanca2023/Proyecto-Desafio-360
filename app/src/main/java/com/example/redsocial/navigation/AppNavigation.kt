@@ -58,6 +58,7 @@ fun AppNavigation(authViewModel: AuthViewModel) {
 
         composable("profile") {
             ProfileScreen(
+                navController = navController,
                 onSignOut = {
                     authViewModel.signOut()
                     navController.navigate("bienvenida") {
@@ -65,6 +66,19 @@ fun AppNavigation(authViewModel: AuthViewModel) {
                     }
                 },
                 authViewModel = authViewModel
+            )
+        }
+
+        composable("ajustes") {
+            SettingsScreen(
+                navController = navController,
+                authViewModel = authViewModel,
+                onSignOut = {
+                    authViewModel.signOut()
+                    navController.navigate("bienvenida") {
+                        popUpTo(0) { inclusive = true }
+                    }
+                }
             )
         }
 
