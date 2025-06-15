@@ -49,6 +49,7 @@ fun CreateScreen() {
     var coverImageBitmap by remember { mutableStateOf<android.graphics.Bitmap?>(null) }
     var isLoading by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
+    var maxParticipants by remember { mutableStateOf(1) }
 
     // Selector de imagen
     val launcher = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri: Uri? ->
@@ -77,6 +78,7 @@ fun CreateScreen() {
         OutlinedTextField(value = points.toString(), onValueChange = { points = it.toIntOrNull() ?: 0 }, label = { Text("Puntos") })
         OutlinedTextField(value = tags, onValueChange = { tags = it }, label = { Text("Etiquetas (separadas por coma)") })
         OutlinedTextField(value = deadline, onValueChange = { deadline = it }, label = { Text("Fecha límite (opcional)") })
+        OutlinedTextField(value = maxParticipants.toString(), onValueChange = { maxParticipants = it.toIntOrNull()?.coerceAtLeast(1) ?: 1 }, label = { Text("Número de participantes") })
         // Selector de tipos de contenido permitidos
         Spacer(Modifier.height(8.dp))
         Text("Tipos de contenido permitidos para evidencia:", style = MaterialTheme.typography.bodyMedium)
@@ -169,7 +171,7 @@ fun CreateScreen() {
                                         imageUrl = url
 
                                         saveChallengeToFirestore(
-                                            title, description, category, duration, points, contentTypes, tags, privacy, deadline, imageUrl
+                                            title, description, category, duration, points, contentTypes, tags, privacy, deadline, imageUrl, maxParticipants
                                         )
                                         isLoading = false
                                     },
@@ -182,7 +184,7 @@ fun CreateScreen() {
                         } ?: run {
 
                             saveChallengeToFirestore(
-                                title, description, category, duration, points, contentTypes, tags, privacy, deadline, null
+                                title, description, category, duration, points, contentTypes, tags, privacy, deadline, null, maxParticipants
                             )
                             isLoading = false
                         }
@@ -211,7 +213,8 @@ fun saveChallengeToFirestore(
     tags: String,
     privacy: String,
     deadline: String?,
-    imageUrl: String?
+    imageUrl: String?,
+    maxParticipants: Int
 ) {
     val user = FirebaseAuth.getInstance().currentUser
     val challenge = hashMapOf(
@@ -230,7 +233,9 @@ fun saveChallengeToFirestore(
         "authorAvatar" to (user?.photoUrl?.toString() ?: ""),
         "likes" to 0,
         "comments" to 0,
-        "timestamp" to System.currentTimeMillis()
+        "timestamp" to System.currentTimeMillis(),
+        "maxParticipants" to maxParticipants,
+        "participants" to emptyList<String>()
     )
     FirebaseFirestore.getInstance().collection("desafios").add(challenge)
 }
