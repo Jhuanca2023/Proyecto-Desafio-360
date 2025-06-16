@@ -41,7 +41,7 @@ Una aplicación social moderna que permite a los usuarios participar en desafío
 
 1. Clona el repositorio:
 ```bash
-git clone https://github.com/tu-usuario/desafio-score.git
+git clone https://github.com/Jhuanca2023/Proyecto-Desafio-360.git
 ```
 
 2. Abre el proyecto en Android Studio
