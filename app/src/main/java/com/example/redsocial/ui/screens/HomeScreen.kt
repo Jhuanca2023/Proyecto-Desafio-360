@@ -18,6 +18,8 @@ import com.example.redsocial.ui.components.ChallengeCard
 import com.example.redsocial.models.Evidencia
 import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.tasks.await
+import coil.compose.AsyncImage
+import androidx.compose.ui.graphics.Color
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -38,7 +40,11 @@ fun HomeScreen(
         errorMsg = null
         try {
             val db = FirebaseFirestore.getInstance()
-            val snapshot = db.collectionGroup("evidencias").get().await()
+            val snapshot = db.collection("evidencias")
+                .whereEqualTo("tipo", selectedTipo)
+                .get()
+                .await()
+            
             evidencias = snapshot.documents.mapNotNull { doc ->
                 val data = doc.data ?: return@mapNotNull null
                 Evidencia(
@@ -51,7 +57,7 @@ fun HomeScreen(
                     texto = data["texto"] as? String,
                     timestamp = data["timestamp"] as? Long ?: 0L
                 )
-            }.filter { it.tipo == selectedTipo }
+            }.sortedByDescending { it.timestamp }
         } catch (e: Exception) {
             errorMsg = "Error al cargar evidencias: ${e.localizedMessage}"
             evidencias = emptyList()
@@ -164,31 +170,52 @@ fun EvidenciasFeed(evidencias: List<Evidencia>) {
 
 @Composable
 fun EvidenciaCard(evidencia: Evidencia) {
-    // Aquí puedes mostrar el contenido según el tipo (video, imagen, texto, audio)
-    // Por ejemplo, si es video, usa un reproductor de video, si es imagen usa AsyncImage, etc.
-    // Puedes personalizar este componente según tus necesidades.
+    var challengeTitle by remember { mutableStateOf("") }
+    var challengeDescription by remember { mutableStateOf("") }
+
+    // Obtener información del desafío
+    LaunchedEffect(evidencia.challengeId) {
+        val db = FirebaseFirestore.getInstance()
+        val challengeDoc = db.collection("desafios").document(evidencia.challengeId).get().await()
+        challengeTitle = challengeDoc.getString("title") ?: ""
+        challengeDescription = challengeDoc.getString("description") ?: ""
+    }
+
     Card(
         modifier = Modifier
             .fillMaxWidth()
             .padding(8.dp)
     ) {
         Column(Modifier.padding(16.dp)) {
-            Text("@${evidencia.userName}", fontWeight = FontWeight.Bold)
-            Text(evidencia.tipo.uppercase())
+            Text(
+                text = challengeTitle,
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold
+            )
+            Spacer(Modifier.height(4.dp))
+            Text(
+                text = "Por: @${evidencia.userName}",
+                style = MaterialTheme.typography.bodyMedium
+            )
+            Spacer(Modifier.height(8.dp))
             evidencia.url?.let { url ->
                 if (evidencia.tipo == "imagen") {
-                    // Mostrar imagen
-                    // AsyncImage(model = url, contentDescription = null)
-                } else if (evidencia.tipo == "video") {
-                    // Mostrar video (puedes usar un VideoPlayer si tienes uno)
-                } else if (evidencia.tipo == "audio") {
-                    // Mostrar audio (puedes usar un AudioPlayer si tienes uno)
+                    AsyncImage(
+                        model = url,
+                        contentDescription = "Imagen de evidencia",
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(200.dp)
+                    )
                 }
             }
-            evidencia.texto?.let { texto ->
-                if (evidencia.tipo == "texto") {
-                    Text(texto)
-                }
+            Spacer(Modifier.height(8.dp))
+            if (evidencia.texto != null) {
+                Text(
+                    text = evidencia.texto,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = Color.Gray
+                )
             }
         }
     }

@@ -94,4 +94,7 @@ dependencies {
         implementation("com.google.firebase:firebase-firestore-ktx:24.10.3")
         implementation("io.coil-kt:coil-compose:2.4.0")
 
+    // Permisos para cámara y almacenamiento
+    implementation("com.google.accompanist:accompanist-permissions:0.34.0")
+    implementation("androidx.compose.material:material:1.5.4")
 }
