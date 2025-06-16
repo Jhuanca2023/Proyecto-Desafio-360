@@ -94,9 +94,9 @@ app/
 
 ## 👨‍💻 Autor
 
-**Jose Huanca Otiiano**
-- GitHub: [@tu-usuario](https://github.com/tu-usuario)
-- LinkedIn: [Jose Huanca Otiiano](https://linkedin.com/in/tu-perfil)
+**Jose Huanca Otiniano**
+- GitHub: [@tu-usuario](https://github.com/Jhuanca2023)
+- LinkedIn: [Jose Huanca Otiiano](https://www.linkedin.com/in/jose-huanca-061392274)
 
 ## 📄 Licencia
 
