@@ -56,7 +56,7 @@ fun LoginScreen(navController: NavController, authViewModel: AuthViewModel = vie
     var mostrarPassword by remember { mutableStateOf(false) }
     val context = LocalContext.current
 
-    // Configuración de Google Sign-In
+    // Config Google
     val googleSignInClient = remember {
         val gso = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
             .requestIdToken("69022461707-usdr27j6clhvfq8mrsdkvls5d0apitvc.apps.googleusercontent.com")
@@ -66,7 +66,7 @@ fun LoginScreen(navController: NavController, authViewModel: AuthViewModel = vie
         GoogleSignIn.getClient(context, gso)
     }
 
-    // Google Sign-In launcher
+    // Google launcher
     val googleLauncher = rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
         when (result.resultCode) {
             Activity.RESULT_OK -> {
@@ -126,7 +126,7 @@ fun LoginScreen(navController: NavController, authViewModel: AuthViewModel = vie
         }
 
         try {
-            // Primero cerrar cualquier sesión anterior
+            //  cerrar cualquier sesión anterior
             googleSignInClient.signOut().addOnCompleteListener {
                 try {
                     val signInIntent = googleSignInClient.signInIntent
@@ -202,7 +202,7 @@ fun LoginScreen(navController: NavController, authViewModel: AuthViewModel = vie
         }
     }
 
-    // Maneja el resultado de la autenticación de GitHub
+    //  autenticación de GitHub
     LaunchedEffect(Unit) {
         val activity = context as? Activity
         activity?.intent?.data?.let { uri ->
@@ -338,7 +338,7 @@ fun LoginScreen(navController: NavController, authViewModel: AuthViewModel = vie
                 }
             }
 
-            // Botones de inicio de sesión con redes sociales
+            // Botones de sesión con redes sociales
             Button(
                 onClick = { handleGoogleSignIn() },
                 modifier = Modifier
