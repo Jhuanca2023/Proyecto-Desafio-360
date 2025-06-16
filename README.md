@@ -95,7 +95,7 @@ app/
 ## 👨‍💻 Autor
 
 **Jose Huanca Otiniano**
-- GitHub: [@tu-usuario](https://github.com/Jhuanca2023)
+- GitHub: [@Jhuanca2023](https://github.com/Jhuanca2023)
 - LinkedIn: [Jose Huanca Otiiano](https://www.linkedin.com/in/jose-huanca-061392274)
 
 ## 📄 Licencia
