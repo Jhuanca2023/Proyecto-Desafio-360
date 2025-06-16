@@ -45,5 +45,29 @@ service cloud.firestore {
     match /{collection}/{document=**} {
       allow read, write: if isAuthenticated();
     }
+
+    // Reglas para usuarios
+    match /users/{userId} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null && request.auth.uid == userId;
+    }
+    
+    // Reglas para desafíos
+    match /desafios/{desafioId} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null;
+    }
+    
+    // Reglas para evidencias
+    match /evidencias/{evidenciaId} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null;
+    }
+    
+    // Reglas para comentarios
+    match /comentarios/{comentarioId} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null;
+    }
   }
 }

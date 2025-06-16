@@ -23,6 +23,7 @@ import androidx.compose.material.icons.filled.Comment
 import androidx.navigation.NavController
 import androidx.compose.foundation.clickable
 import com.example.redsocial.ui.components.CommentsDialog
+import androidx.compose.ui.text.font.FontWeight
 
 @Composable
 fun ExploreScreen(navController: NavController) {
@@ -128,8 +129,21 @@ fun ChallengePreviewCardFirestore(
     var currentLikes by remember { mutableStateOf(challenge.likes) }
     var currentComments by remember { mutableStateOf(challenge.comments) }
     var isLiked by remember { mutableStateOf(false) }
+    var participantes by remember { mutableStateOf<List<String>>(emptyList()) }
     val currentUser = FirebaseAuth.getInstance().currentUser
     val db = FirebaseFirestore.getInstance()
+
+    // Obtener lista de participantes
+    LaunchedEffect(challenge.id) {
+        val snapshot = db.collection("evidencias")
+            .whereEqualTo("challengeId", challenge.id)
+            .get()
+            .await()
+        
+        participantes = snapshot.documents.mapNotNull { doc ->
+            doc.getString("userName")
+        }
+    }
 
     // Verificar si el usuario actual ya dio like
     LaunchedEffect(challenge.id, currentUser?.uid) {
@@ -196,6 +210,24 @@ fun ChallengePreviewCardFirestore(
                     Spacer(Modifier.width(4.dp))
                 }
             }
+            
+            // Mostrar participantes
+            if (participantes.isNotEmpty()) {
+                Spacer(Modifier.height(8.dp))
+                Text(
+                    text = "Participantes:",
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.Bold
+                )
+                participantes.forEach { userName ->
+                    Text(
+                        text = "@$userName",
+                        style = MaterialTheme.typography.bodySmall,
+                        modifier = Modifier.padding(start = 8.dp, top = 2.dp)
+                    )
+                }
+            }
+
             Row(
                 Modifier.padding(vertical = 4.dp),
                 horizontalArrangement = Arrangement.spacedBy(16.dp)

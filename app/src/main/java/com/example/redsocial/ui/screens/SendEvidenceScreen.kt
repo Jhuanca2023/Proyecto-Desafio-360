@@ -19,9 +19,9 @@ import com.example.redsocial.ui.components.ChipPreview
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import java.io.InputStream
-import com.example.redsocial.ui.screens.uploadImageToImgur
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
+import com.example.redsocial.utils.uploadImageToImgur
 
 @Composable
 fun SendEvidenceScreen(
@@ -126,8 +126,10 @@ fun SendEvidenceScreen(
                                     val inputStream = context.contentResolver.openInputStream(uri)
                                     val bytes = inputStream?.readBytes()
                                     if (bytes != null) {
-                                        uploadImageToImgur(bytes, clientId,
-                                            onSuccess = { url ->
+                                        uploadImageToImgur(
+                                            imageBytes = bytes,
+                                            clientId = clientId,
+                                            onSuccess = { url: String ->
                                                 saveEvidenceToFirestore(
                                                     challengeId,
                                                     user?.uid ?: "",
@@ -140,7 +142,7 @@ fun SendEvidenceScreen(
                                                 isLoading = false
                                                 onEvidenceSent()
                                             },
-                                            onError = { error ->
+                                            onError = { error: String ->
                                                 errorMessage = error
                                                 isLoading = false
                                             }
@@ -192,6 +194,9 @@ fun saveEvidenceToFirestore(
     texto: String?,
     descripcion: String?
 ) {
+    val db = FirebaseFirestore.getInstance()
+    
+    // Primero guardamos la evidencia
     val evidencia = hashMapOf(
         "challengeId" to challengeId,
         "userId" to userId,
@@ -202,5 +207,33 @@ fun saveEvidenceToFirestore(
         "descripcion" to descripcion,
         "timestamp" to System.currentTimeMillis()
     )
-    FirebaseFirestore.getInstance().collection("evidencias").add(evidencia)
+    
+    db.collection("evidencias").add(evidencia)
+        .addOnSuccessListener { evidenciaDoc ->
+            // Actualizamos el contador de participantes y contentTypes en el desafío
+            val updates = hashMapOf<String, Any>(
+                "participants" to com.google.firebase.firestore.FieldValue.increment(-1)
+            )
+            
+            // Si es una imagen o video, incrementamos el contador correspondiente
+            if (tipo == "imagen") {
+                updates["imageCount"] = com.google.firebase.firestore.FieldValue.increment(1)
+            } else if (tipo == "video") {
+                updates["videoCount"] = com.google.firebase.firestore.FieldValue.increment(1)
+            }
+            
+            db.collection("challenges").document(challengeId)
+                .update(updates)
+                .addOnSuccessListener {
+                    // Actualizamos el perfil del usuario para marcar el desafío como completado
+                    db.collection("users").document(userId)
+                        .collection("completedChallenges")
+                        .document(challengeId)
+                        .set(hashMapOf(
+                            "completedAt" to System.currentTimeMillis(),
+                            "evidenceId" to evidenciaDoc.id,
+                            "contentType" to tipo
+                        ))
+                }
+        }
 } 
