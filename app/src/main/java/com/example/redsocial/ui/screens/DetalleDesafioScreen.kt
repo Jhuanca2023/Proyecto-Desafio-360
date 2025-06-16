@@ -24,11 +24,15 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.withStyle
 import androidx.compose.foundation.clickable
+import com.example.redsocial.models.Evidencia
+import com.google.firebase.auth.FirebaseAuth
+import androidx.compose.ui.window.Dialog
 
 @Composable
 fun DetalleDesafioScreen(challengeId: String, navController: NavController) {
     var challenge by remember { mutableStateOf<Map<String, Any>?>(null) }
     var isLoading by remember { mutableStateOf(true) }
+    var showEnviarEvidencia by remember { mutableStateOf(false) }
 
     LaunchedEffect(challengeId) {
         isLoading = true
@@ -106,7 +110,7 @@ fun DetalleDesafioScreen(challengeId: String, navController: NavController) {
                 }
                 Spacer(Modifier.height(16.dp))
                 Button(
-                    onClick = { /* Participar en el desafío */ },
+                    onClick = { showEnviarEvidencia = true },
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(8.dp)
                 ) {
@@ -115,6 +119,128 @@ fun DetalleDesafioScreen(challengeId: String, navController: NavController) {
                 Spacer(Modifier.height(16.dp))
                 Text("Participaciones Recientes", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
                 //  mostrar una lista de participaciones recientes
+            }
+            if (showEnviarEvidencia) {
+                EnviarEvidenciaDialog(
+                    challengeId = challengeId,
+                    puntosTotales = (data["points"] as? Long ?: 0L).toInt(),
+                    participantesDisponibles = (data["participantesDisponibles"] as? Long ?: 1L).toInt(),
+                    onDismiss = { showEnviarEvidencia = false },
+                    onEvidenciaEnviada = {
+                        showEnviarEvidencia = false
+                        // Recargar challenge
+                        navController.popBackStack()
+                        navController.navigate("detalleDesafio/$challengeId")
+                    }
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun EnviarEvidenciaDialog(
+    challengeId: String,
+    puntosTotales: Int,
+    participantesDisponibles: Int,
+    onDismiss: () -> Unit,
+    onEvidenciaEnviada: () -> Unit
+) {
+    // Aquí va la UI para seleccionar tipo, subir archivo/texto, etc.
+    // Por simplicidad, solo imagen y texto (puedes expandir a video/audio)
+    var tipo by remember { mutableStateOf("imagen") }
+    var url by remember { mutableStateOf("") }
+    var texto by remember { mutableStateOf("") }
+    var isUploading by remember { mutableStateOf(false) }
+    val currentUser = FirebaseAuth.getInstance().currentUser
+    val db = FirebaseFirestore.getInstance()
+
+    Dialog(onDismissRequest = onDismiss) {
+        Surface(shape = RoundedCornerShape(16.dp), tonalElevation = 8.dp) {
+            Column(Modifier.padding(24.dp)) {
+                Text("Enviar Evidencia", style = MaterialTheme.typography.titleLarge)
+                Spacer(Modifier.height(8.dp))
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
+                    listOf("imagen", "texto", "video", "audio").forEach {
+                        Button(onClick = { tipo = it }, enabled = !isUploading) {
+                            Text(it.replaceFirstChar { c -> c.uppercase() })
+                        }
+                    }
+                }
+                Spacer(Modifier.height(8.dp))
+                if (tipo == "imagen") {
+                    OutlinedTextField(
+                        value = url,
+                        onValueChange = { url = it },
+                        label = { Text("URL de la imagen (subida a Imgur)") },
+                        enabled = !isUploading
+                    )
+                } else if (tipo == "texto") {
+                    OutlinedTextField(
+                        value = texto,
+                        onValueChange = { texto = it },
+                        label = { Text("Texto de la evidencia") },
+                        enabled = !isUploading
+                    )
+                } else {
+                    OutlinedTextField(
+                        value = url,
+                        onValueChange = { url = it },
+                        label = { Text("URL del archivo (video/audio)") },
+                        enabled = !isUploading
+                    )
+                }
+                Spacer(Modifier.height(8.dp))
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+                    TextButton(onClick = onDismiss, enabled = !isUploading) { Text("Cancelar") }
+                    Button(
+                        onClick = {
+                            if (currentUser != null && !isUploading) {
+                                isUploading = true
+                                val evidencia = Evidencia(
+                                    challengeId = challengeId,
+                                    userId = currentUser.uid,
+                                    userName = currentUser.displayName ?: "Usuario",
+                                    tipo = tipo,
+                                    url = if (tipo != "texto") url else null,
+                                    texto = if (tipo == "texto") texto else null
+                                )
+                                // Guardar evidencia en subcolección
+                                db.collection("desafios").document(challengeId)
+                                    .collection("evidencias").add(evidencia)
+                                    .addOnSuccessListener {
+                                        // Actualizar participantes y puntos
+                                        db.runTransaction { transaction ->
+                                            val desafioRef = db.collection("desafios").document(challengeId)
+                                            val snapshot = transaction.get(desafioRef)
+                                            val participantes = (snapshot.getLong("participantesDisponibles") ?: 1L).toInt()
+                                            val enviados = (snapshot.getLong("participantesEnviados") ?: 0L).toInt() + 1
+                                            val puntosTot = (snapshot.getLong("points") ?: 0L).toInt()
+                                            val puntosPorParticipante = if (enviados > 0) puntosTot / enviados else 0
+                                            transaction.update(desafioRef, mapOf(
+                                                "participantesDisponibles" to (participantes - 1),
+                                                "participantesEnviados" to enviados,
+                                                "puntosPorParticipante" to puntosPorParticipante,
+                                                "habilitado" to (participantes - 1 > 0)
+                                            ))
+                                            // Sumar puntos al usuario
+                                            val userRef = db.collection("usuarios").document(currentUser.uid)
+                                            val userSnap = transaction.get(userRef)
+                                            val puntosActuales = (userSnap.getLong("puntos") ?: 0L).toInt()
+                                            transaction.update(userRef, "puntos", puntosActuales + puntosPorParticipante)
+                                        }.addOnSuccessListener {
+                                            isUploading = false
+                                            onEvidenciaEnviada()
+                                        }
+                                    }
+                            }
+                        },
+                        enabled = !isUploading
+                    ) {
+                        if (isUploading) CircularProgressIndicator(Modifier.size(16.dp))
+                        else Text("Enviar Evidencia")
+                    }
+                }
             }
         }
     }

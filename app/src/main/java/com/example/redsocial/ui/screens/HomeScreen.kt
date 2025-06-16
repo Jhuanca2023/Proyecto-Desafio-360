@@ -15,6 +15,9 @@ import androidx.compose.ui.unit.sp
 import com.example.redsocial.ui.components.ChallengePreview
 import com.example.redsocial.ui.components.ChipPreview
 import com.example.redsocial.ui.components.ChallengeCard
+import com.example.redsocial.models.Evidencia
+import com.google.firebase.firestore.FirebaseFirestore
+import kotlinx.coroutines.tasks.await
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -25,7 +28,36 @@ fun HomeScreen(
     onNavigateToProfile: () -> Unit
 ) {
     var selectedTab by remember { mutableStateOf(0) }
-    val challenges = remember { generateSampleChallenges() }
+    var selectedTipo by remember { mutableStateOf("video") }
+    var evidencias by remember { mutableStateOf(listOf<Evidencia>()) }
+    var isLoading by remember { mutableStateOf(true) }
+    var errorMsg by remember { mutableStateOf<String?>(null) }
+
+    LaunchedEffect(selectedTipo) {
+        isLoading = true
+        errorMsg = null
+        try {
+            val db = FirebaseFirestore.getInstance()
+            val snapshot = db.collectionGroup("evidencias").get().await()
+            evidencias = snapshot.documents.mapNotNull { doc ->
+                val data = doc.data ?: return@mapNotNull null
+                Evidencia(
+                    id = doc.id,
+                    challengeId = data["challengeId"] as? String ?: "",
+                    userId = data["userId"] as? String ?: "",
+                    userName = data["userName"] as? String ?: "",
+                    tipo = data["tipo"] as? String ?: "",
+                    url = data["url"] as? String,
+                    texto = data["texto"] as? String,
+                    timestamp = data["timestamp"] as? Long ?: 0L
+                )
+            }.filter { it.tipo == selectedTipo }
+        } catch (e: Exception) {
+            errorMsg = "Error al cargar evidencias: ${e.localizedMessage}"
+            evidencias = emptyList()
+        }
+        isLoading = false
+    }
 
     Scaffold(
         bottomBar = {
@@ -76,9 +108,87 @@ fun HomeScreen(
         }
     ) { paddingValues ->
         Box(modifier = Modifier.padding(paddingValues)) {
-            when (selectedTab) {
-                0 -> ChallengesFeed(challenges)
-                else -> {}
+            if (selectedTab == 0) {
+                Column {
+                    Row(
+                        Modifier
+                            .fillMaxWidth()
+                            .padding(8.dp),
+                        horizontalArrangement = Arrangement.SpaceEvenly
+                    ) {
+                        listOf("video", "imagen", "texto", "audio").forEach { tipo ->
+                            Button(
+                                onClick = { selectedTipo = tipo },
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = if (selectedTipo == tipo) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant
+                                )
+                            ) {
+                                Text(tipo.replaceFirstChar { it.uppercase() })
+                            }
+                        }
+                    }
+                    if (isLoading) {
+                        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                            CircularProgressIndicator()
+                        }
+                    } else if (errorMsg != null) {
+                        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                            Text(errorMsg ?: "Error desconocido", color = MaterialTheme.colorScheme.error)
+                        }
+                    } else {
+                        EvidenciasFeed(evidencias)
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun EvidenciasFeed(evidencias: List<Evidencia>) {
+    if (evidencias.isEmpty()) {
+        Box(
+            modifier = Modifier.fillMaxSize(),
+            contentAlignment = Alignment.Center
+        ) {
+            Text("Aún no hay evidencias, ¡sé el primero en participar!", style = MaterialTheme.typography.titleMedium)
+        }
+    } else {
+        LazyColumn {
+            items(evidencias) { evidencia ->
+                EvidenciaCard(evidencia)
+            }
+        }
+    }
+}
+
+@Composable
+fun EvidenciaCard(evidencia: Evidencia) {
+    // Aquí puedes mostrar el contenido según el tipo (video, imagen, texto, audio)
+    // Por ejemplo, si es video, usa un reproductor de video, si es imagen usa AsyncImage, etc.
+    // Puedes personalizar este componente según tus necesidades.
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(8.dp)
+    ) {
+        Column(Modifier.padding(16.dp)) {
+            Text("@${evidencia.userName}", fontWeight = FontWeight.Bold)
+            Text(evidencia.tipo.uppercase())
+            evidencia.url?.let { url ->
+                if (evidencia.tipo == "imagen") {
+                    // Mostrar imagen
+                    // AsyncImage(model = url, contentDescription = null)
+                } else if (evidencia.tipo == "video") {
+                    // Mostrar video (puedes usar un VideoPlayer si tienes uno)
+                } else if (evidencia.tipo == "audio") {
+                    // Mostrar audio (puedes usar un AudioPlayer si tienes uno)
+                }
+            }
+            evidencia.texto?.let { texto ->
+                if (evidencia.tipo == "texto") {
+                    Text(texto)
+                }
             }
         }
     }
