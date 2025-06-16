@@ -111,4 +111,4 @@ Las contribuciones son bienvenidas. Para cambios importantes, por favor abre pri
 Si tienes alguna pregunta o necesitas ayuda, por favor abre un issue en el repositorio o contacta al autor.
 
 ---
-Desarrollado con ❤️ por Jose Huanca Otiniano 
+Desarrollador del sofware por Jose Huanca Otiniano 
