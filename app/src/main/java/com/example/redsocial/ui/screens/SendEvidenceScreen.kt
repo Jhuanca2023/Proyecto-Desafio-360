@@ -22,6 +22,8 @@ import java.io.InputStream
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import com.example.redsocial.utils.uploadImageToImgur
+import com.example.redsocial.utils.uploadVideoToSupabase
+import android.widget.Toast
 
 @Composable
 fun SendEvidenceScreen(
@@ -41,6 +43,8 @@ fun SendEvidenceScreen(
     var descripcion by remember { mutableStateOf("") }
     var isLoading by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
+    var videoUri by remember { mutableStateOf<Uri?>(null) }
+    var videoFileName by remember { mutableStateOf<String?>(null) }
 
     val imageLauncher = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri: Uri? ->
         imageUri = uri
@@ -50,7 +54,12 @@ fun SendEvidenceScreen(
         }
     }
 
-    val tipos = listOf("imagen", "texto") // audio y video después
+    val videoLauncher = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri: Uri? ->
+        videoUri = uri
+        videoFileName = uri?.lastPathSegment
+    }
+
+    val tipos = listOf("imagen", "video", "texto") // ahora incluye video
     val scrollState = rememberScrollState()
 
     Column(
@@ -91,6 +100,15 @@ fun SendEvidenceScreen(
                 imageBitmap?.let {
                     Spacer(Modifier.height(8.dp))
                     Image(bitmap = it.asImageBitmap(), contentDescription = "Imagen seleccionada", modifier = Modifier.size(120.dp))
+                }
+            }
+            "video" -> {
+                Button(onClick = { videoLauncher.launch("video/*") }) {
+                    Text("Selecciona tu archivo (video)")
+                }
+                videoFileName?.let {
+                    Spacer(Modifier.height(8.dp))
+                    Text("Video seleccionado: $it")
                 }
             }
             "texto" -> {
@@ -152,6 +170,50 @@ fun SendEvidenceScreen(
                                     errorMessage = "Selecciona una imagen."
                                     isLoading = false
                                 }
+                            } else if (tipo == "video") {
+                                videoUri?.let { uri ->
+                                    val inputStream = context.contentResolver.openInputStream(uri)
+                                    val bytes = inputStream?.readBytes()
+                                    val fileName = videoFileName ?: "video_${System.currentTimeMillis()}.mp4"
+                                    if (bytes != null) {
+                                        com.example.redsocial.utils.uploadVideoToSupabase(
+                                            videoBytes = bytes,
+                                            fileName = fileName,
+                                            onSuccess = { url: String ->
+                                                scope.launch(Dispatchers.Main) {
+                                                    saveEvidenceToFirestore(
+                                                        challengeId,
+                                                        user?.uid ?: "",
+                                                        user?.displayName ?: "",
+                                                        tipo,
+                                                        url,
+                                                        null,
+                                                        descripcion
+                                                    )
+                                                    isLoading = false
+                                                    onEvidenceSent()
+                                                }
+                                            },
+                                            onError = { errorMsg ->
+                                                scope.launch(Dispatchers.Main) {
+                                                    errorMessage = errorMsg
+                                                    isLoading = false
+                                                    Toast.makeText(context, errorMsg, Toast.LENGTH_LONG).show()
+                                                }
+                                            }
+                                        )
+                                    } else {
+                                        scope.launch(Dispatchers.Main) {
+                                            errorMessage = "Selecciona un video."
+                                            isLoading = false
+                                        }
+                                    }
+                                } ?: run {
+                                    scope.launch(Dispatchers.Main) {
+                                        errorMessage = "Selecciona un video."
+                                        isLoading = false
+                                    }
+                                }
                             } else if (tipo == "texto") {
                                 if (texto.isNotBlank()) {
                                     saveEvidenceToFirestore(
@@ -176,7 +238,7 @@ fun SendEvidenceScreen(
                         }
                     }
                 },
-                enabled = (!isLoading && ((tipo == "imagen" && imageUri != null) || (tipo == "texto" && texto.isNotBlank())))
+                enabled = (!isLoading && ((tipo == "imagen" && imageUri != null) || (tipo == "video" && videoUri != null) || (tipo == "texto" && texto.isNotBlank())))
             ) {
                 Text(if (isLoading) "Enviando..." else "Enviar Evidencia")
             }

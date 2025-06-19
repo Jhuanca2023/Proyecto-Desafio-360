@@ -20,6 +20,8 @@ import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.tasks.await
 import coil.compose.AsyncImage
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.viewinterop.AndroidView
+import android.widget.VideoView
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -203,6 +205,22 @@ fun EvidenciaCard(evidencia: Evidencia) {
                     AsyncImage(
                         model = url,
                         contentDescription = "Imagen de evidencia",
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(200.dp)
+                    )
+                } else if (evidencia.tipo == "video") {
+                    // Mostrar video usando AndroidView y VideoView
+                    androidx.compose.ui.viewinterop.AndroidView(
+                        factory = { context ->
+                            android.widget.VideoView(context).apply {
+                                setVideoPath(url)
+                                setOnPreparedListener { mp ->
+                                    mp.isLooping = true
+                                    start()
+                                }
+                            }
+                        },
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(200.dp)

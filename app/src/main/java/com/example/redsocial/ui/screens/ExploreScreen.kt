@@ -64,7 +64,7 @@ fun ExploreScreen(navController: NavController) {
         (selectedDuration == null || challenge.duration.equals(selectedDuration, ignoreCase = true)) &&
         (searchQuery.isEmpty() || challenge.title.contains(searchQuery, ignoreCase = true) || challenge.nombreUsuario.contains(searchQuery, ignoreCase = true))
     }
-
+    
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -404,4 +404,4 @@ fun DurationSection(onDurationSelected: (String) -> Unit) {
             }
         }
     }
-} 
+}
