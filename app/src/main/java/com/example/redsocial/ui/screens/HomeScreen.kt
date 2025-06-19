@@ -15,6 +15,13 @@ import androidx.compose.ui.unit.sp
 import com.example.redsocial.ui.components.ChallengePreview
 import com.example.redsocial.ui.components.ChipPreview
 import com.example.redsocial.ui.components.ChallengeCard
+import com.example.redsocial.models.Evidencia
+import com.google.firebase.firestore.FirebaseFirestore
+import kotlinx.coroutines.tasks.await
+import coil.compose.AsyncImage
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.viewinterop.AndroidView
+import android.widget.VideoView
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -25,7 +32,40 @@ fun HomeScreen(
     onNavigateToProfile: () -> Unit
 ) {
     var selectedTab by remember { mutableStateOf(0) }
-    val challenges = remember { generateSampleChallenges() }
+    var selectedTipo by remember { mutableStateOf("video") }
+    var evidencias by remember { mutableStateOf(listOf<Evidencia>()) }
+    var isLoading by remember { mutableStateOf(true) }
+    var errorMsg by remember { mutableStateOf<String?>(null) }
+
+    LaunchedEffect(selectedTipo) {
+        isLoading = true
+        errorMsg = null
+        try {
+            val db = FirebaseFirestore.getInstance()
+            val snapshot = db.collection("evidencias")
+                .whereEqualTo("tipo", selectedTipo)
+                .get()
+                .await()
+            
+            evidencias = snapshot.documents.mapNotNull { doc ->
+                val data = doc.data ?: return@mapNotNull null
+                Evidencia(
+                    id = doc.id,
+                    challengeId = data["challengeId"] as? String ?: "",
+                    userId = data["userId"] as? String ?: "",
+                    userName = data["userName"] as? String ?: "",
+                    tipo = data["tipo"] as? String ?: "",
+                    url = data["url"] as? String,
+                    texto = data["texto"] as? String,
+                    timestamp = data["timestamp"] as? Long ?: 0L
+                )
+            }.sortedByDescending { it.timestamp }
+        } catch (e: Exception) {
+            errorMsg = "Error al cargar evidencias: ${e.localizedMessage}"
+            evidencias = emptyList()
+        }
+        isLoading = false
+    }
 
     Scaffold(
         bottomBar = {
@@ -76,9 +116,124 @@ fun HomeScreen(
         }
     ) { paddingValues ->
         Box(modifier = Modifier.padding(paddingValues)) {
-            when (selectedTab) {
-                0 -> ChallengesFeed(challenges)
-                else -> {}
+            if (selectedTab == 0) {
+                Column {
+                    Row(
+                        Modifier
+                            .fillMaxWidth()
+                            .padding(8.dp),
+                        horizontalArrangement = Arrangement.SpaceEvenly
+                    ) {
+                        listOf("video", "imagen", "texto", "audio").forEach { tipo ->
+                            Button(
+                                onClick = { selectedTipo = tipo },
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = if (selectedTipo == tipo) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant
+                                )
+                            ) {
+                                Text(tipo.replaceFirstChar { it.uppercase() })
+                            }
+                        }
+                    }
+                    if (isLoading) {
+                        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                            CircularProgressIndicator()
+                        }
+                    } else if (errorMsg != null) {
+                        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                            Text(errorMsg ?: "Error desconocido", color = MaterialTheme.colorScheme.error)
+                        }
+                    } else {
+                        EvidenciasFeed(evidencias)
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun EvidenciasFeed(evidencias: List<Evidencia>) {
+    if (evidencias.isEmpty()) {
+        Box(
+            modifier = Modifier.fillMaxSize(),
+            contentAlignment = Alignment.Center
+        ) {
+            Text("Aún no hay evidencias, ¡sé el primero en participar!", style = MaterialTheme.typography.titleMedium)
+        }
+    } else {
+        LazyColumn {
+            items(evidencias) { evidencia ->
+                EvidenciaCard(evidencia)
+            }
+        }
+    }
+}
+
+@Composable
+fun EvidenciaCard(evidencia: Evidencia) {
+    var challengeTitle by remember { mutableStateOf("") }
+    var challengeDescription by remember { mutableStateOf("") }
+
+    // Obtener información del desafío
+    LaunchedEffect(evidencia.challengeId) {
+        val db = FirebaseFirestore.getInstance()
+        val challengeDoc = db.collection("desafios").document(evidencia.challengeId).get().await()
+        challengeTitle = challengeDoc.getString("title") ?: ""
+        challengeDescription = challengeDoc.getString("description") ?: ""
+    }
+
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(8.dp)
+    ) {
+        Column(Modifier.padding(16.dp)) {
+            Text(
+                text = challengeTitle,
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold
+            )
+            Spacer(Modifier.height(4.dp))
+            Text(
+                text = "Por: @${evidencia.userName}",
+                style = MaterialTheme.typography.bodyMedium
+            )
+            Spacer(Modifier.height(8.dp))
+            evidencia.url?.let { url ->
+                if (evidencia.tipo == "imagen") {
+                    AsyncImage(
+                        model = url,
+                        contentDescription = "Imagen de evidencia",
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(200.dp)
+                    )
+                } else if (evidencia.tipo == "video") {
+                    // Mostrar video usando AndroidView y VideoView
+                    androidx.compose.ui.viewinterop.AndroidView(
+                        factory = { context ->
+                            android.widget.VideoView(context).apply {
+                                setVideoPath(url)
+                                setOnPreparedListener { mp ->
+                                    mp.isLooping = true
+                                    start()
+                                }
+                            }
+                        },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(200.dp)
+                    )
+                }
+            }
+            Spacer(Modifier.height(8.dp))
+            if (evidencia.texto != null) {
+                Text(
+                    text = evidencia.texto,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = Color.Gray
+                )
             }
         }
     }
