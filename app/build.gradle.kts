@@ -86,14 +86,16 @@ dependencies {
     // Navigation
     implementation("androidx.navigation:navigation-compose:2.7.7")
 
+    // Media3 (ExoPlayer)
+    implementation("androidx.media3:media3-exoplayer:1.3.1")
+    implementation("androidx.media3:media3-ui:1.3.1")
+
+    // Coil
+    implementation("io.coil-kt:coil-compose:2.4.0")
+
     // Material
     implementation("androidx.compose.material:material:1.5.4")
     implementation("androidx.compose.material:material-icons-extended")
-
-
-        // Eliminada la línea incorrecta de implementación de OkHttp
-        implementation("com.google.firebase:firebase-firestore-ktx:24.10.3")
-        implementation("io.coil-kt:coil-compose:2.4.0")
 
     // Permisos para cámara y almacenamiento
     implementation("com.google.accompanist:accompanist-permissions:0.34.0")

@@ -27,13 +27,39 @@ import androidx.compose.foundation.pager.VerticalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.material.icons.automirrored.filled.Comment
 import androidx.compose.material.icons.automirrored.filled.Send
+import androidx.compose.material.icons.filled.BookmarkBorder
 import androidx.compose.material.icons.filled.FavoriteBorder
-import androidx.compose.material.icons.filled.Share
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import com.example.redsocial.models.Challenge
 import kotlinx.coroutines.launch
+import androidx.compose.runtime.DisposableEffect
+import androidx.media3.common.MediaItem
+import androidx.media3.common.Player
+import androidx.media3.exoplayer.ExoPlayer
+import androidx.media3.ui.AspectRatioFrameLayout
+import androidx.media3.ui.PlayerView
+import androidx.compose.ui.platform.LocalLifecycleOwner
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material.icons.filled.Pause
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import kotlinx.coroutines.delay
+import android.app.DownloadManager
+import android.content.Context
+import android.net.Uri
+import android.os.Environment
+import android.widget.Toast
+import androidx.compose.material3.TextButton
+import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.text.AnnotatedString
+import androidx.media3.common.util.UnstableApi
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
@@ -183,6 +209,7 @@ fun HomeScreen(
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun EvidenciaPage(
     evidencia: Evidencia,
@@ -190,6 +217,9 @@ fun EvidenciaPage(
     onCategoryClick: () -> Unit
 ) {
     var challenge by remember { mutableStateOf<Challenge?>(null) }
+    var showOptionsBottomSheet by remember { mutableStateOf(false) }
+    val context = LocalContext.current
+    val clipboardManager = LocalClipboardManager.current
 
     LaunchedEffect(evidencia.challengeId) {
         val db = FirebaseFirestore.getInstance()
@@ -200,7 +230,12 @@ fun EvidenciaPage(
     Box(modifier = Modifier.fillMaxSize()) {
         // Background Media (Video/Image)
         when (evidencia.tipo) {
-            "video" -> evidencia.url?.let { VideoPlayer(url = it) }
+            "video" -> evidencia.url?.let { url ->
+                VideoPlayer(
+                    url = url,
+                    onLongPress = { showOptionsBottomSheet = true }
+                )
+            }
             "imagen" -> evidencia.url?.let {
                 AsyncImage(
                     model = it,
@@ -262,45 +297,160 @@ fun EvidenciaPage(
                     Icon(Icons.Default.FavoriteBorder, contentDescription = "Like", tint = Color.White, modifier = Modifier.size(32.dp))
                 }
                 Text("2.3k", color = Color.White)
-                Spacer(Modifier.height(16.dp))
+                Spacer(Modifier.height(24.dp))
 
                 IconButton(onClick = { /* TODO */ }) {
                     Icon(Icons.AutoMirrored.Filled.Comment, contentDescription = "Comment", tint = Color.White, modifier = Modifier.size(32.dp))
                 }
                 Text("1.2k", color = Color.White)
-                Spacer(Modifier.height(16.dp))
+                Spacer(Modifier.height(24.dp))
 
                 IconButton(onClick = { /* TODO */ }) {
                     Icon(Icons.AutoMirrored.Filled.Send, contentDescription = "Send", tint = Color.White, modifier = Modifier.size(32.dp))
                 }
                 Text("500", color = Color.White)
-                Spacer(Modifier.height(16.dp))
+                Spacer(Modifier.height(24.dp))
 
                 IconButton(onClick = { /* TODO */ }) {
-                    Icon(Icons.Default.Share, contentDescription = "Share", tint = Color.White, modifier = Modifier.size(32.dp))
+                    Icon(Icons.Default.BookmarkBorder, contentDescription = "Save", tint = Color.White, modifier = Modifier.size(32.dp))
                 }
                  Text("100", color = Color.White)
             }
         }
     }
-}
 
-@Composable
-fun VideoPlayer(url: String) {
-    val context = LocalContext.current
-    val videoView = remember {
-        VideoView(context).apply {
-            setVideoPath(url)
-            setOnPreparedListener { mp ->
-                mp.isLooping = true
-                mp.start()
+    if (showOptionsBottomSheet) {
+        ModalBottomSheet(
+            onDismissRequest = { showOptionsBottomSheet = false }
+        ) {
+            Column(Modifier.padding(vertical = 16.dp)) {
+                TextButton(
+                    onClick = {
+                        evidencia.url?.let {
+                            clipboardManager.setText(AnnotatedString(it))
+                            Toast.makeText(context, "Link copiado", Toast.LENGTH_SHORT).show()
+                        }
+                        showOptionsBottomSheet = false
+                    },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp)
+                ) {
+                    Text("Copiar link")
+                }
+                TextButton(
+                    onClick = {
+                        evidencia.url?.let {
+                            downloadVideo(context, it)
+                        }
+                        showOptionsBottomSheet = false
+                    },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp)
+                ) {
+                    Text("Descargar")
+                }
             }
         }
     }
-    AndroidView(
-        factory = { videoView },
-        modifier = Modifier.fillMaxSize()
-    )
+}
+
+@OptIn(UnstableApi::class)
+@Composable
+fun VideoPlayer(url: String, onLongPress: () -> Unit) {
+    val context = LocalContext.current
+    val exoPlayer = remember(url) {
+        ExoPlayer.Builder(context).build().apply {
+            setMediaItem(MediaItem.fromUri(url))
+            prepare()
+            playWhenReady = true
+            repeatMode = Player.REPEAT_MODE_ONE
+        }
+    }
+
+    var showControls by remember { mutableStateOf(false) }
+
+    val lifecycleOwner = LocalLifecycleOwner.current
+    DisposableEffect(exoPlayer, lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            when (event) {
+                Lifecycle.Event.ON_PAUSE -> exoPlayer.pause()
+                Lifecycle.Event.ON_RESUME -> exoPlayer.play()
+                else -> {}
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+
+        onDispose {
+            lifecycleOwner.lifecycle.removeObserver(observer)
+            exoPlayer.release()
+        }
+    }
+
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .pointerInput(Unit) {
+                detectTapGestures(
+                    onLongPress = { onLongPress() },
+                    onTap = {
+                        exoPlayer.playWhenReady = !exoPlayer.playWhenReady
+                        showControls = true
+                    }
+                )
+            },
+        contentAlignment = Alignment.Center
+    ) {
+        AndroidView(
+            factory = {
+                PlayerView(it).apply {
+                    player = exoPlayer
+                    useController = false
+                    resizeMode = AspectRatioFrameLayout.RESIZE_MODE_ZOOM
+                }
+            },
+            modifier = Modifier.fillMaxSize()
+        )
+
+        AnimatedVisibility(
+            visible = showControls,
+            enter = fadeIn(),
+            exit = fadeOut()
+        ) {
+            Icon(
+                imageVector = if (exoPlayer.isPlaying) Icons.Filled.Pause else Icons.Filled.PlayArrow,
+                contentDescription = "Play/Pause",
+                tint = Color.White.copy(alpha = 0.7f),
+                modifier = Modifier.size(64.dp)
+            )
+        }
+
+        if (showControls) {
+            LaunchedEffect(Unit) {
+                delay(800)
+                showControls = false
+            }
+        }
+    }
+}
+
+private fun downloadVideo(context: Context, url: String) {
+    try {
+        val request = DownloadManager.Request(Uri.parse(url))
+            .setTitle("Descargando video...")
+            .setDescription("Descarga en curso")
+            .setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED)
+            .setAllowedOverMetered(true)
+            .setAllowedOverRoaming(true)
+            .setDestinationInExternalPublicDir(Environment.DIRECTORY_DOWNLOADS, "video_${System.currentTimeMillis()}.mp4")
+
+        val downloadManager = context.getSystemService(Context.DOWNLOAD_SERVICE) as DownloadManager
+        downloadManager.enqueue(request)
+        Toast.makeText(context, "Iniciando descarga...", Toast.LENGTH_SHORT).show()
+    } catch (e: Exception) {
+        Toast.makeText(context, "Error al descargar: ${e.message}", Toast.LENGTH_LONG).show()
+    }
 }
 
 @Composable

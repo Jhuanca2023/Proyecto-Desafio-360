@@ -28,6 +28,9 @@ import okio.IOException
 import com.example.redsocial.ui.components.ChipPreview
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.navigation.NavController
+import kotlinx.coroutines.tasks.await
+import kotlinx.coroutines.withContext
 
 @Composable
 fun CreateScreen() {
@@ -274,4 +277,306 @@ fun uploadImageToImgur(
             }
         }
     })
+}
+
+@Composable
+fun EditChallengeScreen(desafioId: String, navController: NavController) {
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+    var isLoading by remember { mutableStateOf(true) }
+    var errorMessage by remember { mutableStateOf<String?>(null) }
+    var initialData by remember { mutableStateOf<Map<String, Any>?>(null) }
+
+    // Estados para los campos del formulario
+    var title by remember { mutableStateOf("") }
+    var description by remember { mutableStateOf("") }
+    var category by remember { mutableStateOf("") }
+    var duration by remember { mutableStateOf("") }
+    var points by remember { mutableStateOf(0) }
+    var contentTypes by remember { mutableStateOf(listOf<String>()) }
+    var tags by remember { mutableStateOf("") }
+    var privacy by remember { mutableStateOf("public") }
+    var deadline by remember { mutableStateOf("") }
+    var coverImageUrl by remember { mutableStateOf<String?>(null) }
+    var coverImageUri by remember { mutableStateOf<Uri?>(null) }
+    var coverImageBitmap by remember { mutableStateOf<android.graphics.Bitmap?>(null) }
+    var maxParticipants by remember { mutableStateOf(1) }
+
+    val clientId = "e88c7011ed88321"
+
+    LaunchedEffect(desafioId) {
+        isLoading = true
+        try {
+            val db = FirebaseFirestore.getInstance()
+            val doc = db.collection("desafios").document(desafioId).get().await()
+            if (doc.exists()) {
+                initialData = doc.data
+                title = doc.get("title") as? String ?: ""
+                description = doc.get("description") as? String ?: ""
+                category = doc.get("category") as? String ?: ""
+                duration = doc.get("duration") as? String ?: ""
+                points = (doc.get("points") as? Long)?.toInt() ?: 0
+                contentTypes = (doc.get("contentTypes") as? List<*>)?.mapNotNull { it as? String } ?: emptyList()
+                tags = (doc.get("tags") as? List<*>)?.joinToString(", ") { it.toString() } ?: ""
+                privacy = doc.get("privacy") as? String ?: "public"
+                deadline = doc.get("deadline") as? String ?: ""
+                coverImageUrl = doc.get("coverImageUrl") as? String
+                maxParticipants = (doc.get("maxParticipants") as? Long)?.toInt() ?: 1
+            }
+        } catch (e: Exception) {
+            errorMessage = e.message
+        }
+        isLoading = false
+    }
+
+    if (isLoading) {
+        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+            CircularProgressIndicator()
+        }
+        return
+    }
+
+    ChallengeForm(
+        title = title,
+        onTitleChange = { title = it },
+        description = description,
+        onDescriptionChange = { description = it },
+        category = category,
+        onCategoryChange = { category = it },
+        duration = duration,
+        onDurationChange = { duration = it },
+        points = points,
+        onPointsChange = { points = it },
+        contentTypes = contentTypes,
+        onContentTypesChange = { contentTypes = it },
+        tags = tags,
+        onTagsChange = { tags = it },
+        privacy = privacy,
+        onPrivacyChange = { privacy = it },
+        deadline = deadline,
+        onDeadlineChange = { deadline = it },
+        coverImageBitmap = coverImageBitmap,
+        onCoverImageBitmapChange = { coverImageBitmap = it },
+        coverImageUri = coverImageUri,
+        onCoverImageUriChange = { coverImageUri = it },
+        maxParticipants = maxParticipants,
+        onMaxParticipantsChange = { maxParticipants = it },
+        isLoading = isLoading,
+        errorMessage = errorMessage,
+        buttonText = "Actualizar Desafío",
+        onSubmit = {
+            isLoading = true
+            errorMessage = null
+            scope.launch(Dispatchers.IO) {
+                try {
+                    var imageUrl: String? = coverImageUrl
+                    coverImageUri?.let { uri ->
+                        val inputStream = context.contentResolver.openInputStream(uri)
+                        val bytes = inputStream?.readBytes()
+                        if (bytes != null) {
+                            uploadImageToImgur(bytes, clientId,
+                                onSuccess = { url ->
+                                    imageUrl = url
+                                    updateChallengeInFirestore(
+                                        desafioId, title, description, category, duration, points, contentTypes, tags, privacy, deadline, imageUrl, maxParticipants
+                                    )
+                                    scope.launch {
+                                        withContext(Dispatchers.Main) {
+                                            isLoading = false
+                                            navController.popBackStack()
+                                        }
+                                    }
+                                },
+                                onError = { error ->
+                                    scope.launch {
+                                        withContext(Dispatchers.Main) {
+                                            errorMessage = error
+                                            isLoading = false
+                                        }
+                                    }
+                                }
+                            )
+                        }
+                    } ?: run {
+                        updateChallengeInFirestore(
+                            desafioId, title, description, category, duration, points, contentTypes, tags, privacy, deadline, imageUrl, maxParticipants
+                        )
+                        withContext(Dispatchers.Main) {
+                            isLoading = false
+                            navController.popBackStack()
+                        }
+                    }
+                } catch (e: Exception) {
+                    withContext(Dispatchers.Main) {
+                        errorMessage = e.message
+                        isLoading = false
+                    }
+                }
+            }
+        }
+    )
+}
+
+@Composable
+fun ChallengeForm(
+    title: String,
+    onTitleChange: (String) -> Unit,
+    description: String,
+    onDescriptionChange: (String) -> Unit,
+    category: String,
+    onCategoryChange: (String) -> Unit,
+    duration: String,
+    onDurationChange: (String) -> Unit,
+    points: Int,
+    onPointsChange: (Int) -> Unit,
+    contentTypes: List<String>,
+    onContentTypesChange: (List<String>) -> Unit,
+    tags: String,
+    onTagsChange: (String) -> Unit,
+    privacy: String,
+    onPrivacyChange: (String) -> Unit,
+    deadline: String,
+    onDeadlineChange: (String) -> Unit,
+    coverImageBitmap: android.graphics.Bitmap?,
+    onCoverImageBitmapChange: (android.graphics.Bitmap?) -> Unit,
+    coverImageUri: Uri?,
+    onCoverImageUriChange: (Uri?) -> Unit,
+    maxParticipants: Int,
+    onMaxParticipantsChange: (Int) -> Unit,
+    isLoading: Boolean,
+    errorMessage: String?,
+    buttonText: String,
+    onSubmit: () -> Unit
+) {
+    val context = LocalContext.current
+    val launcher = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri: Uri? ->
+        onCoverImageUriChange(uri)
+        uri?.let {
+            val inputStream: InputStream? = context.contentResolver.openInputStream(it)
+            onCoverImageBitmapChange(BitmapFactory.decodeStream(inputStream))
+        }
+    }
+    val scrollState = rememberScrollState()
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .verticalScroll(scrollState)
+            .padding(16.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Text(if (buttonText == "Actualizar Desafío") "Editar Desafío" else "Crear Desafío", style = MaterialTheme.typography.headlineMedium)
+        Spacer(Modifier.height(16.dp))
+        OutlinedTextField(value = title, onValueChange = onTitleChange, label = { Text("Título") })
+        OutlinedTextField(value = description, onValueChange = onDescriptionChange, label = { Text("Descripción") })
+        OutlinedTextField(value = category, onValueChange = onCategoryChange, label = { Text("Categoría") })
+        OutlinedTextField(value = duration, onValueChange = onDurationChange, label = { Text("Duración") })
+        OutlinedTextField(value = points.toString(), onValueChange = { onPointsChange(it.toIntOrNull() ?: 0) }, label = { Text("Puntos") })
+        OutlinedTextField(value = tags, onValueChange = onTagsChange, label = { Text("Etiquetas (separadas por coma)") })
+        OutlinedTextField(value = deadline, onValueChange = onDeadlineChange, label = { Text("Fecha límite (opcional)") })
+        OutlinedTextField(value = maxParticipants.toString(), onValueChange = { onMaxParticipantsChange(it.toIntOrNull()?.coerceAtLeast(1) ?: 1) }, label = { Text("Número de participantes") })
+        Spacer(Modifier.height(8.dp))
+        Text("Tipos de contenido permitidos para evidencia:", style = MaterialTheme.typography.bodyMedium)
+        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
+            val tipos = listOf("video", "imagen", "texto", "audio")
+            tipos.forEach { tipo ->
+                val seleccionado = contentTypes.contains(tipo)
+                Button(
+                    onClick = {
+                        onContentTypesChange(if (seleccionado) contentTypes - tipo else contentTypes + tipo)
+                    },
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = if (seleccionado) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant,
+                        contentColor = if (seleccionado) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface
+                    ),
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Text(tipo.replaceFirstChar { it.uppercase() })
+                }
+            }
+        }
+        Spacer(Modifier.height(8.dp))
+        Button(onClick = { launcher.launch("image/*") }) {
+            Text("Seleccionar imagen de portada")
+        }
+        coverImageBitmap?.let {
+            Image(bitmap = it.asImageBitmap(), contentDescription = "Imagen de portada", modifier = Modifier.size(120.dp))
+        }
+        Spacer(Modifier.height(16.dp))
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text("Visibilidad: ", style = MaterialTheme.typography.bodyMedium)
+            Switch(
+                checked = privacy == "public",
+                onCheckedChange = { checked -> onPrivacyChange(if (checked) "public" else "private") }
+            )
+            Spacer(Modifier.width(8.dp))
+            Text(if (privacy == "public") "Público" else "Privado", style = MaterialTheme.typography.bodyMedium)
+        }
+        Card(
+            modifier = Modifier.fillMaxWidth().padding(vertical = 16.dp),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+        ) {
+            Column(modifier = Modifier.padding(16.dp)) {
+                Text("Vista Previa del Desafío", style = MaterialTheme.typography.titleMedium)
+                Spacer(Modifier.height(8.dp))
+                coverImageBitmap?.let {
+                    Image(bitmap = it.asImageBitmap(), contentDescription = "Imagen de portada", modifier = Modifier.fillMaxWidth().height(120.dp))
+                }
+                Spacer(Modifier.height(8.dp))
+                Text(title, style = MaterialTheme.typography.titleLarge)
+                Text(description, style = MaterialTheme.typography.bodyMedium)
+                Row(modifier = Modifier.padding(vertical = 8.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    if (category.isNotBlank()) ChipPreview(category)
+                    if (duration.isNotBlank()) ChipPreview(duration)
+                    if (points > 0) ChipPreview("$points pts")
+                }
+                Spacer(Modifier.height(4.dp))
+                Text("Contenido aceptado:", style = MaterialTheme.typography.bodySmall)
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    contentTypes.forEach { tipo ->
+                        ChipPreview(tipo.replaceFirstChar { it.uppercase() })
+                    }
+                }
+                Spacer(Modifier.height(8.dp))
+                Text("Visibilidad: ${if (privacy == "public") "Público" else "Privado"}", style = MaterialTheme.typography.bodySmall)
+            }
+        }
+        Spacer(Modifier.height(16.dp))
+        Button(
+            onClick = onSubmit,
+            enabled = !isLoading
+        ) {
+            Text(if (isLoading) "Guardando..." else buttonText)
+        }
+        errorMessage?.let { Text(it, color = MaterialTheme.colorScheme.error) }
+    }
+}
+
+fun updateChallengeInFirestore(
+    desafioId: String,
+    title: String,
+    description: String,
+    category: String,
+    duration: String,
+    points: Int,
+    contentTypes: List<String>,
+    tags: String,
+    privacy: String,
+    deadline: String?,
+    imageUrl: String?,
+    maxParticipants: Int
+) {
+    val challenge = hashMapOf(
+        "title" to title,
+        "description" to description,
+        "category" to category,
+        "duration" to duration,
+        "points" to points,
+        "contentTypes" to contentTypes,
+        "tags" to tags.split(",").map { it.trim() },
+        "privacy" to privacy,
+        "deadline" to deadline,
+        "coverImageUrl" to imageUrl,
+        "maxParticipants" to maxParticipants
+    )
+    FirebaseFirestore.getInstance().collection("desafios").document(desafioId).update(challenge as Map<String, Any>)
 } 
