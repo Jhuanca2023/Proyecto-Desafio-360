@@ -59,6 +59,7 @@ import android.widget.Toast
 import androidx.compose.material3.TextButton
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.text.AnnotatedString
+import androidx.media3.common.util.UnstableApi
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
@@ -355,6 +356,7 @@ fun EvidenciaPage(
     }
 }
 
+@OptIn(UnstableApi::class)
 @Composable
 fun VideoPlayer(url: String, onLongPress: () -> Unit) {
     val context = LocalContext.current
