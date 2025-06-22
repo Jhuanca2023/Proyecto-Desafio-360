@@ -22,20 +22,36 @@ import coil.compose.AsyncImage
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.viewinterop.AndroidView
 import android.widget.VideoView
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.pager.VerticalPager
+import androidx.compose.foundation.pager.rememberPagerState
+import androidx.compose.material.icons.automirrored.filled.Comment
+import androidx.compose.material.icons.automirrored.filled.Send
+import androidx.compose.material.icons.filled.FavoriteBorder
+import androidx.compose.material.icons.filled.Share
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
+import com.example.redsocial.models.Challenge
+import kotlinx.coroutines.launch
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
 fun HomeScreen(
     onNavigateToExplore: () -> Unit,
     onNavigateToCreate: () -> Unit,
     onNavigateToNotifications: () -> Unit,
-    onNavigateToProfile: () -> Unit
+    onNavigateToProfile: () -> Unit,
+    onNavigateToChallengeDetail: (String) -> Unit
 ) {
     var selectedTab by remember { mutableStateOf(0) }
     var selectedTipo by remember { mutableStateOf("video") }
     var evidencias by remember { mutableStateOf(listOf<Evidencia>()) }
     var isLoading by remember { mutableStateOf(true) }
     var errorMsg by remember { mutableStateOf<String?>(null) }
+    val sheetState = rememberModalBottomSheetState()
+    val scope = rememberCoroutineScope()
+    var showBottomSheet by remember { mutableStateOf(false) }
 
     LaunchedEffect(selectedTipo) {
         isLoading = true
@@ -73,83 +89,218 @@ fun HomeScreen(
                 NavigationBarItem(
                     icon = { Icon(Icons.Default.Home, contentDescription = "Home") },
                     label = { Text("Home") },
-                    selected = selectedTab == 0,
-                    onClick = { selectedTab = 0 }
+                    selected = true,
+                    onClick = { /* Already on Home */ }
                 )
                 NavigationBarItem(
                     icon = { Icon(Icons.Default.Search, contentDescription = "Explorar") },
                     label = { Text("Explorar") },
-                    selected = selectedTab == 1,
-                    onClick = { 
-                        selectedTab = 1
-                        onNavigateToExplore()
-                    }
+                    selected = false,
+                    onClick = onNavigateToExplore
                 )
                 NavigationBarItem(
                     icon = { Icon(Icons.Default.Add, contentDescription = "Crear") },
                     label = { Text("Crear") },
-                    selected = selectedTab == 2,
-                    onClick = { 
-                        selectedTab = 2
-                        onNavigateToCreate()
-                    }
+                    selected = false,
+                    onClick = onNavigateToCreate
                 )
                 NavigationBarItem(
                     icon = { Icon(Icons.Default.Notifications, contentDescription = "Avisos") },
                     label = { Text("Avisos") },
-                    selected = selectedTab == 3,
-                    onClick = { 
-                        selectedTab = 3
-                        onNavigateToNotifications()
-                    }
+                    selected = false,
+                    onClick = onNavigateToNotifications
                 )
                 NavigationBarItem(
                     icon = { Icon(Icons.Default.Person, contentDescription = "Perfil") },
                     label = { Text("Perfil") },
-                    selected = selectedTab == 4,
-                    onClick = { 
-                        selectedTab = 4
-                        onNavigateToProfile()
-                    }
+                    selected = false,
+                    onClick = onNavigateToProfile
                 )
             }
         }
     ) { paddingValues ->
-        Box(modifier = Modifier.padding(paddingValues)) {
-            if (selectedTab == 0) {
-                Column {
-                    Row(
-                        Modifier
-                            .fillMaxWidth()
-                            .padding(8.dp),
-                        horizontalArrangement = Arrangement.SpaceEvenly
-                    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(paddingValues)
+        ) {
+            if (isLoading) {
+                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    CircularProgressIndicator()
+                }
+            } else if (errorMsg != null) {
+                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    Text(errorMsg ?: "Error desconocido", color = MaterialTheme.colorScheme.error)
+                }
+            } else if (evidencias.isEmpty()) {
+                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    Text("No hay contenido disponible.", style = MaterialTheme.typography.titleMedium)
+                }
+            } else {
+                val pagerState = rememberPagerState(pageCount = { evidencias.size })
+                VerticalPager(
+                    state = pagerState,
+                    modifier = Modifier.fillMaxSize()
+                ) { page ->
+                    EvidenciaPage(
+                        evidencia = evidencias[page],
+                        onNavigateToChallengeDetail = onNavigateToChallengeDetail,
+                        onCategoryClick = {
+                            showBottomSheet = true
+                        }
+                    )
+                }
+            }
+
+            if (showBottomSheet) {
+                ModalBottomSheet(
+                    onDismissRequest = {
+                        showBottomSheet = false
+                    },
+                    sheetState = sheetState
+                ) {
+                    Column(Modifier.padding(16.dp)) {
+                        Text("Categorías", style = MaterialTheme.typography.titleLarge, modifier = Modifier.padding(bottom = 16.dp))
                         listOf("video", "imagen", "texto", "audio").forEach { tipo ->
-                            Button(
-                                onClick = { selectedTipo = tipo },
-                                colors = ButtonDefaults.buttonColors(
-                                    containerColor = if (selectedTipo == tipo) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant
-                                )
+                            TextButton(
+                                onClick = {
+                                    selectedTipo = tipo
+                                    scope.launch { sheetState.hide() }.invokeOnCompletion {
+                                        if (!sheetState.isVisible) {
+                                            showBottomSheet = false
+                                        }
+                                    }
+                                },
+                                modifier = Modifier.fillMaxWidth()
                             ) {
                                 Text(tipo.replaceFirstChar { it.uppercase() })
                             }
                         }
                     }
-                    if (isLoading) {
-                        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                            CircularProgressIndicator()
-                        }
-                    } else if (errorMsg != null) {
-                        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                            Text(errorMsg ?: "Error desconocido", color = MaterialTheme.colorScheme.error)
-                        }
-                    } else {
-                        EvidenciasFeed(evidencias)
-                    }
                 }
             }
         }
     }
+}
+
+@Composable
+fun EvidenciaPage(
+    evidencia: Evidencia,
+    onNavigateToChallengeDetail: (String) -> Unit,
+    onCategoryClick: () -> Unit
+) {
+    var challenge by remember { mutableStateOf<Challenge?>(null) }
+
+    LaunchedEffect(evidencia.challengeId) {
+        val db = FirebaseFirestore.getInstance()
+        val challengeDoc = db.collection("desafios").document(evidencia.challengeId).get().await()
+        challenge = challengeDoc.toObject(Challenge::class.java)?.copy(id = challengeDoc.id)
+    }
+
+    Box(modifier = Modifier.fillMaxSize()) {
+        // Background Media (Video/Image)
+        when (evidencia.tipo) {
+            "video" -> evidencia.url?.let { VideoPlayer(url = it) }
+            "imagen" -> evidencia.url?.let {
+                AsyncImage(
+                    model = it,
+                    contentDescription = "Imagen de evidencia",
+                    modifier = Modifier.fillMaxSize(),
+                    contentScale = ContentScale.Crop
+                )
+            }
+            "texto" -> {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(16.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(evidencia.texto ?: "", style = MaterialTheme.typography.headlineMedium, color = Color.White)
+                }
+            }
+        }
+
+        // UI Overlay
+        Row(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(16.dp),
+            verticalAlignment = Alignment.Bottom
+        ) {
+            // Left side: Challenge Info & Actions
+            Column(modifier = Modifier.weight(1f)) {
+                challenge?.let {
+                    Text(
+                        text = it.title,
+                        color = Color.White,
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = "By @${evidencia.userName}",
+                        color = Color.White,
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                }
+                Spacer(modifier = Modifier.height(16.dp))
+                Row {
+                    Button(onClick = { onNavigateToChallengeDetail(evidencia.challengeId) }) {
+                        Text("Participate")
+                    }
+                    Spacer(Modifier.width(8.dp))
+                    Button(onClick = onCategoryClick) {
+                        Text("Category")
+                    }
+                }
+            }
+
+            // Right side: Social Actions
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                IconButton(onClick = { /* TODO */ }) {
+                    Icon(Icons.Default.FavoriteBorder, contentDescription = "Like", tint = Color.White, modifier = Modifier.size(32.dp))
+                }
+                Text("2.3k", color = Color.White)
+                Spacer(Modifier.height(16.dp))
+
+                IconButton(onClick = { /* TODO */ }) {
+                    Icon(Icons.AutoMirrored.Filled.Comment, contentDescription = "Comment", tint = Color.White, modifier = Modifier.size(32.dp))
+                }
+                Text("1.2k", color = Color.White)
+                Spacer(Modifier.height(16.dp))
+
+                IconButton(onClick = { /* TODO */ }) {
+                    Icon(Icons.AutoMirrored.Filled.Send, contentDescription = "Send", tint = Color.White, modifier = Modifier.size(32.dp))
+                }
+                Text("500", color = Color.White)
+                Spacer(Modifier.height(16.dp))
+
+                IconButton(onClick = { /* TODO */ }) {
+                    Icon(Icons.Default.Share, contentDescription = "Share", tint = Color.White, modifier = Modifier.size(32.dp))
+                }
+                 Text("100", color = Color.White)
+            }
+        }
+    }
+}
+
+@Composable
+fun VideoPlayer(url: String) {
+    val context = LocalContext.current
+    val videoView = remember {
+        VideoView(context).apply {
+            setVideoPath(url)
+            setOnPreparedListener { mp ->
+                mp.isLooping = true
+                mp.start()
+            }
+        }
+    }
+    AndroidView(
+        factory = { videoView },
+        modifier = Modifier.fillMaxSize()
+    )
 }
 
 @Composable

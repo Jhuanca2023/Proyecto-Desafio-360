@@ -40,7 +40,10 @@ fun AppNavigation(authViewModel: AuthViewModel) {
                 onNavigateToExplore = { navController.navigate("explore") },
                 onNavigateToCreate = { navController.navigate("create") },
                 onNavigateToNotifications = { navController.navigate("notifications") },
-                onNavigateToProfile = { navController.navigate("profile") }
+                onNavigateToProfile = { navController.navigate("profile") },
+                onNavigateToChallengeDetail = { challengeId ->
+                    navController.navigate("detalleDesafio/$challengeId")
+                }
             )
         }
 
