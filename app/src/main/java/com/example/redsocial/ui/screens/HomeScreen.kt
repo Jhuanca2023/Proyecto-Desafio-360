@@ -27,13 +27,19 @@ import androidx.compose.foundation.pager.VerticalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.material.icons.automirrored.filled.Comment
 import androidx.compose.material.icons.automirrored.filled.Send
+import androidx.compose.material.icons.filled.BookmarkBorder
 import androidx.compose.material.icons.filled.FavoriteBorder
-import androidx.compose.material.icons.filled.Share
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import com.example.redsocial.models.Challenge
 import kotlinx.coroutines.launch
+import androidx.compose.runtime.DisposableEffect
+import androidx.media3.common.MediaItem
+import androidx.media3.common.Player
+import androidx.media3.exoplayer.ExoPlayer
+import androidx.media3.ui.AspectRatioFrameLayout
+import androidx.media3.ui.PlayerView
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
@@ -262,22 +268,22 @@ fun EvidenciaPage(
                     Icon(Icons.Default.FavoriteBorder, contentDescription = "Like", tint = Color.White, modifier = Modifier.size(32.dp))
                 }
                 Text("2.3k", color = Color.White)
-                Spacer(Modifier.height(16.dp))
+                Spacer(Modifier.height(24.dp))
 
                 IconButton(onClick = { /* TODO */ }) {
                     Icon(Icons.AutoMirrored.Filled.Comment, contentDescription = "Comment", tint = Color.White, modifier = Modifier.size(32.dp))
                 }
                 Text("1.2k", color = Color.White)
-                Spacer(Modifier.height(16.dp))
+                Spacer(Modifier.height(24.dp))
 
                 IconButton(onClick = { /* TODO */ }) {
                     Icon(Icons.AutoMirrored.Filled.Send, contentDescription = "Send", tint = Color.White, modifier = Modifier.size(32.dp))
                 }
                 Text("500", color = Color.White)
-                Spacer(Modifier.height(16.dp))
+                Spacer(Modifier.height(24.dp))
 
                 IconButton(onClick = { /* TODO */ }) {
-                    Icon(Icons.Default.Share, contentDescription = "Share", tint = Color.White, modifier = Modifier.size(32.dp))
+                    Icon(Icons.Default.BookmarkBorder, contentDescription = "Save", tint = Color.White, modifier = Modifier.size(32.dp))
                 }
                  Text("100", color = Color.White)
             }
@@ -288,17 +294,29 @@ fun EvidenciaPage(
 @Composable
 fun VideoPlayer(url: String) {
     val context = LocalContext.current
-    val videoView = remember {
-        VideoView(context).apply {
-            setVideoPath(url)
-            setOnPreparedListener { mp ->
-                mp.isLooping = true
-                mp.start()
-            }
+    val exoPlayer = remember {
+        ExoPlayer.Builder(context).build().apply {
+            setMediaItem(MediaItem.fromUri(url))
+            prepare()
+            playWhenReady = true
+            repeatMode = Player.REPEAT_MODE_ONE
         }
     }
+
+    DisposableEffect(Unit) {
+        onDispose {
+            exoPlayer.release()
+        }
+    }
+
     AndroidView(
-        factory = { videoView },
+        factory = {
+            PlayerView(it).apply {
+                player = exoPlayer
+                useController = false
+                resizeMode = AspectRatioFrameLayout.RESIZE_MODE_ZOOM
+            }
+        },
         modifier = Modifier.fillMaxSize()
     )
 }
