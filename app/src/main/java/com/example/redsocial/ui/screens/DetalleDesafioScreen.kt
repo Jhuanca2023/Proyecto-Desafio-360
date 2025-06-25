@@ -152,7 +152,7 @@ fun DetalleDesafioScreen(challengeId: String, navController: NavController) {
                 Text(
                     text = "Creado por @${data["authorName"] as? String ?: "Usuario"}",
                     color = Color.Gray,
-                    modifier = Modifier.clickable { navController.navigate("profile/${data["authorId"] as? String ?: ""}") }
+                    modifier = Modifier.clickable { navController.navigate("userProfile/${data["authorId"] as? String ?: ""}") }
                 )
                 Spacer(Modifier.height(8.dp))
                 Row(verticalAlignment = Alignment.CenterVertically) {

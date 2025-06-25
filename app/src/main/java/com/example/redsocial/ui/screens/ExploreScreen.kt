@@ -265,7 +265,11 @@ fun ChallengePreviewCardFirestore(
                     text = "Por: @${challenge.nombreUsuario}",
                     style = MaterialTheme.typography.bodySmall,
                     color = Color(0xFFA259FF),
-                    modifier = Modifier.padding(bottom = 4.dp)
+                    modifier = Modifier
+                        .padding(bottom = 4.dp)
+                        .clickable {
+                            navController.navigate("userProfile/${challenge.authorId}")
+                        }
                 )
                 Row(Modifier.padding(bottom = 8.dp)) {
                     challenge.tags.forEach { tag ->
