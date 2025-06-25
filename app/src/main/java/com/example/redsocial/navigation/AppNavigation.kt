@@ -40,7 +40,10 @@ fun AppNavigation(authViewModel: AuthViewModel) {
                 onNavigateToExplore = { navController.navigate("explore") },
                 onNavigateToCreate = { navController.navigate("create") },
                 onNavigateToNotifications = { navController.navigate("notifications") },
-                onNavigateToProfile = { navController.navigate("profile") }
+                onNavigateToProfile = { navController.navigate("profile") },
+                onNavigateToChallengeDetail = { challengeId ->
+                    navController.navigate("detalleDesafio/$challengeId")
+                }
             )
         }
 
@@ -85,6 +88,16 @@ fun AppNavigation(authViewModel: AuthViewModel) {
         composable("detalleDesafio/{challengeId}") { backStackEntry ->
             val challengeId = backStackEntry.arguments?.getString("challengeId") ?: ""
             DetalleDesafioScreen(challengeId = challengeId, navController = navController)
+        }
+
+        composable("editarDesafio/{desafioId}") { backStackEntry ->
+            val desafioId = backStackEntry.arguments?.getString("desafioId") ?: ""
+            EditChallengeScreen(desafioId = desafioId, navController = navController)
+        }
+
+        composable("userProfile/{userId}") { backStackEntry ->
+            val userId = backStackEntry.arguments?.getString("userId") ?: ""
+            UserProfileScreen(userId = userId, navController = navController)
         }
     }
 } 

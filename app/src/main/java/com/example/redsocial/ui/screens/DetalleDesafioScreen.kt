@@ -30,6 +30,8 @@ import com.example.redsocial.models.Evidencia
 import com.google.firebase.auth.FirebaseAuth
 
 import androidx.compose.ui.window.Dialog
+import androidx.compose.material.icons.filled.FavoriteBorder
+import com.example.redsocial.ui.components.CommentsDialog
 
 @Composable
 fun DetalleDesafioScreen(challengeId: String, navController: NavController) {
@@ -37,12 +39,32 @@ fun DetalleDesafioScreen(challengeId: String, navController: NavController) {
     var isLoading by remember { mutableStateOf(true) }
     var showEnviarEvidencia by remember { mutableStateOf(false) }
     var participaciones by remember { mutableStateOf<List<Evidencia>>(emptyList()) }
+    var showComments by remember { mutableStateOf(false) }
+    var currentLikes by remember { mutableStateOf(0) }
+    var isLiked by remember { mutableStateOf(false) }
+    var currentComments by remember { mutableStateOf(0) }
+    val currentUser = FirebaseAuth.getInstance().currentUser
+    val db = FirebaseFirestore.getInstance()
 
     LaunchedEffect(challengeId) {
         isLoading = true
-        val db = FirebaseFirestore.getInstance()
         val doc = db.collection("desafios").document(challengeId).get().await()
         challenge = doc.data
+        
+        // Obtener likes y comentarios actuales
+        currentLikes = (doc.data?.get("likes") as? Long)?.toInt() ?: 0
+        currentComments = (doc.data?.get("comments") as? Long)?.toInt() ?: 0
+        
+        // Verificar si el usuario actual ya dio like
+        if (currentUser != null) {
+            val likeDoc = db.collection("desafios")
+                .document(challengeId)
+                .collection("likes")
+                .document(currentUser.uid)
+                .get()
+                .await()
+            isLiked = likeDoc.exists()
+        }
 
         // Obtener participaciones recientes
         val evidenciasSnapshot = db.collection("evidencias")
@@ -65,6 +87,39 @@ fun DetalleDesafioScreen(challengeId: String, navController: NavController) {
         }.sortedByDescending { it.timestamp }
 
         isLoading = false
+    }
+
+    // Función para manejar like/unlike
+    fun handleLike() {
+        if (currentUser == null) return
+        
+        val likeRef = db.collection("desafios")
+            .document(challengeId)
+            .collection("likes")
+            .document(currentUser.uid)
+        
+        if (isLiked) {
+            // Quitar like
+            likeRef.delete().addOnSuccessListener {
+                db.collection("desafios")
+                    .document(challengeId)
+                    .update("likes", currentLikes - 1)
+                isLiked = false
+                currentLikes--
+            }
+        } else {
+            // Dar like
+            likeRef.set(hashMapOf(
+                "userId" to currentUser.uid,
+                "timestamp" to System.currentTimeMillis()
+            )).addOnSuccessListener {
+                db.collection("desafios")
+                    .document(challengeId)
+                    .update("likes", currentLikes + 1)
+                isLiked = true
+                currentLikes++
+            }
+        }
     }
 
     if (isLoading) {
@@ -97,7 +152,7 @@ fun DetalleDesafioScreen(challengeId: String, navController: NavController) {
                 Text(
                     text = "Creado por @${data["authorName"] as? String ?: "Usuario"}",
                     color = Color.Gray,
-                    modifier = Modifier.clickable { navController.navigate("profile/${data["authorId"] as? String ?: ""}") }
+                    modifier = Modifier.clickable { navController.navigate("userProfile/${data["authorId"] as? String ?: ""}") }
                 )
                 Spacer(Modifier.height(8.dp))
                 Row(verticalAlignment = Alignment.CenterVertically) {
@@ -115,11 +170,27 @@ fun DetalleDesafioScreen(challengeId: String, navController: NavController) {
                 Text(data["description"] as? String ?: "")
                 Spacer(Modifier.height(8.dp))
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(Icons.Default.Favorite, contentDescription = "Likes")
-                    Text("${(data["likes"] as? Long ?: 0)}")
+                    IconButton(
+                        onClick = { handleLike() }
+                    ) {
+                        Icon(
+                            if (isLiked) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
+                            contentDescription = "Likes",
+                            tint = if (isLiked) Color(0xFFFF4081) else Color(0xFFA259FF)
+                        )
+                    }
+                    Text("$currentLikes")
                     Spacer(Modifier.width(16.dp))
-                    Icon(Icons.AutoMirrored.Filled.Comment, contentDescription = "Comentarios")
-                    Text("${(data["comments"] as? Long ?: 0)}")
+                    IconButton(
+                        onClick = { showComments = true }
+                    ) {
+                        Icon(
+                            Icons.AutoMirrored.Filled.Comment,
+                            contentDescription = "Comentarios",
+                            tint = Color(0xFFA259FF)
+                        )
+                    }
+                    Text("$currentComments")
                 }
                 Spacer(Modifier.height(8.dp))
                 Text("Reglas", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
@@ -201,6 +272,15 @@ fun DetalleDesafioScreen(challengeId: String, navController: NavController) {
                         )
                     }
                 }
+            }
+            if (showComments) {
+                CommentsDialog(
+                    challengeId = challengeId,
+                    onDismiss = { showComments = false },
+                    onUserProfileClick = { userId ->
+                        navController.navigate("userProfile/$userId")
+                    }
+                )
             }
         }
     }

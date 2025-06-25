@@ -15,6 +15,8 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.NavType
+import androidx.navigation.navArgument
 import com.example.redsocial.navigation.NavigationItem
 import com.example.redsocial.viewmodel.AuthViewModel
 
@@ -77,7 +79,10 @@ fun NavigationGraph(
                 onNavigateToExplore = { navController.navigate(NavigationItem.Explore.route) },
                 onNavigateToCreate = { navController.navigate(NavigationItem.Create.route) },
                 onNavigateToNotifications = { navController.navigate(NavigationItem.Notifications.route) },
-                onNavigateToProfile = { navController.navigate(NavigationItem.Profile.route) }
+                onNavigateToProfile = { navController.navigate(NavigationItem.Profile.route) },
+                onNavigateToChallengeDetail = { challengeId ->
+                    navController.navigate("detalleDesafio/$challengeId")
+                }
             )
         }
         composable(NavigationItem.Explore.route) {
@@ -116,6 +121,15 @@ fun NavigationGraph(
                     }
                 }
             )
+        }
+        composable(
+            route = "detalleDesafio/{challengeId}",
+            arguments = listOf(navArgument("challengeId") { type = NavType.StringType })
+        ) { backStackEntry ->
+            val challengeId = backStackEntry.arguments?.getString("challengeId")
+            if (challengeId != null) {
+                DetalleDesafioScreen(challengeId = challengeId, navController = navController)
+            }
         }
     }
 } 
