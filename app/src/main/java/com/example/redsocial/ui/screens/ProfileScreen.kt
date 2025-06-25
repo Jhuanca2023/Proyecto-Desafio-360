@@ -2,6 +2,9 @@ package com.example.redsocial.ui.screens
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.clickable
+import androidx.compose.ui.draw.clip
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material.icons.filled.ExitToApp
@@ -38,6 +41,13 @@ import androidx.compose.ui.platform.LocalContext
 import kotlinx.coroutines.launch
 import androidx.compose.foundation.ExperimentalFoundationApi
 import com.example.redsocial.models.Evidencia
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import android.graphics.BitmapFactory
+import java.io.InputStream
+import com.example.redsocial.utils.uploadImageToImgur
+import android.util.Base64
+import androidx.compose.ui.layout.ContentScale
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
@@ -127,6 +137,66 @@ fun ProfileScreen(
                 fontWeight = FontWeight.Bold,
                 modifier = Modifier.padding(vertical = 24.dp)
             )
+
+            // FOTO DE PERFIL EDITABLE
+            var isUploading by remember { mutableStateOf(false) }
+            var errorMsg by remember { mutableStateOf<String?>(null) }
+            val clientId = "e88c7011ed88321" // Imgur
+            val currentPhotoUrl = userData?.get("photoUrl") as? String
+            val launcher = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
+                if (uri != null) {
+                    isUploading = true
+                    errorMsg = null
+                    try {
+                        val inputStream: InputStream? = context.contentResolver.openInputStream(uri)
+                        val bytes = inputStream?.readBytes()
+                        inputStream?.close()
+                        if (bytes != null) {
+                            uploadImageToImgur(
+                                imageBytes = bytes,
+                                clientId = clientId,
+                                onSuccess = { imageUrl ->
+                                    authViewModel.updateProfilePhoto(imageUrl,
+                                        onSuccess = { isUploading = false },
+                                        onError = { msg ->
+                                            isUploading = false
+                                            errorMsg = msg
+                                        }
+                                    )
+                                },
+                                onError = { msg ->
+                                    isUploading = false
+                                    errorMsg = msg
+                                }
+                            )
+                        } else {
+                            isUploading = false
+                            errorMsg = "No se pudo leer la imagen"
+                        }
+                    } catch (e: Exception) {
+                        isUploading = false
+                        errorMsg = "Error al procesar la imagen: ${e.message}"
+                    }
+                }
+            }
+            Box(contentAlignment = Alignment.Center) {
+                AsyncImage(
+                    model = currentPhotoUrl,
+                    contentDescription = "Foto de perfil",
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier
+                        .size(110.dp)
+                        .clip(CircleShape)
+                        .background(Color(0xFFA259FF))
+                        .clickable(enabled = !isUploading) { launcher.launch("image/*") }
+                )
+                if (isUploading) {
+                    CircularProgressIndicator(modifier = Modifier.size(40.dp), color = Color.White)
+                }
+            }
+            if (errorMsg != null) {
+                Text(errorMsg!!, color = Color.Red, fontSize = 14.sp)
+            }
 
             // Información del usuario
             userData?.let { data ->

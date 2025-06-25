@@ -29,6 +29,9 @@ import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.tasks.await
 import com.example.redsocial.models.Evidencia
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.layout.ContentScale
 
 @Composable
 fun UserProfileScreen(
@@ -150,12 +153,11 @@ fun UserProfileScreen(
                             AsyncImage(
                                 model = data["photoUrl"] as? String,
                                 contentDescription = "Avatar",
+                                contentScale = ContentScale.Crop,
                                 modifier = Modifier
-                                    .size(100.dp)
-                                    .background(
-                                        Color(0xFFA259FF),
-                                        shape = RoundedCornerShape(50.dp)
-                                    )
+                                    .size(110.dp)
+                                    .clip(CircleShape)
+                                    .background(Color(0xFFA259FF))
                             )
                             
                             Spacer(modifier = Modifier.height(16.dp))
