@@ -468,6 +468,34 @@ class AuthViewModel(app: Application) : AndroidViewModel(app) {
         }
     }
 
+    fun updateProfilePhoto(photoUrl: String, onSuccess: () -> Unit = {}, onError: (String) -> Unit = {}) {
+        val user = auth.currentUser
+        if (user == null) {
+            _mensaje.value = "No hay usuario autenticado"
+            onError("No hay usuario autenticado")
+            return
+        }
+        viewModelScope.launch {
+            try {
+                db.collection(RedSocialApp.COLLECTION_USUARIOS)
+                    .document(user.uid)
+                    .update("photoUrl", photoUrl)
+                    .await()
+                _mensaje.value = "Foto de perfil actualizada"
+                // Actualizar el userData local
+                val snapshot = db.collection(RedSocialApp.COLLECTION_USUARIOS)
+                    .document(user.uid)
+                    .get()
+                    .await()
+                _userData.value = snapshot.data
+                onSuccess()
+            } catch (e: Exception) {
+                _mensaje.value = "Error al actualizar la foto: ${e.message}"
+                onError(e.message ?: "Error al actualizar la foto")
+            }
+        }
+    }
+
     companion object {
         const val GITHUB_CLIENT_ID = "Ov23liuuRo44QfJdMfzL"
         private const val GITHUB_CLIENT_SECRET = "c8d8c444b95532ecf5e55dc78de362f7b0800d84"
