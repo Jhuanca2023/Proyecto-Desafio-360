@@ -1,0 +1,12 @@
+package com.example.redsocial.models
+
+data class Evidencia(
+    val id: String = "",
+    val challengeId: String = "",
+    val userId: String = "",
+    val userName: String = "",
+    val tipo: String = "", // video, imagen, texto, audio
+    val url: String? = null, // para imagen/video/audio
+    val texto: String? = null, // para texto
+    val timestamp: Long = System.currentTimeMillis()
+) 

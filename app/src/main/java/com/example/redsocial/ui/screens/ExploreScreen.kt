@@ -23,6 +23,14 @@ import androidx.compose.material.icons.filled.Comment
 import androidx.navigation.NavController
 import androidx.compose.foundation.clickable
 import com.example.redsocial.ui.components.CommentsDialog
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.unit.sp
+import androidx.compose.foundation.background
+import androidx.compose.ui.draw.clip
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.automirrored.filled.ArrowForward
+import androidx.compose.material.icons.filled.FavoriteBorder
 
 @Composable
 fun ExploreScreen(navController: NavController) {
@@ -63,7 +71,7 @@ fun ExploreScreen(navController: NavController) {
         (selectedDuration == null || challenge.duration.equals(selectedDuration, ignoreCase = true)) &&
         (searchQuery.isEmpty() || challenge.title.contains(searchQuery, ignoreCase = true) || challenge.nombreUsuario.contains(searchQuery, ignoreCase = true))
     }
-
+    
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -128,8 +136,21 @@ fun ChallengePreviewCardFirestore(
     var currentLikes by remember { mutableStateOf(challenge.likes) }
     var currentComments by remember { mutableStateOf(challenge.comments) }
     var isLiked by remember { mutableStateOf(false) }
+    var participantes by remember { mutableStateOf<List<String>>(emptyList()) }
     val currentUser = FirebaseAuth.getInstance().currentUser
     val db = FirebaseFirestore.getInstance()
+
+    // Obtener lista de participantes
+    LaunchedEffect(challenge.id) {
+        val snapshot = db.collection("evidencias")
+            .whereEqualTo("challengeId", challenge.id)
+            .get()
+            .await()
+        
+        participantes = snapshot.documents.mapNotNull { doc ->
+            doc.getString("userName")
+        }
+    }
 
     // Verificar si el usuario actual ya dio like
     LaunchedEffect(challenge.id, currentUser?.uid) {
@@ -165,88 +186,141 @@ fun ChallengePreviewCardFirestore(
             }
     }
 
+    // Función para manejar like/unlike
+    fun handleLike() {
+        if (currentUser == null) return
+        
+        val likeRef = db.collection("desafios")
+            .document(challenge.id)
+            .collection("likes")
+            .document(currentUser.uid)
+        
+        if (isLiked) {
+            // Quitar like
+            likeRef.delete().addOnSuccessListener {
+                db.collection("desafios")
+                    .document(challenge.id)
+                    .update("likes", currentLikes - 1)
+                isLiked = false
+            }
+        } else {
+            // Dar like
+            likeRef.set(hashMapOf(
+                "userId" to currentUser.uid,
+                "timestamp" to System.currentTimeMillis()
+            )).addOnSuccessListener {
+                db.collection("desafios")
+                    .document(challenge.id)
+                    .update("likes", currentLikes + 1)
+                isLiked = true
+            }
+        }
+    }
+
     Card(
-        modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(Color(0xFF18122B), shape = RoundedCornerShape(20.dp))
+            .padding(2.dp),
+        colors = CardDefaults.cardColors(containerColor = Color(0xFF18122B)),
+        shape = RoundedCornerShape(20.dp),
+        elevation = CardDefaults.cardElevation(6.dp)
     ) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            challenge.coverImageUrl?.let { url ->
-                AsyncImage(
-                    model = url,
-                    contentDescription = "Imagen de portada",
-                    modifier = Modifier.fillMaxWidth().height(160.dp)
-                )
-            }
-            Row(
-                Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                Text(challenge.title, style = MaterialTheme.typography.titleLarge)
-                ChipPreview("${challenge.points} pts")
-            }
-            Spacer(Modifier.height(4.dp))
-            Text(
-                text = "Por: @${challenge.nombreUsuario}",
-                style = MaterialTheme.typography.bodySmall,
-                modifier = Modifier.clickable { navController.navigate("profile/${challenge.authorId}") }
-            )
-            Row(Modifier.padding(vertical = 4.dp)) {
-                challenge.tags.forEach { tag ->
-                    ChipPreview(tag)
-                    Spacer(Modifier.width(4.dp))
-                }
-            }
-            Row(
-                Modifier.padding(vertical = 4.dp),
-                horizontalArrangement = Arrangement.spacedBy(16.dp)
-            ) {
-                IconButton(
-                    onClick = {
-                        if (currentUser != null) {
-                            val likesRef = db.collection("desafios").document(challenge.id)
-                            val userLikeRef = likesRef.collection("likes").document(currentUser.uid)
-                            
-                            if (isLiked) {
-                                // Quitar like
-                                db.runTransaction { transaction ->
-                                    val snapshot = transaction.get(likesRef)
-                                    val currentLikes = snapshot.getLong("likes") ?: 0
-                                    transaction.update(likesRef, "likes", currentLikes - 1)
-                                    transaction.delete(userLikeRef)
-                                }
-                                isLiked = false
-                            } else {
-                                // Dar like
-                                db.runTransaction { transaction ->
-                                    val snapshot = transaction.get(likesRef)
-                                    val currentLikes = snapshot.getLong("likes") ?: 0
-                                    transaction.update(likesRef, "likes", currentLikes + 1)
-                                    transaction.set(userLikeRef, mapOf("timestamp" to System.currentTimeMillis()))
-                                }
-                                isLiked = true
-                            }
-                        }
-                    }
-                ) {
-                    Icon(
-                        Icons.Default.Favorite,
-                        contentDescription = "Likes",
-                        tint = if (isLiked) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
+        Column(modifier = Modifier.padding(0.dp)) {
+            Box(modifier = Modifier.fillMaxWidth()) {
+                challenge.coverImageUrl?.let { url ->
+                    AsyncImage(
+                        model = url,
+                        contentDescription = "Imagen de portada",
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(180.dp)
+                            .clip(RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp))
                     )
                 }
-                Text("$currentLikes")
-                IconButton(
-                    onClick = { showComments = true }
+                Surface(
+                    color = Color(0xFFA259FF),
+                    shape = RoundedCornerShape(50),
+                    shadowElevation = 4.dp,
+                    modifier = Modifier
+                        .align(Alignment.TopEnd)
+                        .padding(12.dp)
                 ) {
-                    Icon(Icons.Default.Comment, contentDescription = "Comentarios")
+                    Text(
+                        "${challenge.points} pts",
+                        color = Color.White,
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)
+                    )
                 }
-                Text("$currentComments")
             }
-            Button(
-                onClick = { onVerDesafio(challenge.id) },
-                modifier = Modifier.fillMaxWidth().padding(top = 8.dp)
-            ) {
-                Text("Ver Desafío →")
+            Column(modifier = Modifier.padding(16.dp)) {
+                Text(
+                    challenge.title,
+                    style = MaterialTheme.typography.titleLarge,
+                    color = Color.White,
+                    fontWeight = FontWeight.Bold
+                )
+                Text(
+                    text = "Por: @${challenge.nombreUsuario}",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = Color(0xFFA259FF),
+                    modifier = Modifier
+                        .padding(bottom = 4.dp)
+                        .clickable {
+                            navController.navigate("userProfile/${challenge.authorId}")
+                        }
+                )
+                Row(Modifier.padding(bottom = 8.dp)) {
+                    challenge.tags.forEach { tag ->
+                        ChipPreview(tag)
+                        Spacer(Modifier.width(4.dp))
+                    }
+                    if (challenge.duration.isNotBlank()) {
+                        ChipPreview(challenge.duration)
+                    }
+                }
+                Row(
+                    Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(24.dp)
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        IconButton(
+                            onClick = { handleLike() }
+                        ) {
+                            Icon(
+                                if (isLiked) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
+                                contentDescription = "Likes",
+                                tint = if (isLiked) Color(0xFFFF4081) else Color(0xFFA259FF)
+                            )
+                        }
+                        Spacer(Modifier.width(4.dp))
+                        Text("$currentLikes", color = Color.White)
+                    }
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        IconButton(
+                            onClick = { showComments = true }
+                        ) {
+                            Icon(
+                                Icons.Default.Comment,
+                                contentDescription = "Comentarios",
+                                tint = Color(0xFFA259FF)
+                            )
+                        }
+                        Spacer(Modifier.width(4.dp))
+                        Text("$currentComments", color = Color.White)
+                    }
+                }
+                Divider(color = Color(0xFFA259FF), thickness = 1.dp, modifier = Modifier.padding(vertical = 12.dp))
+                Button(
+                    onClick = { onVerDesafio(challenge.id) },
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFA259FF)),
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    Text("Ver Desafío", color = Color.White, modifier = Modifier.weight(1f))
+                    Icon(Icons.AutoMirrored.Filled.ArrowForward, contentDescription = null, tint = Color.White)
+                }
             }
         }
     }
@@ -254,7 +328,10 @@ fun ChallengePreviewCardFirestore(
     if (showComments) {
         CommentsDialog(
             challengeId = challenge.id,
-            onDismiss = { showComments = false }
+            onDismiss = { showComments = false },
+            onUserProfileClick = { userId ->
+                navController.navigate("userProfile/$userId")
+            }
         )
     }
 }
@@ -372,4 +449,4 @@ fun DurationSection(onDurationSelected: (String) -> Unit) {
             }
         }
     }
-} 
+}
