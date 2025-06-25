@@ -31,6 +31,37 @@ import androidx.compose.foundation.verticalScroll
 import androidx.navigation.NavController
 import kotlinx.coroutines.tasks.await
 import kotlinx.coroutines.withContext
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.Send
+import androidx.compose.material.Icon
+import androidx.compose.material.IconButton
+import androidx.compose.material.OutlinedTextField
+import androidx.compose.material.TextFieldDefaults
+import androidx.compose.ui.graphics.Color
+import androidx.compose.foundation.background
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.sp
+import androidx.compose.foundation.clickable
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.draw.clip
+import coil.compose.AsyncImage
+import androidx.compose.material3.ExperimentalMaterial3Api
+
+// Declarar fuera del Composable para evitar problemas de scope y reasignación
+private val visibilityOptions = listOf(
+    Pair("public", "Público (Visible para todos)"),
+    Pair("friends", "Solo amigos (Visibles solo para tus amigos)")
+)
+private val visibilityIcons = mapOf(
+    "public" to Icons.Default.Public,
+    "friends" to Icons.Default.Group
+)
 
 @Composable
 fun CreateScreen() {
@@ -53,6 +84,7 @@ fun CreateScreen() {
     var isLoading by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
     var maxParticipants by remember { mutableStateOf(1) }
+    var expandedVisibility by remember { mutableStateOf(false) }
 
     // Selector de imagen
     val launcher = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri: Uri? ->
@@ -68,94 +100,258 @@ fun CreateScreen() {
         modifier = Modifier
             .fillMaxSize()
             .verticalScroll(scrollState)
+            .background(Color(0xFF18122B))
             .padding(16.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Text("Crear Desafío", style = MaterialTheme.typography.headlineMedium)
-        Spacer(Modifier.height(16.dp))
-
-        OutlinedTextField(value = title, onValueChange = { title = it }, label = { Text("Título") })
-        OutlinedTextField(value = description, onValueChange = { description = it }, label = { Text("Descripción") })
-        OutlinedTextField(value = category, onValueChange = { category = it }, label = { Text("Categoría") })
-        OutlinedTextField(value = duration, onValueChange = { duration = it }, label = { Text("Duración") })
-        OutlinedTextField(value = points.toString(), onValueChange = { points = it.toIntOrNull() ?: 0 }, label = { Text("Puntos") })
-        OutlinedTextField(value = tags, onValueChange = { tags = it }, label = { Text("Etiquetas (separadas por coma)") })
-        OutlinedTextField(value = deadline, onValueChange = { deadline = it }, label = { Text("Fecha límite (opcional)") })
-        OutlinedTextField(value = maxParticipants.toString(), onValueChange = { maxParticipants = it.toIntOrNull()?.coerceAtLeast(1) ?: 1 }, label = { Text("Número de participantes") })
-        // Selector de tipos de contenido permitidos
+        Text(
+            "Crear Desafío",
+            style = MaterialTheme.typography.headlineMedium,
+            color = Color(0xFFA259FF),
+            modifier = Modifier.padding(bottom = 16.dp)
+        )
+        OutlinedTextField(
+            value = title,
+            onValueChange = { title = it },
+            label = { Text("Título", color = Color.Gray) },
+            leadingIcon = { Icon(Icons.Default.Star, contentDescription = null, tint = Color(0xFFA259FF)) },
+            modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp),
+            colors = TextFieldDefaults.outlinedTextFieldColors(
+                textColor = Color.White,
+                focusedBorderColor = Color(0xFFA259FF),
+                unfocusedBorderColor = Color.Gray
+            )
+        )
+        OutlinedTextField(
+            value = description,
+            onValueChange = { description = it },
+            label = { Text("Descripción", color = Color.Gray) },
+            leadingIcon = { Icon(Icons.Default.Description, contentDescription = null, tint = Color(0xFFA259FF)) },
+            modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp),
+            colors = TextFieldDefaults.outlinedTextFieldColors(
+                textColor = Color.White,
+                focusedBorderColor = Color(0xFFA259FF),
+                unfocusedBorderColor = Color.Gray
+            )
+        )
+        OutlinedTextField(
+            value = category,
+            onValueChange = { category = it },
+            label = { Text("Categoría", color = Color.Gray) },
+            leadingIcon = { Icon(Icons.Default.Category, contentDescription = null, tint = Color(0xFFA259FF)) },
+            modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp),
+            colors = TextFieldDefaults.outlinedTextFieldColors(
+                textColor = Color.White,
+                focusedBorderColor = Color(0xFFA259FF),
+                unfocusedBorderColor = Color.Gray
+            )
+        )
+        OutlinedTextField(
+            value = duration,
+            onValueChange = { duration = it },
+            label = { Text("Duración", color = Color.Gray) },
+            leadingIcon = { Icon(Icons.Default.Timer, contentDescription = null, tint = Color(0xFFA259FF)) },
+            modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp),
+            colors = TextFieldDefaults.outlinedTextFieldColors(
+                textColor = Color.White,
+                focusedBorderColor = Color(0xFFA259FF),
+                unfocusedBorderColor = Color.Gray
+            )
+        )
+        OutlinedTextField(
+            value = points.toString(),
+            onValueChange = { points = it.toIntOrNull() ?: 0 },
+            label = { Text("Puntos", color = Color.Gray) },
+            leadingIcon = { Icon(Icons.Default.EmojiEvents, contentDescription = null, tint = Color(0xFFA259FF)) },
+            modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp),
+            colors = TextFieldDefaults.outlinedTextFieldColors(
+                textColor = Color.White,
+                focusedBorderColor = Color(0xFFA259FF),
+                unfocusedBorderColor = Color.Gray
+            )
+        )
+        OutlinedTextField(
+            value = tags,
+            onValueChange = { tags = it },
+            label = { Text("Etiquetas (separadas por coma)", color = Color.Gray) },
+            leadingIcon = { Icon(Icons.Default.Tag, contentDescription = null, tint = Color(0xFFA259FF)) },
+            modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp),
+            colors = TextFieldDefaults.outlinedTextFieldColors(
+                textColor = Color.White,
+                focusedBorderColor = Color(0xFFA259FF),
+                unfocusedBorderColor = Color.Gray
+            )
+        )
+        OutlinedTextField(
+            value = deadline,
+            onValueChange = { deadline = it },
+            label = { Text("Fecha límite (opcional)", color = Color.Gray) },
+            leadingIcon = { Icon(Icons.Default.DateRange, contentDescription = null, tint = Color(0xFFA259FF)) },
+            modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp),
+            colors = TextFieldDefaults.outlinedTextFieldColors(
+                textColor = Color.White,
+                focusedBorderColor = Color(0xFFA259FF),
+                unfocusedBorderColor = Color.Gray
+            )
+        )
+        OutlinedTextField(
+            value = maxParticipants.toString(),
+            onValueChange = { maxParticipants = it.toIntOrNull()?.coerceAtLeast(1) ?: 1 },
+            label = { Text("Número de participantes", color = Color.Gray) },
+            leadingIcon = { Icon(Icons.Default.People, contentDescription = null, tint = Color(0xFFA259FF)) },
+            modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp),
+            colors = TextFieldDefaults.outlinedTextFieldColors(
+                textColor = Color.White,
+                focusedBorderColor = Color(0xFFA259FF),
+                unfocusedBorderColor = Color.Gray
+            )
+        )
         Spacer(Modifier.height(8.dp))
-        Text("Tipos de contenido permitidos para evidencia:", style = MaterialTheme.typography.bodyMedium)
-        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
-            val tipos = listOf("video", "imagen", "texto", "audio")
-            tipos.forEach { tipo ->
-                val seleccionado = contentTypes.contains(tipo)
-                Button(
-                    onClick = {
-                        contentTypes = if (seleccionado) contentTypes - tipo else contentTypes + tipo
-                    },
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = if (seleccionado) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant,
-                        contentColor = if (seleccionado) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface
-                    ),
-                    modifier = Modifier.weight(1f)
-                ) {
-                    Text(tipo.replaceFirstChar { it.uppercase() })
+        Text("Tipos de contenido permitidos para evidencia:", style = MaterialTheme.typography.bodyMedium, color = Color(0xFFA259FF))
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(Color(0xFF232946), shape = RoundedCornerShape(16.dp))
+                .padding(16.dp)
+        ) {
+            Column {
+                Text(
+                    "Tipos de Contenido Permitidos para Evidencia",
+                    color = Color.White,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 16.sp,
+                    modifier = Modifier.fillMaxWidth(),
+                    textAlign = TextAlign.Center
+                )
+                Spacer(Modifier.height(16.dp))
+                // Cuadrícula 2x2
+                Column {
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                        TipoEvidenciaButton("video", Icons.Default.Videocam, contentTypes.contains("video")) { tipo ->
+                            contentTypes = if (contentTypes.contains(tipo)) contentTypes - tipo else contentTypes + tipo
+                        }
+                        TipoEvidenciaButton("imagen", Icons.Default.Image, contentTypes.contains("imagen")) { tipo ->
+                            contentTypes = if (contentTypes.contains(tipo)) contentTypes - tipo else contentTypes + tipo
+                        }
+                    }
+                    Spacer(Modifier.height(16.dp))
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                        TipoEvidenciaButton("texto", Icons.Default.TextFields, contentTypes.contains("texto")) { tipo ->
+                            contentTypes = if (contentTypes.contains(tipo)) contentTypes - tipo else contentTypes + tipo
+                        }
+                        TipoEvidenciaButton("audio", Icons.Default.Audiotrack, contentTypes.contains("audio")) { tipo ->
+                            contentTypes = if (contentTypes.contains(tipo)) contentTypes - tipo else contentTypes + tipo
+                        }
+                    }
                 }
             }
         }
-
+        Spacer(Modifier.height(16.dp))
+        Text(
+            "Puntos Otorgados (${points})",
+            color = Color.White,
+            fontSize = 16.sp,
+            fontWeight = FontWeight.Medium,
+            modifier = Modifier.fillMaxWidth().padding(bottom = 4.dp)
+        )
+        LinearProgressIndicator(
+            progress = (points / 100f).coerceIn(0f, 1f),
+            color = Color(0xFFA259FF),
+            trackColor = Color(0xFF28243C),
+            modifier = Modifier.fillMaxWidth().height(8.dp).clip(RoundedCornerShape(8.dp)).padding(bottom = 16.dp)
+        )
         Spacer(Modifier.height(8.dp))
-        Button(onClick = { launcher.launch("image/*") }) {
+        Button(
+            onClick = { launcher.launch("image/*") },
+            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFA259FF), contentColor = Color.White),
+            modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp)
+        ) {
+            Icon(Icons.Default.AddAPhoto, contentDescription = null, tint = Color.White)
+            Spacer(Modifier.width(8.dp))
             Text("Seleccionar imagen de portada")
         }
         coverImageBitmap?.let {
-            Image(bitmap = it.asImageBitmap(), contentDescription = "Imagen de portada", modifier = Modifier.size(120.dp))
+            Image(bitmap = it.asImageBitmap(), contentDescription = "Imagen de portada", modifier = Modifier.size(120.dp).padding(8.dp))
         }
-
         Spacer(Modifier.height(16.dp))
-        // Selector de visibilidad
-        Spacer(Modifier.height(8.dp))
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Text("Visibilidad: ", style = MaterialTheme.typography.bodyMedium)
-            Switch(
-                checked = privacy == "public",
-                onCheckedChange = { checked -> privacy = if (checked) "public" else "private" }
-            )
-            Spacer(Modifier.width(8.dp))
-            Text(if (privacy == "public") "Público" else "Privado", style = MaterialTheme.typography.bodyMedium)
+        Text("Visibilidad", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 16.sp, modifier = Modifier.fillMaxWidth().padding(bottom = 4.dp))
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(Color(0xFF232946), shape = RoundedCornerShape(12.dp))
+                .clickable { expandedVisibility = true }
+                .padding(12.dp)
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(visibilityIcons[privacy] ?: Icons.Default.Public, contentDescription = null, tint = Color(0xFFA259FF))
+                Spacer(Modifier.width(8.dp))
+                Column {
+                    Text(
+                        if (privacy == "friends") "Solo amigos" else "Público",
+                        color = Color.White,
+                        fontWeight = FontWeight.Medium
+                    )
+                    Text(
+                        if (privacy == "friends") "Visibles solo para tus amigos" else "Visible para todos",
+                        color = Color.Gray,
+                        fontSize = 12.sp
+                    )
+                }
+                Spacer(modifier = Modifier.fillMaxWidth())
+                Icon(Icons.Default.ArrowDropDown, contentDescription = null, tint = Color.White)
+            }
+            DropdownMenu(
+                expanded = expandedVisibility,
+                onDismissRequest = { expandedVisibility = false },
+                modifier = Modifier.background(Color(0xFF232946))
+            ) {
+                visibilityOptions.forEach { (value, label) ->
+                    DropdownMenuItem(
+                        text = {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Icon(visibilityIcons[value] ?: Icons.Default.Public, contentDescription = null, tint = Color(0xFFA259FF))
+                                Spacer(Modifier.width(8.dp))
+                                Text(label, color = Color.White)
+                            }
+                        },
+                        onClick = {
+                            privacy = value
+                            expandedVisibility = false
+                        }
+                    )
+                }
+            }
         }
-
-        // Vista previa del desafío
+        Spacer(Modifier.height(16.dp))
         Card(
             modifier = Modifier.fillMaxWidth().padding(vertical = 16.dp),
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+            colors = CardDefaults.cardColors(containerColor = Color(0xFF232946))
         ) {
             Column(modifier = Modifier.padding(16.dp)) {
-                Text("Vista Previa del Desafío", style = MaterialTheme.typography.titleMedium)
+                Text("Vista Previa del Desafío", style = MaterialTheme.typography.titleMedium, color = Color(0xFFA259FF))
                 Spacer(Modifier.height(8.dp))
                 coverImageBitmap?.let {
                     Image(bitmap = it.asImageBitmap(), contentDescription = "Imagen de portada", modifier = Modifier.fillMaxWidth().height(120.dp))
                 }
                 Spacer(Modifier.height(8.dp))
-                Text(title, style = MaterialTheme.typography.titleLarge)
-                Text(description, style = MaterialTheme.typography.bodyMedium)
+                Text(title, style = MaterialTheme.typography.titleLarge, color = Color.White)
+                Text(description, style = MaterialTheme.typography.bodyMedium, color = Color.White)
                 Row(modifier = Modifier.padding(vertical = 8.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     if (category.isNotBlank()) ChipPreview(category)
                     if (duration.isNotBlank()) ChipPreview(duration)
                     if (points > 0) ChipPreview("$points pts")
                 }
                 Spacer(Modifier.height(4.dp))
-                Text("Contenido aceptado:", style = MaterialTheme.typography.bodySmall)
+                Text("Contenido aceptado:", style = MaterialTheme.typography.bodySmall, color = Color(0xFFA259FF))
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     contentTypes.forEach { tipo ->
                         ChipPreview(tipo.replaceFirstChar { it.uppercase() })
                     }
                 }
                 Spacer(Modifier.height(8.dp))
-                Text("Visibilidad: ${if (privacy == "public") "Público" else "Privado"}", style = MaterialTheme.typography.bodySmall)
+                Text("Visibilidad: ${if (privacy == "public") "Público" else "Privado"}", style = MaterialTheme.typography.bodySmall, color = Color(0xFFA259FF))
             }
         }
-
         Spacer(Modifier.height(16.dp))
         Button(
             onClick = {
@@ -197,8 +393,12 @@ fun CreateScreen() {
                     }
                 }
             },
-            enabled = !isLoading
+            enabled = !isLoading,
+            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFA259FF), contentColor = Color.White),
+            modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp)
         ) {
+            Icon(Icons.Default.Send, contentDescription = null, tint = Color.White)
+            Spacer(Modifier.width(8.dp))
             Text(if (isLoading) "Publicando..." else "Publicar Desafío")
         }
         errorMessage?.let { Text(it, color = MaterialTheme.colorScheme.error) }
@@ -220,27 +420,68 @@ fun saveChallengeToFirestore(
     maxParticipants: Int
 ) {
     val user = FirebaseAuth.getInstance().currentUser
-    val challenge = hashMapOf(
-        "title" to title,
-        "description" to description,
-        "category" to category,
-        "duration" to duration,
-        "points" to points,
-        "contentTypes" to contentTypes,
-        "tags" to tags.split(",").map { it.trim() },
-        "privacy" to privacy,
-        "deadline" to deadline,
-        "coverImageUrl" to imageUrl,
-        "authorId" to (user?.uid ?: ""),
-        "authorName" to (user?.displayName ?: ""),
-        "authorAvatar" to (user?.photoUrl?.toString() ?: ""),
-        "likes" to 0,
-        "comments" to 0,
-        "timestamp" to System.currentTimeMillis(),
-        "maxParticipants" to maxParticipants,
-        "participants" to emptyList<String>()
-    )
-    FirebaseFirestore.getInstance().collection("desafios").add(challenge)
+    val db = FirebaseFirestore.getInstance()
+    
+    // Obtener el nombre de usuario desde Firestore
+    db.collection("usuarios")
+        .document(user?.uid ?: "")
+        .get()
+        .addOnSuccessListener { userDoc ->
+            val userName = userDoc.getString("nombreUsuario") ?: 
+                         user?.displayName ?: 
+                         user?.email?.split("@")?.first() ?: 
+                         "Usuario"
+            
+            val challenge = hashMapOf(
+                "title" to title,
+                "description" to description,
+                "category" to category,
+                "duration" to duration,
+                "points" to points,
+                "contentTypes" to contentTypes,
+                "tags" to tags.split(",").map { it.trim() },
+                "privacy" to privacy,
+                "deadline" to deadline,
+                "coverImageUrl" to imageUrl,
+                "authorId" to (user?.uid ?: ""),
+                "authorName" to userName,
+                "authorAvatar" to (user?.photoUrl?.toString() ?: ""),
+                "likes" to 0,
+                "comments" to 0,
+                "timestamp" to System.currentTimeMillis(),
+                "maxParticipants" to maxParticipants,
+                "participants" to emptyList<String>()
+            )
+            db.collection("desafios").add(challenge)
+        }
+        .addOnFailureListener {
+            // Si falla, usar un nombre por defecto
+            val userName = user?.displayName ?: 
+                         user?.email?.split("@")?.first() ?: 
+                         "Usuario"
+            
+            val challenge = hashMapOf(
+                "title" to title,
+                "description" to description,
+                "category" to category,
+                "duration" to duration,
+                "points" to points,
+                "contentTypes" to contentTypes,
+                "tags" to tags.split(",").map { it.trim() },
+                "privacy" to privacy,
+                "deadline" to deadline,
+                "coverImageUrl" to imageUrl,
+                "authorId" to (user?.uid ?: ""),
+                "authorName" to userName,
+                "authorAvatar" to (user?.photoUrl?.toString() ?: ""),
+                "likes" to 0,
+                "comments" to 0,
+                "timestamp" to System.currentTimeMillis(),
+                "maxParticipants" to maxParticipants,
+                "participants" to emptyList<String>()
+            )
+            db.collection("desafios").add(challenge)
+        }
 }
 
 // Función para subir imagen a Imgur
@@ -279,13 +520,15 @@ fun uploadImageToImgur(
     })
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun EditChallengeScreen(desafioId: String, navController: NavController) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     var isLoading by remember { mutableStateOf(true) }
+    var isSaving by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
-    var initialData by remember { mutableStateOf<Map<String, Any>?>(null) }
+    var successMessage by remember { mutableStateOf<String?>(null) }
 
     // Estados para los campos del formulario
     var title by remember { mutableStateOf("") }
@@ -302,7 +545,13 @@ fun EditChallengeScreen(desafioId: String, navController: NavController) {
     var coverImageBitmap by remember { mutableStateOf<android.graphics.Bitmap?>(null) }
     var maxParticipants by remember { mutableStateOf(1) }
 
+    // Estados para dropdowns
+    var categoryExpanded by remember { mutableStateOf(false) }
+    var durationExpanded by remember { mutableStateOf(false) }
+    var privacyExpanded by remember { mutableStateOf(false) }
+
     val clientId = "e88c7011ed88321"
+    val scrollState = rememberScrollState()
 
     LaunchedEffect(desafioId) {
         isLoading = true
@@ -310,7 +559,6 @@ fun EditChallengeScreen(desafioId: String, navController: NavController) {
             val db = FirebaseFirestore.getInstance()
             val doc = db.collection("desafios").document(desafioId).get().await()
             if (doc.exists()) {
-                initialData = doc.data
                 title = doc.get("title") as? String ?: ""
                 description = doc.get("description") as? String ?: ""
                 category = doc.get("category") as? String ?: ""
@@ -331,223 +579,386 @@ fun EditChallengeScreen(desafioId: String, navController: NavController) {
 
     if (isLoading) {
         Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-            CircularProgressIndicator()
+            CircularProgressIndicator(color = Color(0xFFA259FF))
         }
         return
     }
 
-    ChallengeForm(
-        title = title,
-        onTitleChange = { title = it },
-        description = description,
-        onDescriptionChange = { description = it },
-        category = category,
-        onCategoryChange = { category = it },
-        duration = duration,
-        onDurationChange = { duration = it },
-        points = points,
-        onPointsChange = { points = it },
-        contentTypes = contentTypes,
-        onContentTypesChange = { contentTypes = it },
-        tags = tags,
-        onTagsChange = { tags = it },
-        privacy = privacy,
-        onPrivacyChange = { privacy = it },
-        deadline = deadline,
-        onDeadlineChange = { deadline = it },
-        coverImageBitmap = coverImageBitmap,
-        onCoverImageBitmapChange = { coverImageBitmap = it },
-        coverImageUri = coverImageUri,
-        onCoverImageUriChange = { coverImageUri = it },
-        maxParticipants = maxParticipants,
-        onMaxParticipantsChange = { maxParticipants = it },
-        isLoading = isLoading,
-        errorMessage = errorMessage,
-        buttonText = "Actualizar Desafío",
-        onSubmit = {
-            isLoading = true
-            errorMessage = null
-            scope.launch(Dispatchers.IO) {
-                try {
-                    var imageUrl: String? = coverImageUrl
-                    coverImageUri?.let { uri ->
-                        val inputStream = context.contentResolver.openInputStream(uri)
-                        val bytes = inputStream?.readBytes()
-                        if (bytes != null) {
-                            uploadImageToImgur(bytes, clientId,
-                                onSuccess = { url ->
-                                    imageUrl = url
-                                    updateChallengeInFirestore(
-                                        desafioId, title, description, category, duration, points, contentTypes, tags, privacy, deadline, imageUrl, maxParticipants
-                                    )
-                                    scope.launch {
-                                        withContext(Dispatchers.Main) {
-                                            isLoading = false
-                                            navController.popBackStack()
-                                        }
-                                    }
-                                },
-                                onError = { error ->
-                                    scope.launch {
-                                        withContext(Dispatchers.Main) {
-                                            errorMessage = error
-                                            isLoading = false
-                                        }
-                                    }
-                                }
-                            )
-                        }
-                    } ?: run {
-                        updateChallengeInFirestore(
-                            desafioId, title, description, category, duration, points, contentTypes, tags, privacy, deadline, imageUrl, maxParticipants
-                        )
-                        withContext(Dispatchers.Main) {
-                            isLoading = false
-                            navController.popBackStack()
-                        }
-                    }
-                } catch (e: Exception) {
-                    withContext(Dispatchers.Main) {
-                        errorMessage = e.message
-                        isLoading = false
-                    }
-                }
-            }
-        }
-    )
-}
-
-@Composable
-fun ChallengeForm(
-    title: String,
-    onTitleChange: (String) -> Unit,
-    description: String,
-    onDescriptionChange: (String) -> Unit,
-    category: String,
-    onCategoryChange: (String) -> Unit,
-    duration: String,
-    onDurationChange: (String) -> Unit,
-    points: Int,
-    onPointsChange: (Int) -> Unit,
-    contentTypes: List<String>,
-    onContentTypesChange: (List<String>) -> Unit,
-    tags: String,
-    onTagsChange: (String) -> Unit,
-    privacy: String,
-    onPrivacyChange: (String) -> Unit,
-    deadline: String,
-    onDeadlineChange: (String) -> Unit,
-    coverImageBitmap: android.graphics.Bitmap?,
-    onCoverImageBitmapChange: (android.graphics.Bitmap?) -> Unit,
-    coverImageUri: Uri?,
-    onCoverImageUriChange: (Uri?) -> Unit,
-    maxParticipants: Int,
-    onMaxParticipantsChange: (Int) -> Unit,
-    isLoading: Boolean,
-    errorMessage: String?,
-    buttonText: String,
-    onSubmit: () -> Unit
-) {
-    val context = LocalContext.current
-    val launcher = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri: Uri? ->
-        onCoverImageUriChange(uri)
-        uri?.let {
-            val inputStream: InputStream? = context.contentResolver.openInputStream(it)
-            onCoverImageBitmapChange(BitmapFactory.decodeStream(inputStream))
-        }
-    }
-    val scrollState = rememberScrollState()
     Column(
         modifier = Modifier
             .fillMaxSize()
             .verticalScroll(scrollState)
+            .background(Color(0xFF18122B))
             .padding(16.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Text(if (buttonText == "Actualizar Desafío") "Editar Desafío" else "Crear Desafío", style = MaterialTheme.typography.headlineMedium)
-        Spacer(Modifier.height(16.dp))
-        OutlinedTextField(value = title, onValueChange = onTitleChange, label = { Text("Título") })
-        OutlinedTextField(value = description, onValueChange = onDescriptionChange, label = { Text("Descripción") })
-        OutlinedTextField(value = category, onValueChange = onCategoryChange, label = { Text("Categoría") })
-        OutlinedTextField(value = duration, onValueChange = onDurationChange, label = { Text("Duración") })
-        OutlinedTextField(value = points.toString(), onValueChange = { onPointsChange(it.toIntOrNull() ?: 0) }, label = { Text("Puntos") })
-        OutlinedTextField(value = tags, onValueChange = onTagsChange, label = { Text("Etiquetas (separadas por coma)") })
-        OutlinedTextField(value = deadline, onValueChange = onDeadlineChange, label = { Text("Fecha límite (opcional)") })
-        OutlinedTextField(value = maxParticipants.toString(), onValueChange = { onMaxParticipantsChange(it.toIntOrNull()?.coerceAtLeast(1) ?: 1) }, label = { Text("Número de participantes") })
-        Spacer(Modifier.height(8.dp))
-        Text("Tipos de contenido permitidos para evidencia:", style = MaterialTheme.typography.bodyMedium)
-        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
-            val tipos = listOf("video", "imagen", "texto", "audio")
-            tipos.forEach { tipo ->
-                val seleccionado = contentTypes.contains(tipo)
-                Button(
-                    onClick = {
-                        onContentTypesChange(if (seleccionado) contentTypes - tipo else contentTypes + tipo)
-                    },
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = if (seleccionado) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant,
-                        contentColor = if (seleccionado) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface
-                    ),
-                    modifier = Modifier.weight(1f)
-                ) {
-                    Text(tipo.replaceFirstChar { it.uppercase() })
+        // Header con botón de regreso
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            IconButton(onClick = { navController.popBackStack() }) {
+                Icon(
+                    Icons.AutoMirrored.Filled.ArrowBack,
+                    contentDescription = "Volver",
+                    tint = Color.White
+                )
+            }
+            Text(
+                "Editar Desafío",
+                style = MaterialTheme.typography.headlineMedium,
+                color = Color(0xFFA259FF),
+                fontWeight = FontWeight.Bold
+            )
+            Spacer(modifier = Modifier.width(48.dp))
+        }
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        // Campos del formulario
+        OutlinedTextField(
+            value = title,
+            onValueChange = { title = it },
+            label = { Text("Título", color = Color.Gray) },
+            leadingIcon = { Icon(Icons.Default.Star, contentDescription = null, tint = Color(0xFFA259FF)) },
+            modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp),
+            colors = TextFieldDefaults.outlinedTextFieldColors(
+                textColor = Color.White,
+                focusedBorderColor = Color(0xFFA259FF),
+                unfocusedBorderColor = Color.Gray
+            )
+        )
+
+        OutlinedTextField(
+            value = description,
+            onValueChange = { description = it },
+            label = { Text("Descripción", color = Color.Gray) },
+            leadingIcon = { Icon(Icons.Default.Description, contentDescription = null, tint = Color(0xFFA259FF)) },
+            modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp),
+            minLines = 3,
+            colors = TextFieldDefaults.outlinedTextFieldColors(
+                textColor = Color.White,
+                focusedBorderColor = Color(0xFFA259FF),
+                unfocusedBorderColor = Color.Gray
+            )
+        )
+
+        // Categoría
+        ExposedDropdownMenuBox(
+            expanded = categoryExpanded,
+            onExpandedChange = { categoryExpanded = it },
+            modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp)
+        ) {
+            OutlinedTextField(
+                value = category,
+                onValueChange = { },
+                label = { Text("Categoría", color = Color.Gray) },
+                leadingIcon = { Icon(Icons.Default.Category, contentDescription = null, tint = Color(0xFFA259FF)) },
+                readOnly = true,
+                modifier = Modifier.menuAnchor().fillMaxWidth(),
+                colors = TextFieldDefaults.outlinedTextFieldColors(
+                    textColor = Color.White,
+                    focusedBorderColor = Color(0xFFA259FF),
+                    unfocusedBorderColor = Color.Gray
+                )
+            )
+            DropdownMenu(
+                expanded = categoryExpanded,
+                onDismissRequest = { categoryExpanded = false },
+                modifier = Modifier.background(Color(0xFF28243C))
+            ) {
+                listOf("Fitness", "Creatividad", "Aprendizaje", "Social", "Otros").forEach { cat ->
+                    DropdownMenuItem(
+                        text = { Text(cat, color = Color.White) },
+                        onClick = { 
+                            category = cat
+                            categoryExpanded = false
+                        }
+                    )
                 }
             }
         }
-        Spacer(Modifier.height(8.dp))
-        Button(onClick = { launcher.launch("image/*") }) {
-            Text("Seleccionar imagen de portada")
-        }
-        coverImageBitmap?.let {
-            Image(bitmap = it.asImageBitmap(), contentDescription = "Imagen de portada", modifier = Modifier.size(120.dp))
-        }
-        Spacer(Modifier.height(16.dp))
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Text("Visibilidad: ", style = MaterialTheme.typography.bodyMedium)
-            Switch(
-                checked = privacy == "public",
-                onCheckedChange = { checked -> onPrivacyChange(if (checked) "public" else "private") }
-            )
-            Spacer(Modifier.width(8.dp))
-            Text(if (privacy == "public") "Público" else "Privado", style = MaterialTheme.typography.bodyMedium)
-        }
-        Card(
-            modifier = Modifier.fillMaxWidth().padding(vertical = 16.dp),
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+
+        // Duración
+        ExposedDropdownMenuBox(
+            expanded = durationExpanded,
+            onExpandedChange = { durationExpanded = it },
+            modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp)
         ) {
-            Column(modifier = Modifier.padding(16.dp)) {
-                Text("Vista Previa del Desafío", style = MaterialTheme.typography.titleMedium)
-                Spacer(Modifier.height(8.dp))
-                coverImageBitmap?.let {
-                    Image(bitmap = it.asImageBitmap(), contentDescription = "Imagen de portada", modifier = Modifier.fillMaxWidth().height(120.dp))
+            OutlinedTextField(
+                value = duration,
+                onValueChange = { },
+                label = { Text("Duración", color = Color.Gray) },
+                leadingIcon = { Icon(Icons.Default.Schedule, contentDescription = null, tint = Color(0xFFA259FF)) },
+                readOnly = true,
+                modifier = Modifier.menuAnchor().fillMaxWidth(),
+                colors = TextFieldDefaults.outlinedTextFieldColors(
+                    textColor = Color.White,
+                    focusedBorderColor = Color(0xFFA259FF),
+                    unfocusedBorderColor = Color.Gray
+                )
+            )
+            DropdownMenu(
+                expanded = durationExpanded,
+                onDismissRequest = { durationExpanded = false },
+                modifier = Modifier.background(Color(0xFF28243C))
+            ) {
+                listOf("1 día", "3 días", "1 semana", "2 semanas", "1 mes").forEach { dur ->
+                    DropdownMenuItem(
+                        text = { Text(dur, color = Color.White) },
+                        onClick = { 
+                            duration = dur
+                            durationExpanded = false
+                        }
+                    )
                 }
-                Spacer(Modifier.height(8.dp))
-                Text(title, style = MaterialTheme.typography.titleLarge)
-                Text(description, style = MaterialTheme.typography.bodyMedium)
-                Row(modifier = Modifier.padding(vertical = 8.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    if (category.isNotBlank()) ChipPreview(category)
-                    if (duration.isNotBlank()) ChipPreview(duration)
-                    if (points > 0) ChipPreview("$points pts")
+            }
+        }
+
+        // Puntos
+        OutlinedTextField(
+            value = points.toString(),
+            onValueChange = { points = it.toIntOrNull() ?: 0 },
+            label = { Text("Puntos", color = Color.Gray) },
+            leadingIcon = { Icon(Icons.Default.Star, contentDescription = null, tint = Color(0xFFA259FF)) },
+            modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp),
+            colors = TextFieldDefaults.outlinedTextFieldColors(
+                textColor = Color.White,
+                focusedBorderColor = Color(0xFFA259FF),
+                unfocusedBorderColor = Color.Gray
+            )
+        )
+
+        // Tipos de contenido
+        Text(
+            "Tipos de evidencia permitidos",
+            color = Color.White,
+            fontWeight = FontWeight.Bold,
+            modifier = Modifier.padding(bottom = 8.dp)
+        )
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            TipoEvidenciaButton(
+                tipo = "imagen",
+                icon = Icons.Default.Image,
+                seleccionado = contentTypes.contains("imagen")
+            ) { tipo ->
+                contentTypes = if (contentTypes.contains(tipo)) {
+                    contentTypes.filter { it != tipo }
+                } else {
+                    contentTypes + tipo
                 }
-                Spacer(Modifier.height(4.dp))
-                Text("Contenido aceptado:", style = MaterialTheme.typography.bodySmall)
-                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    contentTypes.forEach { tipo ->
-                        ChipPreview(tipo.replaceFirstChar { it.uppercase() })
+            }
+            TipoEvidenciaButton(
+                tipo = "video",
+                icon = Icons.Default.VideoLibrary,
+                seleccionado = contentTypes.contains("video")
+            ) { tipo ->
+                contentTypes = if (contentTypes.contains(tipo)) {
+                    contentTypes.filter { it != tipo }
+                } else {
+                    contentTypes + tipo
+                }
+            }
+        }
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        // Tags
+        OutlinedTextField(
+            value = tags,
+            onValueChange = { tags = it },
+            label = { Text("Tags (separados por comas)", color = Color.Gray) },
+            leadingIcon = { Icon(Icons.Default.Tag, contentDescription = null, tint = Color(0xFFA259FF)) },
+            modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp),
+            colors = TextFieldDefaults.outlinedTextFieldColors(
+                textColor = Color.White,
+                focusedBorderColor = Color(0xFFA259FF),
+                unfocusedBorderColor = Color.Gray
+            )
+        )
+
+        // Visibilidad
+        ExposedDropdownMenuBox(
+            expanded = privacyExpanded,
+            onExpandedChange = { privacyExpanded = it },
+            modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp)
+        ) {
+            OutlinedTextField(
+                value = if (privacy == "public") "Público" else "Privado",
+                onValueChange = { },
+                label = { Text("Visibilidad", color = Color.Gray) },
+                leadingIcon = { Icon(Icons.Default.Visibility, contentDescription = null, tint = Color(0xFFA259FF)) },
+                readOnly = true,
+                modifier = Modifier.menuAnchor().fillMaxWidth(),
+                colors = TextFieldDefaults.outlinedTextFieldColors(
+                    textColor = Color.White,
+                    focusedBorderColor = Color(0xFFA259FF),
+                    unfocusedBorderColor = Color.Gray
+                )
+            )
+            DropdownMenu(
+                expanded = privacyExpanded,
+                onDismissRequest = { privacyExpanded = false },
+                modifier = Modifier.background(Color(0xFF28243C))
+            ) {
+                DropdownMenuItem(
+                    text = { Text("Público", color = Color.White) },
+                    onClick = { 
+                        privacy = "public"
+                        privacyExpanded = false
+                    }
+                )
+                DropdownMenuItem(
+                    text = { Text("Privado", color = Color.White) },
+                    onClick = { 
+                        privacy = "private"
+                        privacyExpanded = false
+                    }
+                )
+            }
+        }
+
+        // Fecha límite
+        OutlinedTextField(
+            value = deadline,
+            onValueChange = { deadline = it },
+            label = { Text("Fecha límite (opcional)", color = Color.Gray) },
+            leadingIcon = { Icon(Icons.Default.Event, contentDescription = null, tint = Color(0xFFA259FF)) },
+            modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp),
+            colors = TextFieldDefaults.outlinedTextFieldColors(
+                textColor = Color.White,
+                focusedBorderColor = Color(0xFFA259FF),
+                unfocusedBorderColor = Color.Gray
+            )
+        )
+
+        // Máximo de participantes
+        OutlinedTextField(
+            value = maxParticipants.toString(),
+            onValueChange = { maxParticipants = it.toIntOrNull() ?: 1 },
+            label = { Text("Máximo de participantes", color = Color.Gray) },
+            leadingIcon = { Icon(Icons.Default.People, contentDescription = null, tint = Color(0xFFA259FF)) },
+            modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp),
+            colors = TextFieldDefaults.outlinedTextFieldColors(
+                textColor = Color.White,
+                focusedBorderColor = Color(0xFFA259FF),
+                unfocusedBorderColor = Color.Gray
+            )
+        )
+
+        // Imagen de portada
+        if (coverImageUrl != null) {
+            Text(
+                "Imagen de portada actual",
+                color = Color.White,
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier.padding(bottom = 8.dp)
+            )
+            AsyncImage(
+                model = coverImageUrl,
+                contentDescription = "Imagen de portada",
+                modifier = Modifier
+                    .size(120.dp)
+                    .background(Color(0xFF28243C), RoundedCornerShape(8.dp))
+                    .padding(8.dp)
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+        }
+
+        // Botón para cambiar imagen
+        OutlinedButton(
+            onClick = {
+                // Aquí iría la lógica para seleccionar nueva imagen
+            },
+            modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp),
+            colors = ButtonDefaults.outlinedButtonColors(
+                contentColor = Color(0xFFA259FF)
+            )
+        ) {
+            Icon(Icons.Default.Image, contentDescription = null)
+            Spacer(modifier = Modifier.width(8.dp))
+            Text(if (coverImageUrl != null) "Cambiar imagen" else "Agregar imagen")
+        }
+
+        // Mensajes de error/éxito
+        errorMessage?.let {
+            Text(
+                text = it,
+                color = Color.Red,
+                modifier = Modifier.padding(bottom = 8.dp)
+            )
+        }
+
+        successMessage?.let {
+            Text(
+                text = it,
+                color = Color.Green,
+                modifier = Modifier.padding(bottom = 8.dp)
+            )
+        }
+
+        // Botón de guardar
+        Button(
+            onClick = {
+                if (title.isBlank() || description.isBlank() || category.isBlank() || duration.isBlank() || contentTypes.isEmpty()) {
+                    errorMessage = "Por favor completa todos los campos obligatorios"
+                    return@Button
+                }
+
+                isSaving = true
+                errorMessage = null
+                successMessage = null
+
+                scope.launch {
+                    try {
+                        updateChallengeInFirestore(
+                            desafioId = desafioId,
+                            title = title,
+                            description = description,
+                            category = category,
+                            duration = duration,
+                            points = points,
+                            contentTypes = contentTypes,
+                            tags = tags,
+                            privacy = privacy,
+                            deadline = if (deadline.isBlank()) null else deadline,
+                            imageUrl = coverImageUrl,
+                            maxParticipants = maxParticipants
+                        )
+                        successMessage = "Desafío actualizado exitosamente"
+                        isSaving = false
+                        
+                        // Navegar de vuelta después de un breve delay
+                        kotlinx.coroutines.delay(1500)
+                        navController.popBackStack()
+                    } catch (e: Exception) {
+                        errorMessage = "Error al actualizar: ${e.message}"
+                        isSaving = false
                     }
                 }
-                Spacer(Modifier.height(8.dp))
-                Text("Visibilidad: ${if (privacy == "public") "Público" else "Privado"}", style = MaterialTheme.typography.bodySmall)
+            },
+            enabled = !isSaving,
+            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFA259FF), contentColor = Color.White),
+            modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp)
+        ) {
+            if (isSaving) {
+                CircularProgressIndicator(
+                    modifier = Modifier.size(20.dp),
+                    color = Color.White,
+                    strokeWidth = 2.dp
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text("Guardando...")
+            } else {
+                Icon(Icons.AutoMirrored.Filled.Send, contentDescription = null, tint = Color.White)
+                Spacer(modifier = Modifier.width(8.dp))
+                Text("Guardar Cambios")
             }
         }
-        Spacer(Modifier.height(16.dp))
-        Button(
-            onClick = onSubmit,
-            enabled = !isLoading
-        ) {
-            Text(if (isLoading) "Guardando..." else buttonText)
-        }
-        errorMessage?.let { Text(it, color = MaterialTheme.colorScheme.error) }
     }
 }
 
@@ -579,4 +990,26 @@ fun updateChallengeInFirestore(
         "maxParticipants" to maxParticipants
     )
     FirebaseFirestore.getInstance().collection("desafios").document(desafioId).update(challenge as Map<String, Any>)
+}
+
+// COMPONENTE PARA BOTÓN DE TIPO DE EVIDENCIA
+@Composable
+fun TipoEvidenciaButton(tipo: String, icon: ImageVector, seleccionado: Boolean, onClick: (String) -> Unit) {
+    Box(
+        modifier = Modifier
+            .fillMaxWidth(0.5f)
+            .aspectRatio(1f)
+            .background(
+                if (seleccionado) Color(0xFFA259FF) else Color(0xFF28243C),
+                shape = RoundedCornerShape(16.dp)
+            )
+            .clickable { onClick(tipo) },
+        contentAlignment = Alignment.Center
+    ) {
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            Icon(icon, contentDescription = null, tint = Color.White, modifier = Modifier.size(32.dp))
+            Spacer(Modifier.height(8.dp))
+            Text(tipo.replaceFirstChar { it.uppercase() }, color = Color.White, fontWeight = FontWeight.Bold)
+        }
+    }
 } 

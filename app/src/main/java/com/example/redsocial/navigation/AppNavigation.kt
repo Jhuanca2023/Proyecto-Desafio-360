@@ -94,5 +94,10 @@ fun AppNavigation(authViewModel: AuthViewModel) {
             val desafioId = backStackEntry.arguments?.getString("desafioId") ?: ""
             EditChallengeScreen(desafioId = desafioId, navController = navController)
         }
+
+        composable("userProfile/{userId}") { backStackEntry ->
+            val userId = backStackEntry.arguments?.getString("userId") ?: ""
+            UserProfileScreen(userId = userId, navController = navController)
+        }
     }
 } 

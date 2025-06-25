@@ -5,6 +5,9 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material.icons.filled.ExitToApp
+import androidx.compose.material.icons.filled.Image
+import androidx.compose.material.icons.filled.VideoLibrary
+import androidx.compose.material.icons.filled.TextFields
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -34,6 +37,7 @@ import androidx.compose.foundation.combinedClickable
 import androidx.compose.ui.platform.LocalContext
 import kotlinx.coroutines.launch
 import androidx.compose.foundation.ExperimentalFoundationApi
+import com.example.redsocial.models.Evidencia
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
@@ -45,22 +49,43 @@ fun ProfileScreen(
     val userData by authViewModel.userData.collectAsState()
     val user = FirebaseAuth.getInstance().currentUser
     var desafios by remember { mutableStateOf(listOf<Map<String, Any>>()) }
+    var evidencias by remember { mutableStateOf(listOf<Evidencia>()) }
     var totalLikes by remember { mutableStateOf(0) }
     var seguidores by remember { mutableStateOf(0) }
     var siguiendo by remember { mutableStateOf(0) }
     var showActionButtonsForId by remember { mutableStateOf<String?>(null) }
     var showDeleteDialog by remember { mutableStateOf(false) }
     var desafioToDelete by remember { mutableStateOf<Map<String, Any>?>(null) }
+    var selectedTab by remember { mutableStateOf(0) }
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
 
     LaunchedEffect(user?.uid) {
         user?.uid?.let { uid ->
             val db = FirebaseFirestore.getInstance()
+            
+            // Obtener desafíos creados
             val snapshot = db.collection("desafios").whereEqualTo("authorId", uid).get().await()
             desafios = snapshot.documents.mapNotNull { doc ->
                 doc.data?.toMutableMap()?.apply { put("id", doc.id) }
             }
+            
+            // Obtener evidencias completadas
+            val evidenciasSnapshot = db.collection("evidencias").whereEqualTo("userId", uid).get().await()
+            evidencias = evidenciasSnapshot.documents.mapNotNull { doc ->
+                val data = doc.data ?: return@mapNotNull null
+                Evidencia(
+                    id = doc.id,
+                    challengeId = data["challengeId"] as? String ?: "",
+                    userId = data["userId"] as? String ?: "",
+                    userName = data["userName"] as? String ?: "",
+                    tipo = data["tipo"] as? String ?: "",
+                    url = data["url"] as? String,
+                    texto = data["texto"] as? String,
+                    timestamp = data["timestamp"] as? Long ?: 0L
+                )
+            }
+            
             totalLikes = desafios.sumOf { (it["likes"] as? Long ?: 0L).toInt() }
             val userDoc = db.collection("usuarios").document(uid).get().await()
             seguidores = (userDoc.get("seguidores") as? Long ?: 0L).toInt()
@@ -74,10 +99,14 @@ fun ProfileScreen(
         topBar = {
             Row(
                 modifier = Modifier.fillMaxWidth().padding(8.dp),
-                horizontalArrangement = Arrangement.End
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
             ) {
                 IconButton(onClick = { navController.navigate("ajustes") }) {
                     Icon(Icons.Default.Settings, contentDescription = "Ajustes", tint = Color.White)
+                }
+                IconButton(onClick = onSignOut) {
+                    Icon(Icons.Default.ExitToApp, contentDescription = "Cerrar sesión", tint = Color.White)
                 }
             }
         }
@@ -127,80 +156,179 @@ fun ProfileScreen(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceEvenly
             ) {
-                StatisticCard(Icons.Default.Verified, "Completado", (desafios.count { (it["participants"] as? List<*>)?.size == (it["maxParticipants"] as? Long)?.toInt() }).takeIf { it > 0 }?.toString() ?: "0", Color(0xFF00C853))
-                StatisticCard(Icons.Default.Star, "En Curso", (desafios.count { ((it["participants"] as? List<*>)?.size ?: 0) < ((it["maxParticipants"] as? Long) ?: 0L).toInt() }).takeIf { it > 0 }?.toString() ?: "0", Color(0xFF2962FF))
-                StatisticCard(Icons.Default.Favorite, "Likes", totalLikes.takeIf { it > 0 }?.toString() ?: "0", Color(0xFFFF4081))
+                ProfileStatisticCard(Icons.Default.Verified, "Completado", (desafios.count { (it["participants"] as? List<*>)?.size == (it["maxParticipants"] as? Long)?.toInt() }).takeIf { it > 0 }?.toString() ?: "0", Color(0xFF00C853))
+                ProfileStatisticCard(Icons.Default.Star, "En Curso", (desafios.count { ((it["participants"] as? List<*>)?.size ?: 0) < ((it["maxParticipants"] as? Long) ?: 0L).toInt() }).takeIf { it > 0 }?.toString() ?: "0", Color(0xFF2962FF))
+                ProfileStatisticCard(Icons.Default.Favorite, "Likes", totalLikes.takeIf { it > 0 }?.toString() ?: "0", Color(0xFFFF4081))
             }
 
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceEvenly
             ) {
-                StatisticCard(Icons.Default.People, "Seguidores", seguidores.takeIf { it > 0 }?.toString() ?: "0", Color(0xFFA259FF))
-                StatisticCard(Icons.Default.People, "Siguiendo", siguiendo.takeIf { it > 0 }?.toString() ?: "0", Color(0xFF00B8D4))
-                StatisticCard(Icons.Default.Star, "Badges", "0", Color(0xFFFFD600))
+                ProfileStatisticCard(Icons.Default.People, "Seguidores", seguidores.takeIf { it > 0 }?.toString() ?: "0", Color(0xFFA259FF))
+                ProfileStatisticCard(Icons.Default.People, "Siguiendo", siguiendo.takeIf { it > 0 }?.toString() ?: "0", Color(0xFF00B8D4))
+                ProfileStatisticCard(Icons.Default.Star, "Badges", "0", Color(0xFFFFD600))
             }
 
-            Text("Mis Desafíos", color = Color.White, fontSize = 20.sp, fontWeight = FontWeight.Bold)
-            Text(
-                "Desliza hacia abajo para ver todos tus desafíos",
-                color = Color.Gray,
-                fontSize = 14.sp,
-                modifier = Modifier.padding(bottom = 8.dp)
-            )
+            // Tabs
+            TabRow(
+                selectedTabIndex = selectedTab,
+                modifier = Modifier.fillMaxWidth(),
+                containerColor = Color(0xFF2A1B3D),
+                contentColor = Color(0xFFA259FF)
+            ) {
+                Tab(
+                    selected = selectedTab == 0,
+                    onClick = { selectedTab = 0 },
+                    text = { Text("Mis Desafíos") },
+                    modifier = Modifier.padding(8.dp)
+                )
+                Tab(
+                    selected = selectedTab == 1,
+                    onClick = { selectedTab = 1 },
+                    text = { Text("Evidencias") },
+                    modifier = Modifier.padding(8.dp)
+                )
+            }
 
-            // Lista de desafíos
-            desafios.forEach { desafio: Map<String, Any> ->
-                val desafioId = desafio["id"] as? String ?: desafio["documentId"] as? String
-                Box(modifier = Modifier
-                    .fillMaxWidth()
-                    .combinedClickable(
-                        onClick = {},
-                        onLongClick = { showActionButtonsForId = desafioId }
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // Contenido de las tabs
+            when (selectedTab) {
+                0 -> {
+                    // Mis Desafíos
+                    Text("Mis Desafíos", color = Color.White, fontSize = 20.sp, fontWeight = FontWeight.Bold)
+                    Text(
+                        "Desliza hacia abajo para ver todos tus desafíos",
+                        color = Color.Gray,
+                        fontSize = 14.sp,
+                        modifier = Modifier.padding(bottom = 8.dp)
                     )
-                ) {
-                    Card(
-                        modifier = Modifier.fillMaxWidth(),
-                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
-                    ) {
-                        Row(modifier = Modifier.padding(12.dp)) {
-                            AsyncImage(
-                                model = desafio["coverImageUrl"] as? String,
-                                contentDescription = "Imagen de portada",
-                                modifier = Modifier.size(80.dp)
-                            )
-                            Spacer(Modifier.width(12.dp))
-                            Column {
-                                Text(desafio["title"] as? String ?: "", fontWeight = FontWeight.Bold)
-                                val participantes = (desafio["participants"] as? List<*>)?.size ?: 0
-                                val maxP = (desafio["maxParticipants"] as? Long)?.toInt() ?: 1
-                                val activo = participantes < maxP
-                                Text(if (activo) "Activo" else "Inactivo", color = if (activo) Color.Green else Color.Red)
-                                Text("Participantes: $participantes/$maxP")
-                                Text("Likes: ${(desafio["likes"] as? Long ?: 0L)}")
+
+                    if (desafios.isEmpty()) {
+                        Text(
+                            text = "No has creado desafíos aún",
+                            color = Color.Gray,
+                            style = MaterialTheme.typography.bodyLarge,
+                            modifier = Modifier.padding(32.dp)
+                        )
+                    } else {
+                        desafios.forEach { desafio: Map<String, Any> ->
+                            val desafioId = desafio["id"] as? String ?: desafio["documentId"] as? String
+                            Box(modifier = Modifier
+                                .fillMaxWidth()
+                                .combinedClickable(
+                                    onClick = {},
+                                    onLongClick = { showActionButtonsForId = desafioId }
+                                )
+                            ) {
+                                Card(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+                                ) {
+                                    Row(modifier = Modifier.padding(12.dp)) {
+                                        AsyncImage(
+                                            model = desafio["coverImageUrl"] as? String,
+                                            contentDescription = "Imagen de portada",
+                                            modifier = Modifier.size(80.dp)
+                                        )
+                                        Spacer(Modifier.width(12.dp))
+                                        Column {
+                                            Text(desafio["title"] as? String ?: "", fontWeight = FontWeight.Bold)
+                                            val participantes = (desafio["participants"] as? List<*>)?.size ?: 0
+                                            val maxP = (desafio["maxParticipants"] as? Long)?.toInt() ?: 1
+                                            val activo = participantes < maxP
+                                            Text(if (activo) "Activo" else "Inactivo", color = if (activo) Color.Green else Color.Red)
+                                            Text("Participantes: $participantes/$maxP")
+                                            Text("Likes: ${(desafio["likes"] as? Long ?: 0L)}")
+                                        }
+                                    }
+                                }
+                                if (showActionButtonsForId == desafioId) {
+                                    Row(
+                                        modifier = Modifier
+                                            .align(Alignment.TopEnd)
+                                            .padding(8.dp),
+                                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                    ) {
+                                        IconButton(onClick = {
+                                            navController.navigate("editarDesafio/${desafioId}")
+                                            showActionButtonsForId = null
+                                        }) {
+                                            Icon(Icons.Default.Edit, contentDescription = "Editar", tint = Color(0xFFA259FF))
+                                        }
+                                        IconButton(onClick = {
+                                            desafioToDelete = desafio
+                                            showDeleteDialog = true
+                                            showActionButtonsForId = null
+                                        }) {
+                                            Icon(Icons.Default.Delete, contentDescription = "Eliminar", tint = Color.Red)
+                                        }
+                                    }
+                                }
                             }
                         }
                     }
-                    if (showActionButtonsForId == desafioId) {
-                        Row(
-                            modifier = Modifier
-                                .align(Alignment.TopEnd)
-                                .padding(8.dp),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
-                        ) {
-                            IconButton(onClick = {
-                                // Navegar a pantalla de edición, pasando el id del desafío
-                                navController.navigate("editarDesafio/${desafioId}")
-                                showActionButtonsForId = null
-                            }) {
-                                Icon(Icons.Default.Edit, contentDescription = "Editar", tint = Color(0xFFA259FF))
-                            }
-                            IconButton(onClick = {
-                                desafioToDelete = desafio
-                                showDeleteDialog = true
-                                showActionButtonsForId = null
-                            }) {
-                                Icon(Icons.Default.Delete, contentDescription = "Eliminar", tint = Color.Red)
+                }
+                1 -> {
+                    // Evidencias
+                    Text("Mis Evidencias", color = Color.White, fontSize = 20.sp, fontWeight = FontWeight.Bold)
+                    Text(
+                        "Desafíos que has completado",
+                        color = Color.Gray,
+                        fontSize = 14.sp,
+                        modifier = Modifier.padding(bottom = 8.dp)
+                    )
+
+                    if (evidencias.isEmpty()) {
+                        Text(
+                            text = "No has completado desafíos aún",
+                            color = Color.Gray,
+                            style = MaterialTheme.typography.bodyLarge,
+                            modifier = Modifier.padding(32.dp)
+                        )
+                    } else {
+                        evidencias.forEach { evidencia ->
+                            Card(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(vertical = 4.dp),
+                                colors = CardDefaults.cardColors(
+                                    containerColor = MaterialTheme.colorScheme.surfaceVariant
+                                )
+                            ) {
+                                Row(modifier = Modifier.padding(8.dp)) {
+                                    Icon(
+                                        when (evidencia.tipo) {
+                                            "imagen" -> Icons.Default.Image
+                                            "video" -> Icons.Default.VideoLibrary
+                                            else -> Icons.Default.TextFields
+                                        },
+                                        contentDescription = evidencia.tipo,
+                                        tint = Color(0xFFA259FF),
+                                        modifier = Modifier.size(40.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(12.dp))
+                                    Column(modifier = Modifier.weight(1f)) {
+                                        Text(
+                                            text = "Completaste un desafío",
+                                            style = MaterialTheme.typography.bodyMedium,
+                                            fontWeight = FontWeight.Bold
+                                        )
+                                        if (evidencia.texto != null) {
+                                            Text(
+                                                text = evidencia.texto,
+                                                style = MaterialTheme.typography.bodyMedium,
+                                                color = Color.Gray
+                                            )
+                                        }
+                                        Text(
+                                            text = "Tipo: ${evidencia.tipo.replaceFirstChar { it.uppercase() }}",
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = Color(0xFFA259FF)
+                                        )
+                                    }
+                                }
                             }
                         }
                     }
@@ -225,7 +353,6 @@ fun ProfileScreen(
                                     val db = FirebaseFirestore.getInstance()
                                     db.collection("desafios").document(desafioId).delete().await()
                                     desafios = desafios.filterNot { (it["id"] ?: it["documentId"]) == desafioId }
-                                    // Opcional: mostrar mensaje de éxito
                                 } catch (e: Exception) {
                                     // Opcional: mostrar error
                                 }
@@ -248,7 +375,7 @@ fun ProfileScreen(
 }
 
 @Composable
-private fun StatisticCard(icon: androidx.compose.ui.graphics.vector.ImageVector, label: String, value: String, color: Color) {
+private fun ProfileStatisticCard(icon: androidx.compose.ui.graphics.vector.ImageVector, label: String, value: String, color: Color) {
     Card(
         modifier = Modifier
             .padding(4.dp)
