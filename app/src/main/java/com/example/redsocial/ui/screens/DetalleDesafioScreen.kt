@@ -160,6 +160,8 @@ fun DetalleDesafioScreen(challengeId: String, navController: NavController) {
                     Spacer(Modifier.width(8.dp))
                     (data["category"] as? String)?.let { ChipPreview(it) }
                     Spacer(Modifier.width(8.dp))
+                    (data["duration"] as? String)?.let { ChipPreview(it) }
+                    Spacer(Modifier.width(8.dp))
                     (data["contentTypes"] as? List<*>)?.forEach {
                         ChipPreview(it.toString())
                         Spacer(Modifier.width(4.dp))
