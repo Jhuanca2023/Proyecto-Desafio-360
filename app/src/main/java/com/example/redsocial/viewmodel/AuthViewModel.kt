@@ -20,6 +20,7 @@ import okhttp3.Request
 import org.json.JSONObject
 import com.example.redsocial.RedSocialApp
 import kotlinx.coroutines.delay
+import com.google.firebase.firestore.FieldValue
 
 sealed class AuthState {
     object Initial : AuthState()
@@ -494,6 +495,56 @@ class AuthViewModel(app: Application) : AndroidViewModel(app) {
                 onError(e.message ?: "Error al actualizar la foto")
             }
         }
+    }
+
+    fun isFollowing(targetUserId: String, onResult: (Boolean) -> Unit) {
+        val user = auth.currentUser ?: return onResult(false)
+        db.collection(RedSocialApp.COLLECTION_USUARIOS)
+            .document(user.uid)
+            .get()
+            .addOnSuccessListener { doc ->
+                val siguiendoIds = doc.get("siguiendoIds") as? List<*> ?: emptyList<String>()
+                onResult(siguiendoIds.contains(targetUserId))
+            }
+            .addOnFailureListener { onResult(false) }
+    }
+
+    fun followUser(targetUserId: String, onSuccess: () -> Unit = {}, onError: (String) -> Unit = {}) {
+        val user = auth.currentUser ?: return onError("No autenticado")
+        val batch = db.batch()
+        val currentUserRef = db.collection(RedSocialApp.COLLECTION_USUARIOS).document(user.uid)
+        val targetUserRef = db.collection(RedSocialApp.COLLECTION_USUARIOS).document(targetUserId)
+        // Agregar a siguiendoIds y seguidoresIds
+        batch.update(currentUserRef, mapOf(
+            "siguiendoIds" to FieldValue.arrayUnion(targetUserId),
+            "siguiendo" to FieldValue.increment(1)
+        ))
+        batch.update(targetUserRef, mapOf(
+            "seguidoresIds" to FieldValue.arrayUnion(user.uid),
+            "seguidores" to FieldValue.increment(1)
+        ))
+        batch.commit()
+            .addOnSuccessListener { onSuccess() }
+            .addOnFailureListener { e -> onError(e.message ?: "Error al seguir usuario") }
+    }
+
+    fun unfollowUser(targetUserId: String, onSuccess: () -> Unit = {}, onError: (String) -> Unit = {}) {
+        val user = auth.currentUser ?: return onError("No autenticado")
+        val batch = db.batch()
+        val currentUserRef = db.collection(RedSocialApp.COLLECTION_USUARIOS).document(user.uid)
+        val targetUserRef = db.collection(RedSocialApp.COLLECTION_USUARIOS).document(targetUserId)
+        // Quitar de siguiendoIds y seguidoresIds
+        batch.update(currentUserRef, mapOf(
+            "siguiendoIds" to FieldValue.arrayRemove(targetUserId),
+            "siguiendo" to FieldValue.increment(-1)
+        ))
+        batch.update(targetUserRef, mapOf(
+            "seguidoresIds" to FieldValue.arrayRemove(user.uid),
+            "seguidores" to FieldValue.increment(-1)
+        ))
+        batch.commit()
+            .addOnSuccessListener { onSuccess() }
+            .addOnFailureListener { e -> onError(e.message ?: "Error al dejar de seguir usuario") }
     }
 
     companion object {
