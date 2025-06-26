@@ -32,11 +32,13 @@ import com.example.redsocial.models.Evidencia
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
+import com.example.redsocial.viewmodel.AuthViewModel
 
 @Composable
 fun UserProfileScreen(
     userId: String,
-    navController: NavController
+    navController: NavController,
+    authViewModel: AuthViewModel
 ) {
     var userData by remember { mutableStateOf<Map<String, Any>?>(null) }
     var isLoading by remember { mutableStateOf(true) }
@@ -46,6 +48,8 @@ fun UserProfileScreen(
     var totalLikes by remember { mutableStateOf(0) }
     var seguidores by remember { mutableStateOf(0) }
     var siguiendo by remember { mutableStateOf(0) }
+    var isFollowing by remember { mutableStateOf<Boolean?>(null) }
+    var isFollowLoading by remember { mutableStateOf(false) }
     val currentUser = FirebaseAuth.getInstance().currentUser
     val db = FirebaseFirestore.getInstance()
 
@@ -98,6 +102,15 @@ fun UserProfileScreen(
             isLoading = false
         } catch (e: Exception) {
             isLoading = false
+        }
+    }
+
+    // Verificar si el usuario actual ya sigue a este usuario
+    LaunchedEffect(userId, currentUser?.uid) {
+        if (currentUser != null && userId != currentUser.uid) {
+            authViewModel.isFollowing(userId) { result ->
+                isFollowing = result
+            }
         }
     }
 
@@ -175,6 +188,48 @@ fun UserProfileScreen(
                                 style = MaterialTheme.typography.titleMedium,
                                 color = Color(0xFFA259FF)
                             )
+                            
+                            // Botón de seguir/dejar de seguir (solo si no es tu propio perfil)
+                            if (currentUser != null && userId != currentUser.uid) {
+                                Spacer(modifier = Modifier.height(12.dp))
+                                Button(
+                                    onClick = {
+                                        if (isFollowing == true) {
+                                            isFollowLoading = true
+                                            authViewModel.unfollowUser(userId,
+                                                onSuccess = {
+                                                    isFollowing = false
+                                                    isFollowLoading = false
+                                                },
+                                                onError = { isFollowLoading = false }
+                                            )
+                                        } else if (isFollowing == false) {
+                                            isFollowLoading = true
+                                            authViewModel.followUser(userId,
+                                                onSuccess = {
+                                                    isFollowing = true
+                                                    isFollowLoading = false
+                                                },
+                                                onError = { isFollowLoading = false }
+                                            )
+                                        }
+                                    },
+                                    enabled = !isFollowLoading,
+                                    colors = ButtonDefaults.buttonColors(
+                                        containerColor = if (isFollowing == true) Color(0xFFA259FF) else Color.White,
+                                        contentColor = if (isFollowing == true) Color.White else Color(0xFFA259FF)
+                                    ),
+                                    modifier = Modifier
+                                        .fillMaxWidth(0.5f)
+                                        .height(44.dp)
+                                ) {
+                                    if (isFollowLoading) {
+                                        CircularProgressIndicator(modifier = Modifier.size(20.dp), color = if (isFollowing == true) Color.White else Color(0xFFA259FF))
+                                    } else {
+                                        Text(if (isFollowing == true) "Siguiendo" else "Seguir", fontWeight = FontWeight.Bold)
+                                    }
+                                }
+                            }
                             
                             // Biografía
                             if ((data["biografia"] as? String)?.isNotBlank() == true) {
