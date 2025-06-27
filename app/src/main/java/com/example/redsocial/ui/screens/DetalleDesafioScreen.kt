@@ -32,6 +32,7 @@ import com.google.firebase.auth.FirebaseAuth
 import androidx.compose.ui.window.Dialog
 import androidx.compose.material.icons.filled.FavoriteBorder
 import com.example.redsocial.ui.components.CommentsDialog
+import com.example.redsocial.utils.NetworkUtils
 
 @Composable
 fun DetalleDesafioScreen(challengeId: String, navController: NavController) {
@@ -118,6 +119,25 @@ fun DetalleDesafioScreen(challengeId: String, navController: NavController) {
                     .update("likes", currentLikes + 1)
                 isLiked = true
                 currentLikes++
+                // Notificar al autor del desafío
+                db.collection("desafios")
+                    .document(challengeId)
+                    .get()
+                    .addOnSuccessListener { desafioDoc ->
+                        val autorId = desafioDoc.getString("creatorId")
+                        val userName = currentUser.displayName ?: currentUser.email?.split("@")?.first() ?: "Usuario"
+                        val userPhoto = currentUser.photoUrl?.toString()
+                        if (autorId != null && autorId != currentUser.uid) {
+                            val mensaje = "$userName le dio like a tu desafío"
+                            NetworkUtils.notificarEvento(
+                                usuarioObjetivoId = autorId,
+                                tipo = "like",
+                                mensaje = mensaje,
+                                actorId = currentUser.uid,
+                                actorPhotoUrl = userPhoto
+                            )
+                        }
+                    }
             }
         }
     }

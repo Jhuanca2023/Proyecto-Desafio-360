@@ -20,6 +20,7 @@ import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.tasks.await
 import java.text.SimpleDateFormat
 import java.util.*
+import com.example.redsocial.utils.NetworkUtils
 
 @Composable
 fun CommentsDialog(
@@ -183,6 +184,24 @@ fun CommentsDialog(
                                                     .document(challengeId)
                                                     .update("comments", comments.size + 1)
                                                 loadComments() // Recargar comentarios
+
+                                                // Notificar al autor del desafío
+                                                db.collection("desafios")
+                                                    .document(challengeId)
+                                                    .get()
+                                                    .addOnSuccessListener { desafioDoc ->
+                                                        val autorId = desafioDoc.getString("creatorId")
+                                                        if (autorId != null && autorId != currentUser.uid) {
+                                                            val mensaje = "${userName} comentó en tu desafío: \"${newComment}\""
+                                                            NetworkUtils.notificarEvento(
+                                                                usuarioObjetivoId = autorId,
+                                                                tipo = "comentario",
+                                                                mensaje = mensaje,
+                                                                actorId = currentUser.uid,
+                                                                actorPhotoUrl = currentUser.photoUrl?.toString()
+                                                            )
+                                                        }
+                                                    }
                                             }
                                     }
                                     .addOnFailureListener {
@@ -208,6 +227,24 @@ fun CommentsDialog(
                                                     .document(challengeId)
                                                     .update("comments", comments.size + 1)
                                                 loadComments() // Recargar comentarios
+
+                                                // Notificar al autor del desafío
+                                                db.collection("desafios")
+                                                    .document(challengeId)
+                                                    .get()
+                                                    .addOnSuccessListener { desafioDoc ->
+                                                        val autorId = desafioDoc.getString("creatorId")
+                                                        if (autorId != null && autorId != currentUser.uid) {
+                                                            val mensaje = "${userName} comentó en tu desafío: \"${newComment}\""
+                                                            NetworkUtils.notificarEvento(
+                                                                usuarioObjetivoId = autorId,
+                                                                tipo = "comentario",
+                                                                mensaje = mensaje,
+                                                                actorId = currentUser.uid,
+                                                                actorPhotoUrl = currentUser.photoUrl?.toString()
+                                                            )
+                                                        }
+                                                    }
                                             }
                                     }
                             }
