@@ -47,7 +47,7 @@ fun BienvenidaScreen(navController: NavController, authViewModel: AuthViewModel 
         verticalArrangement = Arrangement.Center
     ) {
         Text(
-            text = "¡Bienvenido a\nNuestra Red Social!",
+            text = "¡Bienvenido a FLUXI",
             color = Color.White,
             fontSize = 32.sp,
             fontWeight = FontWeight.Bold,

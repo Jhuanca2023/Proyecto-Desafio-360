@@ -24,6 +24,7 @@ import com.google.firebase.firestore.FirebaseFirestore
 import com.example.redsocial.utils.uploadImageToImgur
 import com.example.redsocial.utils.uploadVideoToSupabase
 import android.widget.Toast
+import com.example.redsocial.utils.NetworkUtils
 
 @Composable
 fun SendEvidenceScreen(
@@ -296,6 +297,22 @@ fun saveEvidenceToFirestore(
                             "evidenceId" to evidenciaDoc.id,
                             "contentType" to tipo
                         ))
+                }
+            // Notificar al autor del desafío
+            db.collection("challenges").document(challengeId)
+                .get()
+                .addOnSuccessListener { challengeDoc ->
+                    val autorId = challengeDoc.getString("creatorId")
+                    if (autorId != null && autorId != userId) {
+                        val mensaje = "$userName participó en tu desafío"
+                        NetworkUtils.notificarEvento(
+                            usuarioObjetivoId = autorId,
+                            tipo = "participacion",
+                            mensaje = mensaje,
+                            actorId = userId,
+                            actorPhotoUrl = null // Puedes pasar la foto si la tienes
+                        )
+                    }
                 }
         }
 } 

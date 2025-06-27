@@ -100,4 +100,7 @@ dependencies {
     // Permisos para cámara y almacenamiento
     implementation("com.google.accompanist:accompanist-permissions:0.34.0")
     implementation("androidx.compose.material:material:1.5.4")
+
+    // OneSignal
+    implementation ("com.onesignal:OneSignal:5.1.7")
 }
