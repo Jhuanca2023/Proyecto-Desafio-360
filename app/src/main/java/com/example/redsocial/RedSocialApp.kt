@@ -4,12 +4,16 @@ import android.app.Application
 import com.google.firebase.FirebaseApp
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.FirebaseFirestoreSettings
+import com.onesignal.OneSignal
 
 class RedSocialApp : Application() {
     override fun onCreate() {
         super.onCreate()
         
         try {
+            // Inicializar OneSignal
+            OneSignal.initWithContext(this, "816af768-2713-4c05-96ce-74c700c09862")
+            
             // Firebase
             FirebaseApp.initializeApp(this)
             
