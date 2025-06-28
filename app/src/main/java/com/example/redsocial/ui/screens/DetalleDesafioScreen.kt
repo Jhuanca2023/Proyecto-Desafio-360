@@ -35,7 +35,14 @@ import com.example.redsocial.ui.components.CommentsDialog
 import com.example.redsocial.utils.NetworkUtils
 import com.example.redsocial.utils.NotificationUtils
 import android.util.Log
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun DetalleDesafioScreen(challengeId: String, navController: NavController) {
     val currentUser = FirebaseAuth.getInstance().currentUser
@@ -190,16 +197,22 @@ fun DetalleDesafioScreen(challengeId: String, navController: NavController) {
                     modifier = Modifier.clickable { navController.navigate("userProfile/${data["authorId"] as? String ?: ""}") }
                 )
                 Spacer(Modifier.height(8.dp))
-                Row(verticalAlignment = Alignment.CenterVertically) {
+                // Etiquetas principales (puntos, categoría, duración)
+                FlowRow {
                     ChipPreview("${(data["points"] as? Long ?: 0)} pts")
-                    Spacer(Modifier.width(8.dp))
                     (data["category"] as? String)?.let { ChipPreview(it) }
-                    Spacer(Modifier.width(8.dp))
                     (data["duration"] as? String)?.let { ChipPreview(it) }
-                    Spacer(Modifier.width(8.dp))
-                    (data["contentTypes"] as? List<*>)?.forEach {
-                        ChipPreview(it.toString())
-                        Spacer(Modifier.width(4.dp))
+                }
+                
+                // Content types
+                (data["contentTypes"] as? List<*>)?.let { contentTypes ->
+                    if (contentTypes.isNotEmpty()) {
+                        Spacer(Modifier.height(8.dp))
+                        FlowRow {
+                            contentTypes.forEach { contentType ->
+                                ChipPreview(contentType.toString())
+                            }
+                        }
                     }
                 }
                 HorizontalDivider(Modifier.padding(vertical = 8.dp))
@@ -236,9 +249,13 @@ fun DetalleDesafioScreen(challengeId: String, navController: NavController) {
                 }
                 Spacer(Modifier.height(8.dp))
                 Text("Etiquetas", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-                LazyRow {
-                    (data["tags"] as? List<*>)?.forEach { tag ->
-                        item { ChipPreview(tag.toString()) }
+                (data["tags"] as? List<*>)?.let { tags ->
+                    if (tags.isNotEmpty()) {
+                        FlowRow {
+                            tags.forEach { tag ->
+                                ChipPreview(tag.toString())
+                            }
+                        }
                     }
                 }
                 Spacer(Modifier.height(16.dp))
