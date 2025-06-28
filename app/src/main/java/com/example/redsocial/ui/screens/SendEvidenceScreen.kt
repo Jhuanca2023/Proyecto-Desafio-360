@@ -23,8 +23,15 @@ import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import com.example.redsocial.utils.uploadImageToImgur
 import com.example.redsocial.utils.uploadVideoToSupabase
+import com.example.redsocial.utils.AudioUtils
 import android.widget.Toast
 import com.example.redsocial.utils.NetworkUtils
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Mic
+import androidx.compose.material.icons.filled.Stop
+import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material.icons.filled.Pause
+import java.io.File
 
 @Composable
 fun SendEvidenceScreen(
@@ -46,6 +53,11 @@ fun SendEvidenceScreen(
     var errorMessage by remember { mutableStateOf<String?>(null) }
     var videoUri by remember { mutableStateOf<Uri?>(null) }
     var videoFileName by remember { mutableStateOf<String?>(null) }
+    
+    // Variables para audio
+    var isRecording by remember { mutableStateOf(false) }
+    var audioFile by remember { mutableStateOf<File?>(null) }
+    var audioFileName by remember { mutableStateOf<String?>(null) }
 
     val imageLauncher = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri: Uri? ->
         imageUri = uri
@@ -60,7 +72,7 @@ fun SendEvidenceScreen(
         videoFileName = uri?.lastPathSegment
     }
 
-    val tipos = listOf("imagen", "video", "texto") // ahora incluye video
+    val tipos = listOf("imagen", "video", "texto", "audio") // ahora incluye audio
     val scrollState = rememberScrollState()
 
     Column(
@@ -119,6 +131,56 @@ fun SendEvidenceScreen(
                     label = { Text("Escribe tu evidencia") },
                     modifier = Modifier.fillMaxWidth().height(120.dp)
                 )
+            }
+            "audio" -> {
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    if (!isRecording && audioFile == null) {
+                        Button(
+                            onClick = {
+                                val success = AudioUtils.startRecording(context) { error ->
+                                    errorMessage = error
+                                }
+                                if (success) {
+                                    isRecording = true
+                                    errorMessage = null
+                                }
+                            },
+                            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
+                        ) {
+                            Icon(Icons.Default.Mic, contentDescription = "Grabar")
+                            Spacer(Modifier.width(8.dp))
+                            Text("Iniciar Grabación")
+                        }
+                    } else if (isRecording) {
+                        Button(
+                            onClick = {
+                                audioFile = AudioUtils.stopRecording()
+                                isRecording = false
+                                audioFileName = "audio_${System.currentTimeMillis()}.mp3"
+                            },
+                            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
+                        ) {
+                            Icon(Icons.Default.Stop, contentDescription = "Detener")
+                            Spacer(Modifier.width(8.dp))
+                            Text("Detener Grabación")
+                        }
+                        Text("🎤 Grabando...", style = MaterialTheme.typography.bodyMedium)
+                    } else if (audioFile != null) {
+                        Text("✅ Audio grabado", style = MaterialTheme.typography.bodyMedium)
+                        Button(
+                            onClick = {
+                                audioFile = null
+                                audioFileName = null
+                            },
+                            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.secondary)
+                        ) {
+                            Text("Regrabar")
+                        }
+                    }
+                }
             }
         }
         Spacer(Modifier.height(16.dp))
@@ -215,6 +277,41 @@ fun SendEvidenceScreen(
                                         isLoading = false
                                     }
                                 }
+                            } else if (tipo == "audio") {
+                                audioFile?.let { file ->
+                                    val fileName = audioFileName ?: "audio_${System.currentTimeMillis()}.mp3"
+                                    AudioUtils.uploadAudioToSupabase(
+                                        audioFile = file,
+                                        fileName = fileName,
+                                        onSuccess = { url: String ->
+                                            scope.launch(Dispatchers.Main) {
+                                                saveEvidenceToFirestore(
+                                                    challengeId,
+                                                    user?.uid ?: "",
+                                                    user?.displayName ?: "",
+                                                    tipo,
+                                                    url,
+                                                    null,
+                                                    descripcion
+                                                )
+                                                isLoading = false
+                                                onEvidenceSent()
+                                            }
+                                        },
+                                        onError = { errorMsg ->
+                                            scope.launch(Dispatchers.Main) {
+                                                errorMessage = errorMsg
+                                                isLoading = false
+                                                Toast.makeText(context, errorMsg, Toast.LENGTH_LONG).show()
+                                            }
+                                        }
+                                    )
+                                } ?: run {
+                                    scope.launch(Dispatchers.Main) {
+                                        errorMessage = "Graba un audio primero."
+                                        isLoading = false
+                                    }
+                                }
                             } else if (tipo == "texto") {
                                 if (texto.isNotBlank()) {
                                     saveEvidenceToFirestore(
@@ -239,7 +336,7 @@ fun SendEvidenceScreen(
                         }
                     }
                 },
-                enabled = (!isLoading && ((tipo == "imagen" && imageUri != null) || (tipo == "video" && videoUri != null) || (tipo == "texto" && texto.isNotBlank())))
+                enabled = (!isLoading && ((tipo == "imagen" && imageUri != null) || (tipo == "video" && videoUri != null) || (tipo == "texto" && texto.isNotBlank()) || (tipo == "audio" && audioFile != null)))
             ) {
                 Text(if (isLoading) "Enviando..." else "Enviar Evidencia")
             }
@@ -278,11 +375,13 @@ fun saveEvidenceToFirestore(
                 "participants" to com.google.firebase.firestore.FieldValue.increment(-1)
             )
             
-            // Si es una imagen o video, incrementamos el contador correspondiente
+            // Si es una imagen, video o audio, incrementamos el contador correspondiente
             if (tipo == "imagen") {
                 updates["imageCount"] = com.google.firebase.firestore.FieldValue.increment(1)
             } else if (tipo == "video") {
                 updates["videoCount"] = com.google.firebase.firestore.FieldValue.increment(1)
+            } else if (tipo == "audio") {
+                updates["audioCount"] = com.google.firebase.firestore.FieldValue.increment(1)
             }
             
             db.collection("challenges").document(challengeId)

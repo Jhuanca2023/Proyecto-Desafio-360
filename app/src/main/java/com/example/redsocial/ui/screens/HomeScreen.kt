@@ -47,6 +47,8 @@ import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Pause
+import androidx.compose.material.icons.filled.Mic
+import androidx.compose.material.icons.filled.Stop
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -60,6 +62,9 @@ import androidx.compose.material3.TextButton
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.text.AnnotatedString
 import androidx.media3.common.util.UnstableApi
+import androidx.compose.foundation.background
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.ui.draw.clip
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
@@ -242,6 +247,12 @@ fun EvidenciaPage(
                     contentDescription = "Imagen de evidencia",
                     modifier = Modifier.fillMaxSize(),
                     contentScale = ContentScale.Crop
+                )
+            }
+            "audio" -> evidencia.url?.let { url ->
+                AudioPlayer(
+                    url = url,
+                    onLongPress = { showOptionsBottomSheet = true }
                 )
             }
             "texto" -> {
@@ -526,6 +537,32 @@ fun EvidenciaCard(evidencia: Evidencia) {
                             .fillMaxWidth()
                             .height(200.dp)
                     )
+                } else if (evidencia.tipo == "audio") {
+                    // Mostrar audio con icono y controles
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(100.dp)
+                            .background(Color(0xFF1A1333)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(16.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Mic,
+                                contentDescription = "Audio",
+                                tint = Color.White,
+                                modifier = Modifier.size(32.dp)
+                            )
+                            Text(
+                                text = "🎵 Audio Evidence",
+                                color = Color.White,
+                                style = MaterialTheme.typography.bodyMedium
+                            )
+                        }
+                    }
                 }
             }
             Spacer(Modifier.height(8.dp))
@@ -596,4 +633,124 @@ private fun generateSampleChallenges() = listOf(
     ChallengePreview("1", "30-Day Sentadillas", "Desafío de sentadillas por 30 días", "Deporte", "30 días", 100, listOf("video", "imagen"), null),
     ChallengePreview("2", "Pinta tu Atardecer Favorito", "Desafío de pintura de atardeceres", "Arte", "7 días", 50, listOf("imagen", "texto"), null),
     ChallengePreview("3", "Reto Musical Semanal", "Desafío de música semanal", "Música", "1 semana", 75, listOf("audio", "video"), null)
-) 
+)
+
+@OptIn(UnstableApi::class)
+@Composable
+fun AudioPlayer(url: String, onLongPress: () -> Unit) {
+    val context = LocalContext.current
+    val exoPlayer = remember(url) {
+        ExoPlayer.Builder(context).build().apply {
+            setMediaItem(MediaItem.fromUri(url))
+            prepare()
+        }
+    }
+
+    var isPlaying by remember { mutableStateOf(false) }
+    var showControls by remember { mutableStateOf(false) }
+
+    val lifecycleOwner = LocalLifecycleOwner.current
+    DisposableEffect(exoPlayer, lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            when (event) {
+                Lifecycle.Event.ON_PAUSE -> exoPlayer.pause()
+                Lifecycle.Event.ON_RESUME -> if (isPlaying) exoPlayer.play()
+                else -> {}
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+
+        onDispose {
+            lifecycleOwner.lifecycle.removeObserver(observer)
+            exoPlayer.release()
+        }
+    }
+
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color(0xFF1A1333))
+            .pointerInput(Unit) {
+                detectTapGestures(
+                    onLongPress = { onLongPress() },
+                    onTap = {
+                        if (isPlaying) {
+                            exoPlayer.pause()
+                            isPlaying = false
+                        } else {
+                            exoPlayer.play()
+                            isPlaying = true
+                        }
+                        showControls = true
+                    }
+                )
+            },
+        contentAlignment = Alignment.Center
+    ) {
+        // Fondo con icono de micrófono
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(120.dp)
+                    .clip(CircleShape)
+                    .background(Color(0xFFA259FF).copy(alpha = 0.3f)),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Mic,
+                    contentDescription = "Audio",
+                    tint = Color.White,
+                    modifier = Modifier.size(64.dp)
+                )
+            }
+            
+            Spacer(modifier = Modifier.height(16.dp))
+            
+            Text(
+                text = "🎵 Audio Evidence",
+                style = MaterialTheme.typography.headlineMedium,
+                color = Color.White
+            )
+            
+            Spacer(modifier = Modifier.height(8.dp))
+            
+            Text(
+                text = "Toca para reproducir",
+                style = MaterialTheme.typography.bodyMedium,
+                color = Color.White.copy(alpha = 0.7f)
+            )
+        }
+
+        // Controles de reproducción
+        AnimatedVisibility(
+            visible = showControls,
+            enter = fadeIn(),
+            exit = fadeOut()
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(80.dp)
+                    .clip(CircleShape)
+                    .background(Color.Black.copy(alpha = 0.5f)),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = if (isPlaying) Icons.Filled.Pause else Icons.Filled.PlayArrow,
+                    contentDescription = "Play/Pause",
+                    tint = Color.White,
+                    modifier = Modifier.size(40.dp)
+                )
+            }
+        }
+
+        if (showControls) {
+            LaunchedEffect(Unit) {
+                delay(2000)
+                showControls = false
+            }
+        }
+    }
+} 
