@@ -6,6 +6,7 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.*
@@ -33,13 +34,14 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.FavoriteBorder
-// import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.layout.heightIn
 import com.example.redsocial.utils.NotificationUtils
 import android.util.Log
+import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun ExploreScreen(navController: NavController) {
     var searchQuery by remember { mutableStateOf("") }
@@ -134,6 +136,7 @@ data class ChallengeCardData(
     val duration: String
 )
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun ChallengePreviewCardFirestore(
     challenge: ChallengeCardData,
@@ -302,17 +305,17 @@ fun ChallengePreviewCardFirestore(
                         add(challenge.duration)
                     }
                 }
-                LazyVerticalGrid(
-                    columns = GridCells.Adaptive(minSize = 80.dp),
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .heightIn(max = 120.dp)
-                        .padding(bottom = 8.dp),
-                    horizontalArrangement = Arrangement.spacedBy(4.dp),
-                    verticalArrangement = Arrangement.spacedBy(4.dp)
-                ) {
-                    items(allTags) { tag ->
-                        ChipPreview(tag)
+                if (allTags.isNotEmpty()) {
+                    FlowRow(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(bottom = 8.dp),
+                        horizontalArrangement = Arrangement.spacedBy(4.dp),
+                        verticalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        allTags.forEach { tag ->
+                            ChipPreview(tag)
+                        }
                     }
                 }
                 Row(
