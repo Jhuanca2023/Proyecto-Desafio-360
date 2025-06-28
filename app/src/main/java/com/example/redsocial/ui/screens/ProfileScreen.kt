@@ -48,6 +48,7 @@ import java.io.InputStream
 import com.example.redsocial.utils.uploadImageToImgur
 import android.util.Base64
 import androidx.compose.ui.layout.ContentScale
+import com.example.redsocial.utils.NotificationUtils
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable

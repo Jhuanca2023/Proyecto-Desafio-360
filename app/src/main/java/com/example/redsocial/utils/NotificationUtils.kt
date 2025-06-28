@@ -168,4 +168,75 @@ object NotificationUtils {
                 Log.e("NotificationUtils", "Debug - Error obteniendo notificaciones: ${e.message}")
             }
     }
+    
+    /**
+     * Función de prueba simple para verificar conectividad con Firestore
+     */
+    fun testFirestoreConnection() {
+        val currentUser = FirebaseAuth.getInstance().currentUser
+        val db = FirebaseFirestore.getInstance()
+        
+        Log.d("NotificationUtils", "=== PRUEBA DE CONECTIVIDAD FIRESTORE ===")
+        Log.d("NotificationUtils", "Usuario autenticado: ${currentUser?.uid ?: "NO AUTENTICADO"}")
+        
+        if (currentUser == null) {
+            Log.e("NotificationUtils", "ERROR: No hay usuario autenticado")
+            return
+        }
+        
+        // Prueba 1: Leer documento del usuario
+        Log.d("NotificationUtils", "Prueba 1: Leyendo documento del usuario...")
+        db.collection("usuarios").document(currentUser.uid).get()
+            .addOnSuccessListener { document ->
+                if (document.exists()) {
+                    Log.d("NotificationUtils", "✅ ÉXITO: Documento del usuario leído correctamente")
+                    Log.d("NotificationUtils", "Datos del usuario: ${document.data}")
+                } else {
+                    Log.e("NotificationUtils", "❌ ERROR: Documento del usuario no existe")
+                }
+            }
+            .addOnFailureListener { e ->
+                Log.e("NotificationUtils", "❌ ERROR: No se pudo leer documento del usuario: ${e.message}")
+            }
+        
+        // Prueba 2: Contar notificaciones no leídas
+        Log.d("NotificationUtils", "Prueba 2: Contando notificaciones no leídas...")
+        db.collection("usuarios")
+            .document(currentUser.uid)
+            .collection("notificaciones")
+            .whereEqualTo("leido", false)
+            .get()
+            .addOnSuccessListener { snapshot ->
+                Log.d("NotificationUtils", "✅ ÉXITO: Notificaciones no leídas contadas: ${snapshot.size()}")
+                snapshot.documents.forEach { doc ->
+                    Log.d("NotificationUtils", "Notificación no leída: ${doc.data}")
+                }
+            }
+            .addOnFailureListener { e ->
+                Log.e("NotificationUtils", "❌ ERROR: No se pudieron contar notificaciones: ${e.message}")
+            }
+        
+        // Prueba 3: Intentar escribir un documento de prueba
+        Log.d("NotificationUtils", "Prueba 3: Intentando escribir documento de prueba...")
+        val testData = hashMapOf(
+            "test" to true,
+            "timestamp" to System.currentTimeMillis(),
+            "message" to "Prueba de conectividad"
+        )
+        
+        db.collection("test_connection")
+            .document(currentUser.uid)
+            .set(testData)
+            .addOnSuccessListener {
+                Log.d("NotificationUtils", "✅ ÉXITO: Documento de prueba escrito correctamente")
+                // Limpiar el documento de prueba
+                db.collection("test_connection").document(currentUser.uid).delete()
+                    .addOnSuccessListener {
+                        Log.d("NotificationUtils", "✅ Documento de prueba eliminado")
+                    }
+            }
+            .addOnFailureListener { e ->
+                Log.e("NotificationUtils", "❌ ERROR: No se pudo escribir documento de prueba: ${e.message}")
+            }
+    }
 } 
