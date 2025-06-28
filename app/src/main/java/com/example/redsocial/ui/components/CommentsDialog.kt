@@ -21,6 +21,7 @@ import kotlinx.coroutines.tasks.await
 import java.text.SimpleDateFormat
 import java.util.*
 import com.example.redsocial.utils.NetworkUtils
+import com.example.redsocial.utils.NotificationUtils
 
 @Composable
 fun CommentsDialog(
@@ -185,20 +186,19 @@ fun CommentsDialog(
                                                     .update("comments", comments.size + 1)
                                                 loadComments() // Recargar comentarios
 
-                                                // Notificar al autor del desafío
+                                                // Enviar notificación de comentario
                                                 db.collection("desafios")
                                                     .document(challengeId)
                                                     .get()
                                                     .addOnSuccessListener { desafioDoc ->
-                                                        val autorId = desafioDoc.getString("creatorId")
+                                                        val autorId = desafioDoc.getString("authorId")
+                                                        val title = desafioDoc.getString("title") ?: "Desafío"
                                                         if (autorId != null && autorId != currentUser.uid) {
-                                                            val mensaje = "${userName} comentó en tu desafío: \"${newComment}\""
-                                                            NetworkUtils.notificarEvento(
-                                                                usuarioObjetivoId = autorId,
-                                                                tipo = "comentario",
-                                                                mensaje = mensaje,
-                                                                actorId = currentUser.uid,
-                                                                actorPhotoUrl = currentUser.photoUrl?.toString()
+                                                            NotificationUtils.sendCommentNotification(
+                                                                challengeAuthorId = autorId,
+                                                                challengeId = challengeId,
+                                                                challengeTitle = title,
+                                                                commentText = comment.content
                                                             )
                                                         }
                                                     }
@@ -228,20 +228,19 @@ fun CommentsDialog(
                                                     .update("comments", comments.size + 1)
                                                 loadComments() // Recargar comentarios
 
-                                                // Notificar al autor del desafío
+                                                // Enviar notificación de comentario
                                                 db.collection("desafios")
                                                     .document(challengeId)
                                                     .get()
                                                     .addOnSuccessListener { desafioDoc ->
-                                                        val autorId = desafioDoc.getString("creatorId")
+                                                        val autorId = desafioDoc.getString("authorId")
+                                                        val title = desafioDoc.getString("title") ?: "Desafío"
                                                         if (autorId != null && autorId != currentUser.uid) {
-                                                            val mensaje = "${userName} comentó en tu desafío: \"${newComment}\""
-                                                            NetworkUtils.notificarEvento(
-                                                                usuarioObjetivoId = autorId,
-                                                                tipo = "comentario",
-                                                                mensaje = mensaje,
-                                                                actorId = currentUser.uid,
-                                                                actorPhotoUrl = currentUser.photoUrl?.toString()
+                                                            NotificationUtils.sendCommentNotification(
+                                                                challengeAuthorId = autorId,
+                                                                challengeId = challengeId,
+                                                                challengeTitle = title,
+                                                                commentText = comment.content
                                                             )
                                                         }
                                                     }

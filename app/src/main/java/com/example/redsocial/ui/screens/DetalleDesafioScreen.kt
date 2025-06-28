@@ -33,66 +33,72 @@ import androidx.compose.ui.window.Dialog
 import androidx.compose.material.icons.filled.FavoriteBorder
 import com.example.redsocial.ui.components.CommentsDialog
 import com.example.redsocial.utils.NetworkUtils
+import com.example.redsocial.utils.NotificationUtils
+import android.util.Log
 
 @Composable
 fun DetalleDesafioScreen(challengeId: String, navController: NavController) {
-    var challenge by remember { mutableStateOf<Map<String, Any>?>(null) }
-    var isLoading by remember { mutableStateOf(true) }
-    var showEnviarEvidencia by remember { mutableStateOf(false) }
-    var participaciones by remember { mutableStateOf<List<Evidencia>>(emptyList()) }
-    var showComments by remember { mutableStateOf(false) }
-    var currentLikes by remember { mutableStateOf(0) }
-    var isLiked by remember { mutableStateOf(false) }
-    var currentComments by remember { mutableStateOf(0) }
     val currentUser = FirebaseAuth.getInstance().currentUser
     val db = FirebaseFirestore.getInstance()
+    var challenge by remember { mutableStateOf<Map<String, Any>?>(null) }
+    var isLoading by remember { mutableStateOf(true) }
+    var currentLikes by remember { mutableStateOf(0) }
+    var currentComments by remember { mutableStateOf(0) }
+    var isLiked by remember { mutableStateOf(false) }
+    var showComments by remember { mutableStateOf(false) }
+    var showEnviarEvidencia by remember { mutableStateOf(false) }
+    var participaciones by remember { mutableStateOf(listOf<Evidencia>()) }
 
+    // Cargar datos del desafío
     LaunchedEffect(challengeId) {
-        isLoading = true
-        val doc = db.collection("desafios").document(challengeId).get().await()
-        challenge = doc.data
-        
-        // Obtener likes y comentarios actuales
-        currentLikes = (doc.data?.get("likes") as? Long)?.toInt() ?: 0
-        currentComments = (doc.data?.get("comments") as? Long)?.toInt() ?: 0
-        
-        // Verificar si el usuario actual ya dio like
-        if (currentUser != null) {
-            val likeDoc = db.collection("desafios")
-                .document(challengeId)
-                .collection("likes")
-                .document(currentUser.uid)
-                .get()
-                .await()
-            isLiked = likeDoc.exists()
+        try {
+            val doc = db.collection("desafios").document(challengeId).get().await()
+            if (doc.exists()) {
+                challenge = doc.data
+                currentLikes = (doc.getLong("likes") ?: 0L).toInt()
+                currentComments = (doc.getLong("comments") ?: 0L).toInt()
+                
+                // Verificar si el usuario actual ya dio like
+                if (currentUser != null) {
+                    val likeDoc = db.collection("desafios")
+                        .document(challengeId)
+                        .collection("likes")
+                        .document(currentUser.uid)
+                        .get()
+                        .await()
+                    isLiked = likeDoc.exists()
+                }
+                
+                // Cargar participaciones
+                val evidenciasSnapshot = db.collection("evidencias")
+                    .whereEqualTo("challengeId", challengeId)
+                    .get()
+                    .await()
+                participaciones = evidenciasSnapshot.documents.mapNotNull { doc ->
+                    val data = doc.data ?: return@mapNotNull null
+                    Evidencia(
+                        id = doc.id,
+                        challengeId = data["challengeId"] as? String ?: "",
+                        userId = data["userId"] as? String ?: "",
+                        userName = data["userName"] as? String ?: "",
+                        tipo = data["tipo"] as? String ?: "",
+                        url = data["url"] as? String,
+                        texto = data["texto"] as? String,
+                        timestamp = data["timestamp"] as? Long ?: 0L
+                    )
+                }
+            }
+        } catch (e: Exception) {
+            // Manejar error
         }
-
-        // Obtener participaciones recientes
-        val evidenciasSnapshot = db.collection("evidencias")
-            .whereEqualTo("challengeId", challengeId)
-            .get()
-            .await()
-        
-        participaciones = evidenciasSnapshot.documents.mapNotNull { doc ->
-            val data = doc.data ?: return@mapNotNull null
-            Evidencia(
-                id = doc.id,
-                challengeId = data["challengeId"] as? String ?: "",
-                userId = data["userId"] as? String ?: "",
-                userName = data["userName"] as? String ?: "",
-                tipo = data["tipo"] as? String ?: "",
-                url = data["url"] as? String,
-                texto = data["texto"] as? String,
-                timestamp = data["timestamp"] as? Long ?: 0L
-            )
-        }.sortedByDescending { it.timestamp }
-
         isLoading = false
     }
 
     // Función para manejar like/unlike
     fun handleLike() {
         if (currentUser == null) return
+        
+        Log.d("DetalleDesafioScreen", "handleLike - isLiked: $isLiked, challengeId: $challengeId")
         
         val likeRef = db.collection("desafios")
             .document(challengeId)
@@ -107,6 +113,18 @@ fun DetalleDesafioScreen(challengeId: String, navController: NavController) {
                     .update("likes", currentLikes - 1)
                 isLiked = false
                 currentLikes--
+                
+                // Eliminar notificación de like
+                challenge?.let { data ->
+                    val authorId = data["authorId"] as? String
+                    Log.d("DetalleDesafioScreen", "Eliminando like - authorId: $authorId")
+                    if (authorId != null) {
+                        NotificationUtils.removeLikeNotification(
+                            challengeAuthorId = authorId,
+                            challengeId = challengeId
+                        )
+                    }
+                }
             }
         } else {
             // Dar like
@@ -119,25 +137,22 @@ fun DetalleDesafioScreen(challengeId: String, navController: NavController) {
                     .update("likes", currentLikes + 1)
                 isLiked = true
                 currentLikes++
-                // Notificar al autor del desafío
-                db.collection("desafios")
-                    .document(challengeId)
-                    .get()
-                    .addOnSuccessListener { desafioDoc ->
-                        val autorId = desafioDoc.getString("creatorId")
-                        val userName = currentUser.displayName ?: currentUser.email?.split("@")?.first() ?: "Usuario"
-                        val userPhoto = currentUser.photoUrl?.toString()
-                        if (autorId != null && autorId != currentUser.uid) {
-                            val mensaje = "$userName le dio like a tu desafío"
-                            NetworkUtils.notificarEvento(
-                                usuarioObjetivoId = autorId,
-                                tipo = "like",
-                                mensaje = mensaje,
-                                actorId = currentUser.uid,
-                                actorPhotoUrl = userPhoto
-                            )
-                        }
+                
+                // Enviar notificación de like
+                challenge?.let { data ->
+                    val authorId = data["authorId"] as? String
+                    val title = data["title"] as? String ?: "Desafío"
+                    Log.d("DetalleDesafioScreen", "Enviando notificación de like - authorId: $authorId, title: $title")
+                    if (authorId != null) {
+                        NotificationUtils.sendLikeNotification(
+                            challengeAuthorId = authorId,
+                            challengeId = challengeId,
+                            challengeTitle = title
+                        )
+                    } else {
+                        Log.e("DetalleDesafioScreen", "authorId es null - data: $data")
                     }
+                }
             }
         }
     }

@@ -52,6 +52,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.draw.clip
 import coil.compose.AsyncImage
 import androidx.compose.material3.ExperimentalMaterial3Api
+import com.example.redsocial.utils.uploadImageToImgur
 
 // Declarar fuera del Composable para evitar problemas de scope y reasignación
 private val visibilityOptions = listOf(
@@ -85,6 +86,8 @@ fun CreateScreen() {
     var errorMessage by remember { mutableStateOf<String?>(null) }
     var maxParticipants by remember { mutableStateOf(1) }
     var expandedVisibility by remember { mutableStateOf(false) }
+    var coverImageUrl by remember { mutableStateOf<String?>(null) }
+    var isUploadingImage by remember { mutableStateOf(false) }
 
     // Selector de imagen
     val launcher = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri: Uri? ->
@@ -261,17 +264,68 @@ fun CreateScreen() {
             modifier = Modifier.fillMaxWidth().height(8.dp).clip(RoundedCornerShape(8.dp)).padding(bottom = 16.dp)
         )
         Spacer(Modifier.height(8.dp))
-        Button(
-            onClick = { launcher.launch("image/*") },
-            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFA259FF), contentColor = Color.White),
-            modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp)
-        ) {
-            Icon(Icons.Default.AddAPhoto, contentDescription = null, tint = Color.White)
-            Spacer(Modifier.width(8.dp))
-            Text("Seleccionar imagen de portada")
+        Text(
+            "Imagen de portada",
+            color = Color.White,
+            fontWeight = FontWeight.Bold,
+            modifier = Modifier.padding(bottom = 8.dp)
+        )
+        
+        if (coverImageUri != null) {
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = 12.dp),
+                colors = CardDefaults.cardColors(containerColor = Color(0xFF28243C))
+            ) {
+                Column(
+                    modifier = Modifier.padding(16.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Text(
+                        "Imagen actual",
+                        color = Color.Gray,
+                        fontSize = 14.sp,
+                        modifier = Modifier.padding(bottom = 8.dp)
+                    )
+                    AsyncImage(
+                        model = coverImageUri,
+                        contentDescription = "Imagen de portada actual",
+                        modifier = Modifier
+                            .size(200.dp)
+                            .clip(RoundedCornerShape(12.dp)),
+                        contentScale = androidx.compose.ui.layout.ContentScale.Crop
+                    )
+                }
+            }
         }
-        coverImageBitmap?.let {
-            Image(bitmap = it.asImageBitmap(), contentDescription = "Imagen de portada", modifier = Modifier.size(120.dp).padding(8.dp))
+
+        // Botón para cambiar imagen
+        OutlinedButton(
+            onClick = {
+                if (!isUploadingImage) {
+                    launcher.launch("image/*")
+                }
+            },
+            enabled = !isUploadingImage,
+            modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp),
+            colors = ButtonDefaults.outlinedButtonColors(
+                contentColor = Color(0xFFA259FF)
+            )
+        ) {
+            if (isUploadingImage) {
+                CircularProgressIndicator(
+                    modifier = Modifier.size(20.dp),
+                    color = Color(0xFFA259FF),
+                    strokeWidth = 2.dp
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text("Subiendo imagen...")
+            } else {
+                Icon(Icons.Default.Image, contentDescription = null)
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(if (coverImageUrl != null) "Cambiar imagen" else "Agregar imagen")
+            }
         }
         Spacer(Modifier.height(16.dp))
         Text("Visibilidad", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 16.sp, modifier = Modifier.fillMaxWidth().padding(bottom = 4.dp))
@@ -544,6 +598,7 @@ fun EditChallengeScreen(desafioId: String, navController: NavController) {
     var coverImageUri by remember { mutableStateOf<Uri?>(null) }
     var coverImageBitmap by remember { mutableStateOf<android.graphics.Bitmap?>(null) }
     var maxParticipants by remember { mutableStateOf(1) }
+    var isUploadingImage by remember { mutableStateOf(false) }
 
     // Estados para dropdowns
     var categoryExpanded by remember { mutableStateOf(false) }
@@ -552,6 +607,44 @@ fun EditChallengeScreen(desafioId: String, navController: NavController) {
 
     val clientId = "e88c7011ed88321"
     val scrollState = rememberScrollState()
+
+    // Selector de imagen para edición
+    val imageLauncher = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri: Uri? ->
+        if (uri != null) {
+            coverImageUri = uri
+            isUploadingImage = true
+            // Subir imagen a Imgur
+            scope.launch {
+                try {
+                    val inputStream: InputStream? = context.contentResolver.openInputStream(uri)
+                    val bytes = inputStream?.readBytes()
+                    inputStream?.close()
+                    
+                    if (bytes != null) {
+                        uploadImageToImgur(
+                            imageBytes = bytes,
+                            clientId = clientId,
+                            onSuccess = { imageUrl ->
+                                coverImageUrl = imageUrl
+                                successMessage = "Imagen actualizada exitosamente"
+                                isUploadingImage = false
+                            },
+                            onError = { msg ->
+                                errorMessage = "Error al subir imagen: $msg"
+                                isUploadingImage = false
+                            }
+                        )
+                    } else {
+                        errorMessage = "No se pudo leer la imagen"
+                        isUploadingImage = false
+                    }
+                } catch (e: Exception) {
+                    errorMessage = "Error al procesar la imagen: ${e.message}"
+                    isUploadingImage = false
+                }
+            }
+        }
+    }
 
     LaunchedEffect(desafioId) {
         isLoading = true
@@ -851,37 +944,68 @@ fun EditChallengeScreen(desafioId: String, navController: NavController) {
         )
 
         // Imagen de portada
+        Text(
+            "Imagen de portada",
+            color = Color.White,
+            fontWeight = FontWeight.Bold,
+            modifier = Modifier.padding(bottom = 8.dp)
+        )
+        
         if (coverImageUrl != null) {
-            Text(
-                "Imagen de portada actual",
-                color = Color.White,
-                fontWeight = FontWeight.Bold,
-                modifier = Modifier.padding(bottom = 8.dp)
-            )
-            AsyncImage(
-                model = coverImageUrl,
-                contentDescription = "Imagen de portada",
+            Card(
                 modifier = Modifier
-                    .size(120.dp)
-                    .background(Color(0xFF28243C), RoundedCornerShape(8.dp))
-                    .padding(8.dp)
-            )
-            Spacer(modifier = Modifier.height(8.dp))
+                    .fillMaxWidth()
+                    .padding(bottom = 12.dp),
+                colors = CardDefaults.cardColors(containerColor = Color(0xFF28243C))
+            ) {
+                Column(
+                    modifier = Modifier.padding(16.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Text(
+                        "Imagen actual",
+                        color = Color.Gray,
+                        fontSize = 14.sp,
+                        modifier = Modifier.padding(bottom = 8.dp)
+                    )
+                    AsyncImage(
+                        model = coverImageUrl,
+                        contentDescription = "Imagen de portada actual",
+                        modifier = Modifier
+                            .size(200.dp)
+                            .clip(RoundedCornerShape(12.dp)),
+                        contentScale = androidx.compose.ui.layout.ContentScale.Crop
+                    )
+                }
+            }
         }
 
         // Botón para cambiar imagen
         OutlinedButton(
             onClick = {
-                // Aquí iría la lógica para seleccionar nueva imagen
+                if (!isUploadingImage) {
+                    imageLauncher.launch("image/*")
+                }
             },
+            enabled = !isUploadingImage,
             modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp),
             colors = ButtonDefaults.outlinedButtonColors(
                 contentColor = Color(0xFFA259FF)
             )
         ) {
-            Icon(Icons.Default.Image, contentDescription = null)
-            Spacer(modifier = Modifier.width(8.dp))
-            Text(if (coverImageUrl != null) "Cambiar imagen" else "Agregar imagen")
+            if (isUploadingImage) {
+                CircularProgressIndicator(
+                    modifier = Modifier.size(20.dp),
+                    color = Color(0xFFA259FF),
+                    strokeWidth = 2.dp
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text("Subiendo imagen...")
+            } else {
+                Icon(Icons.Default.Image, contentDescription = null)
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(if (coverImageUrl != null) "Cambiar imagen" else "Agregar imagen")
+            }
         }
 
         // Mensajes de error/éxito
