@@ -20,6 +20,8 @@ import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.tasks.await
 import java.text.SimpleDateFormat
 import java.util.*
+import com.example.redsocial.utils.NetworkUtils
+import com.example.redsocial.utils.NotificationUtils
 
 @Composable
 fun CommentsDialog(
@@ -183,6 +185,23 @@ fun CommentsDialog(
                                                     .document(challengeId)
                                                     .update("comments", comments.size + 1)
                                                 loadComments() // Recargar comentarios
+
+                                                // Enviar notificación de comentario
+                                                db.collection("desafios")
+                                                    .document(challengeId)
+                                                    .get()
+                                                    .addOnSuccessListener { desafioDoc ->
+                                                        val autorId = desafioDoc.getString("authorId")
+                                                        val title = desafioDoc.getString("title") ?: "Desafío"
+                                                        if (autorId != null && autorId != currentUser.uid) {
+                                                            NotificationUtils.sendCommentNotification(
+                                                                challengeAuthorId = autorId,
+                                                                challengeId = challengeId,
+                                                                challengeTitle = title,
+                                                                commentText = comment.content
+                                                            )
+                                                        }
+                                                    }
                                             }
                                     }
                                     .addOnFailureListener {
@@ -208,6 +227,23 @@ fun CommentsDialog(
                                                     .document(challengeId)
                                                     .update("comments", comments.size + 1)
                                                 loadComments() // Recargar comentarios
+
+                                                // Enviar notificación de comentario
+                                                db.collection("desafios")
+                                                    .document(challengeId)
+                                                    .get()
+                                                    .addOnSuccessListener { desafioDoc ->
+                                                        val autorId = desafioDoc.getString("authorId")
+                                                        val title = desafioDoc.getString("title") ?: "Desafío"
+                                                        if (autorId != null && autorId != currentUser.uid) {
+                                                            NotificationUtils.sendCommentNotification(
+                                                                challengeAuthorId = autorId,
+                                                                challengeId = challengeId,
+                                                                challengeTitle = title,
+                                                                commentText = comment.content
+                                                            )
+                                                        }
+                                                    }
                                             }
                                     }
                             }

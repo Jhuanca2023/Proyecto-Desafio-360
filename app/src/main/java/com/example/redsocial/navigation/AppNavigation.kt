@@ -56,7 +56,7 @@ fun AppNavigation(authViewModel: AuthViewModel) {
         }
 
         composable("notifications") {
-            NotificationsScreen()
+            NotificationsScreen(navController)
         }
 
         composable("profile") {
