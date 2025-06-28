@@ -22,6 +22,7 @@ import com.example.redsocial.RedSocialApp
 import kotlinx.coroutines.delay
 import com.google.firebase.firestore.FieldValue
 import com.example.redsocial.utils.NetworkUtils
+import com.example.redsocial.utils.NotificationUtils
 
 sealed class AuthState {
     object Initial : AuthState()
@@ -525,22 +526,11 @@ class AuthViewModel(app: Application) : AndroidViewModel(app) {
         ))
         batch.commit()
             .addOnSuccessListener {
-                // Notificar al usuario seguido
-                db.collection(RedSocialApp.COLLECTION_USUARIOS)
-                    .document(targetUserId)
-                    .get()
-                    .addOnSuccessListener { doc ->
-                        val oneSignalId = doc.getString("oneSignalId")
-                        val nombre = user.displayName ?: user.email ?: "Alguien"
-                        NetworkUtils.notificarEvento(
-                            usuarioObjetivoId = targetUserId,
-                            tipo = "seguimiento",
-                            mensaje = "$nombre comenzó a seguirte",
-                            oneSignalId = oneSignalId,
-                            actorId = user.uid,
-                            actorPhotoUrl = user.photoUrl?.toString()
-                        )
-                    }
+                // Enviar notificación de seguimiento
+                NotificationUtils.sendFollowNotification(
+                    targetUserId = targetUserId,
+                    isFollowing = true
+                )
                 onSuccess()
             }
             .addOnFailureListener { e -> onError(e.message ?: "Error al seguir usuario") }
@@ -561,7 +551,14 @@ class AuthViewModel(app: Application) : AndroidViewModel(app) {
             "seguidores" to FieldValue.increment(-1)
         ))
         batch.commit()
-            .addOnSuccessListener { onSuccess() }
+            .addOnSuccessListener { 
+                // Enviar notificación de dejar de seguir
+                NotificationUtils.sendFollowNotification(
+                    targetUserId = targetUserId,
+                    isFollowing = false
+                )
+                onSuccess() 
+            }
             .addOnFailureListener { e -> onError(e.message ?: "Error al dejar de seguir usuario") }
     }
 

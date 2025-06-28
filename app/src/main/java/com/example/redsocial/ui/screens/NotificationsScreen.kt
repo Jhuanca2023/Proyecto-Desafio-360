@@ -36,6 +36,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.material3.MaterialTheme
 import java.util.concurrent.TimeUnit
 import androidx.compose.ui.graphics.Brush
+import com.example.redsocial.utils.NotificationUtils
+import androidx.navigation.NavController
 
 // Modelo de notificación
 data class Notificacion(
@@ -44,11 +46,12 @@ data class Notificacion(
     val mensaje: String = "",
     val fecha: Long = 0L,
     val leido: Boolean = false,
-    val actorPhotoUrl: String? = null
+    val actorPhotoUrl: String? = null,
+    val actorId: String? = null
 )
 
 @Composable
-fun NotificationsScreen() {
+fun NotificationsScreen(navController: NavController) {
     val user = FirebaseAuth.getInstance().currentUser
     val db = FirebaseFirestore.getInstance()
     var notificaciones by remember { mutableStateOf(listOf<Notificacion>()) }
@@ -57,6 +60,9 @@ fun NotificationsScreen() {
     // Listener en tiempo real
     LaunchedEffect(user?.uid) {
         if (user != null) {
+            // Debug: verificar notificaciones existentes
+            NotificationUtils.debugNotifications(user.uid)
+            
             db.collection("usuarios")
                 .document(user.uid)
                 .collection("notificaciones")
@@ -69,7 +75,8 @@ fun NotificationsScreen() {
                             mensaje = doc.getString("mensaje") ?: "",
                             fecha = doc.getLong("fecha") ?: 0L,
                             leido = doc.getBoolean("leido") ?: false,
-                            actorPhotoUrl = doc.getString("actorPhotoUrl")
+                            actorPhotoUrl = doc.getString("actorPhotoUrl"),
+                            actorId = doc.getString("actorId")
                         )
                     } ?: emptyList()
                     notificaciones = lista
@@ -127,22 +134,22 @@ fun NotificationsScreen() {
             val notisAnt = notificaciones.filter { it !in notisHoy && it !in notisAyer }
             if (notisHoy.isNotEmpty()) {
                 Text("Hoy", fontWeight = FontWeight.Bold, fontSize = 18.sp, modifier = Modifier.padding(vertical = 8.dp))
-                notisHoy.forEach { NotiCard(it, user!!.uid, db) }
+                notisHoy.forEach { NotiCard(it, user!!.uid, db, navController) }
             }
             if (notisAyer.isNotEmpty()) {
                 Text("Ayer", fontWeight = FontWeight.Bold, fontSize = 18.sp, modifier = Modifier.padding(vertical = 8.dp))
-                notisAyer.forEach { NotiCard(it, user!!.uid, db) }
+                notisAyer.forEach { NotiCard(it, user!!.uid, db, navController) }
             }
             if (notisAnt.isNotEmpty()) {
                 Text("Anteriores", fontWeight = FontWeight.Bold, fontSize = 18.sp, modifier = Modifier.padding(vertical = 8.dp))
-                notisAnt.forEach { NotiCard(it, user!!.uid, db) }
+                notisAnt.forEach { NotiCard(it, user!!.uid, db, navController) }
             }
         }
     }
 }
 
 @Composable
-fun NotiCard(noti: Notificacion, userId: String, db: FirebaseFirestore) {
+fun NotiCard(noti: Notificacion, userId: String, db: FirebaseFirestore, navController: NavController) {
     val fondo = if (noti.leido) Color(0xFF23223A) else Color(0xFF18181B)
     Card(
         modifier = Modifier
@@ -167,6 +174,11 @@ fun NotiCard(noti: Notificacion, userId: String, db: FirebaseFirestore) {
                         .clip(CircleShape)
                         .border(2.dp, MaterialTheme.colorScheme.primary, CircleShape)
                         .shadow(4.dp, CircleShape)
+                        .clickable {
+                            noti.actorId?.let { actorId ->
+                                navController.navigate("userProfile/$actorId")
+                            }
+                        }
                 )
             } else {
                 // Placeholder circular si no hay foto
@@ -177,11 +189,16 @@ fun NotiCard(noti: Notificacion, userId: String, db: FirebaseFirestore) {
                         .background(Color.Gray)
                         .border(2.dp, MaterialTheme.colorScheme.primary, CircleShape)
                         .shadow(4.dp, CircleShape)
+                        .clickable {
+                            noti.actorId?.let { actorId ->
+                                navController.navigate("userProfile/$actorId")
+                            }
+                        }
                 )
             }
             Spacer(modifier = Modifier.width(12.dp))
             Column(modifier = Modifier.weight(1f)) {
-                // Resaltar el texto entre comillas con color celeste
+                // Resaltar el texto entre comillas con color celeste y hacer clickeable el nombre
                 val mensaje = noti.mensaje
                 val regex = Regex("\"(.*?)\"")
                 val partes = regex.findAll(mensaje).toList()
@@ -205,14 +222,24 @@ fun NotiCard(noti: Notificacion, userId: String, db: FirebaseFirestore) {
                         text = annotated,
                         color = Color.White,
                         style = MaterialTheme.typography.bodyLarge,
-                        fontWeight = FontWeight.Bold
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier.clickable {
+                            noti.actorId?.let { actorId ->
+                                navController.navigate("userProfile/$actorId")
+                            }
+                        }
                     )
                 } else {
                     Text(
                         text = mensaje,
                         color = Color.White,
                         style = MaterialTheme.typography.bodyLarge,
-                        fontWeight = FontWeight.Bold
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier.clickable {
+                            noti.actorId?.let { actorId ->
+                                navController.navigate("userProfile/$actorId")
+                            }
+                        }
                     )
                 }
                 Spacer(modifier = Modifier.height(2.dp))

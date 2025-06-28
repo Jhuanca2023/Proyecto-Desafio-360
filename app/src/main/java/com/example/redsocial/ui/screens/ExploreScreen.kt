@@ -4,6 +4,8 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.*
@@ -31,6 +33,12 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.FavoriteBorder
+// import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.layout.heightIn
+import com.example.redsocial.utils.NotificationUtils
+import android.util.Log
 
 @Composable
 fun ExploreScreen(navController: NavController) {
@@ -190,6 +198,8 @@ fun ChallengePreviewCardFirestore(
     fun handleLike() {
         if (currentUser == null) return
         
+        Log.d("ExploreScreen", "handleLike - isLiked: $isLiked, challengeId: ${challenge.id}, authorId: ${challenge.authorId}")
+        
         val likeRef = db.collection("desafios")
             .document(challenge.id)
             .collection("likes")
@@ -202,6 +212,13 @@ fun ChallengePreviewCardFirestore(
                     .document(challenge.id)
                     .update("likes", currentLikes - 1)
                 isLiked = false
+                
+                // Eliminar notificación de like
+                Log.d("ExploreScreen", "Eliminando notificación de like")
+                NotificationUtils.removeLikeNotification(
+                    challengeAuthorId = challenge.authorId,
+                    challengeId = challenge.id
+                )
             }
         } else {
             // Dar like
@@ -213,6 +230,14 @@ fun ChallengePreviewCardFirestore(
                     .document(challenge.id)
                     .update("likes", currentLikes + 1)
                 isLiked = true
+                
+                // Enviar notificación de like
+                Log.d("ExploreScreen", "Enviando notificación de like - authorId: ${challenge.authorId}, title: ${challenge.title}")
+                NotificationUtils.sendLikeNotification(
+                    challengeAuthorId = challenge.authorId,
+                    challengeId = challenge.id,
+                    challengeTitle = challenge.title
+                )
             }
         }
     }
@@ -271,13 +296,23 @@ fun ChallengePreviewCardFirestore(
                             navController.navigate("userProfile/${challenge.authorId}")
                         }
                 )
-                Row(Modifier.padding(bottom = 8.dp)) {
-                    challenge.tags.forEach { tag ->
-                        ChipPreview(tag)
-                        Spacer(Modifier.width(4.dp))
-                    }
+                // Etiquetas con múltiples líneas
+                val allTags = challenge.tags.toMutableList().apply {
                     if (challenge.duration.isNotBlank()) {
-                        ChipPreview(challenge.duration)
+                        add(challenge.duration)
+                    }
+                }
+                LazyVerticalGrid(
+                    columns = GridCells.Adaptive(minSize = 80.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .heightIn(max = 120.dp)
+                        .padding(bottom = 8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(4.dp),
+                    verticalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    items(allTags) { tag ->
+                        ChipPreview(tag)
                     }
                 }
                 Row(
