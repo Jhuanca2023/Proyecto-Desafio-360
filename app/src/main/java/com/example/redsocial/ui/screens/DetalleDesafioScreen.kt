@@ -43,6 +43,7 @@ import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.material.icons.filled.People
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
@@ -224,6 +225,29 @@ fun DetalleDesafioScreen(challengeId: String, navController: NavController) {
                         (data["duration"] as? String)?.let { ChipPreview(it) }
                     }
                     
+                    // Contador de participantes
+                    val participantes = (data["participants"] as? Long)?.toInt() ?: 0
+                    val maxParticipantes = (data["maxParticipants"] as? Long)?.toInt() ?: 1
+                    val activo = participantes < maxParticipantes
+                    
+                    Spacer(Modifier.height(8.dp))
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(Icons.Filled.People, contentDescription = "Participantes", tint = Color(0xFF60A5FA))
+                        Spacer(Modifier.width(8.dp))
+                        Text(
+                            "Participantes: $participantes/$maxParticipantes",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = Color.White
+                        )
+                        Spacer(Modifier.width(16.dp))
+                        Text(
+                            if (activo) "Activo" else "Completado",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = if (activo) Color(0xFF00C853) else Color(0xFFFF6B6B),
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                    
                     // Content types
                     (data["contentTypes"] as? List<*>)?.let { contentTypes ->
                         if (contentTypes.isNotEmpty()) {
@@ -283,9 +307,15 @@ fun DetalleDesafioScreen(challengeId: String, navController: NavController) {
                         onClick = { showEnviarEvidencia = true },
                         modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(8.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF3B82F6))
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = if (activo) Color(0xFF3B82F6) else Color(0xFF64748B)
+                        ),
+                        enabled = activo
                     ) {
-                        Text("Participar en el Desafío", color = Color.White)
+                        Text(
+                            if (activo) "Participar en el Desafío" else "Desafío Completado", 
+                            color = Color.White
+                        )
                     }
                     Spacer(Modifier.height(16.dp))
                     Text("Participaciones Recientes", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = Color.White)

@@ -41,6 +41,7 @@ import com.example.redsocial.utils.NotificationUtils
 import android.util.Log
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.material.icons.filled.People
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
@@ -70,7 +71,8 @@ fun ExploreScreen(navController: NavController) {
                 likes = (data["likes"] as? Long)?.toInt() ?: 0,
                 comments = (data["comments"] as? Long)?.toInt() ?: 0,
                 authorId = authorId,
-                duration = data["duration"] as? String ?: ""
+                duration = data["duration"] as? String ?: "",
+                maxParticipants = (data["maxParticipants"] as? Long)?.toInt() ?: 1
             )
         }
         challenges = desafios
@@ -154,7 +156,8 @@ data class ChallengeCardData(
     val likes: Int,
     val comments: Int,
     val authorId: String,
-    val duration: String
+    val duration: String,
+    val maxParticipants: Int
 )
 
 @OptIn(ExperimentalLayoutApi::class)
@@ -168,19 +171,27 @@ fun ChallengePreviewCardFirestore(
     var currentLikes by remember { mutableStateOf(challenge.likes) }
     var currentComments by remember { mutableStateOf(challenge.comments) }
     var isLiked by remember { mutableStateOf(false) }
-    var participantes by remember { mutableStateOf<List<String>>(emptyList()) }
+    var participantes by remember { mutableStateOf(0) }
+    var maxParticipantes by remember { mutableStateOf(challenge.maxParticipants) }
     val currentUser = FirebaseAuth.getInstance().currentUser
     val db = FirebaseFirestore.getInstance()
 
-    // Obtener lista de participantes
+    // Obtener contador de participantes del desafío
     LaunchedEffect(challenge.id) {
-        val snapshot = db.collection("evidencias")
-            .whereEqualTo("challengeId", challenge.id)
-            .get()
-            .await()
-        
-        participantes = snapshot.documents.mapNotNull { doc ->
-            doc.getString("userName")
+        try {
+            val doc = db.collection("desafios")
+                .document(challenge.id)
+                .get()
+                .await()
+            
+            participantes = (doc.getLong("participants") ?: 0L).toInt().coerceAtLeast(0)
+            // Usar el valor del challenge, pero si no existe en el documento, usar el valor por defecto
+            val docMaxParticipants = (doc.getLong("maxParticipants") ?: challenge.maxParticipants.toLong()).toInt()
+            maxParticipantes = docMaxParticipants.coerceAtLeast(1)
+        } catch (e: Exception) {
+            // Si hay error, usar valores por defecto
+            participantes = 0
+            maxParticipantes = challenge.maxParticipants.coerceAtLeast(1)
         }
     }
 
@@ -371,6 +382,32 @@ fun ChallengePreviewCardFirestore(
                     }
                 }
                 Divider(color = Color(0xFF3B82F6), thickness = 1.dp, modifier = Modifier.padding(vertical = 12.dp))
+                
+                // Contador de participantes
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = 12.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(Icons.Filled.People, contentDescription = "Participantes", tint = Color(0xFF60A5FA))
+                        Spacer(Modifier.width(8.dp))
+                        Text(
+                            "Participantes: $participantes/$maxParticipantes",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = Color.White
+                        )
+                    }
+                    Text(
+                        if (participantes < maxParticipantes) "Activo" else "Completado",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = if (participantes < maxParticipantes) Color(0xFF00C853) else Color(0xFFFF6B6B),
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+                
                 Button(
                     onClick = { onVerDesafio(challenge.id) },
                     modifier = Modifier.fillMaxWidth(),

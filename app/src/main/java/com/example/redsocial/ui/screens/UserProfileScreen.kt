@@ -33,6 +33,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import com.example.redsocial.viewmodel.AuthViewModel
+import androidx.compose.material.icons.filled.Delete
 
 @Composable
 fun UserProfileScreen(
@@ -480,6 +481,8 @@ fun EvidenceCard(
     evidencia: Evidencia,
     onEvidenceClick: (String) -> Unit
 ) {
+    val currentUser = FirebaseAuth.getInstance().currentUser
+    var showDialog by remember { mutableStateOf(false) }
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -503,9 +506,7 @@ fun EvidenceCard(
                 tint = Color(0xFFA259FF),
                 modifier = Modifier.size(40.dp)
             )
-            
             Spacer(modifier = Modifier.width(12.dp))
-            
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = "Completó un desafío",
@@ -513,9 +514,7 @@ fun EvidenceCard(
                     color = Color.White,
                     fontWeight = FontWeight.Bold
                 )
-                
                 Spacer(modifier = Modifier.height(4.dp))
-                
                 if ((evidencia.texto)?.isNotBlank() == true) {
                     Text(
                         text = evidencia.texto,
@@ -524,13 +523,38 @@ fun EvidenceCard(
                         maxLines = 2
                     )
                 }
-                
                 Text(
                     text = "Tipo: ${evidencia.tipo.replaceFirstChar { it.uppercase() }}",
                     style = MaterialTheme.typography.bodySmall,
                     color = Color(0xFFA259FF)
                 )
             }
+            // Icono de papelera solo si es del usuario actual
+            if (currentUser != null && evidencia.userId == currentUser.uid) {
+                IconButton(onClick = { showDialog = true }) {
+                    Icon(Icons.Default.Delete, contentDescription = "Eliminar", tint = Color.Red)
+                }
+            }
         }
+    }
+    if (showDialog) {
+        AlertDialog(
+            onDismissRequest = { showDialog = false },
+            title = { Text("Eliminar evidencia") },
+            text = { Text("¿Estás seguro de que deseas eliminar esta evidencia? Esta acción no se puede deshacer.") },
+            confirmButton = {
+                TextButton(onClick = {
+                    showDialog = false
+                    // Aquí irá la lógica para eliminar la evidencia
+                }) {
+                    Text("Eliminar", color = Color.Red)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDialog = false }) {
+                    Text("Cancelar")
+                }
+            }
+        )
     }
 } 

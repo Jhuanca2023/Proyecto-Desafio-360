@@ -69,6 +69,7 @@ fun ProfileScreen(
     var showDeleteDialog by remember { mutableStateOf(false) }
     var desafioToDelete by remember { mutableStateOf<Map<String, Any>?>(null) }
     var selectedTab by remember { mutableStateOf(0) }
+    var badges by remember { mutableStateOf(0) }
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
 
@@ -102,6 +103,7 @@ fun ProfileScreen(
             val userDoc = db.collection("usuarios").document(uid).get().await()
             seguidores = (userDoc.get("seguidores") as? Long ?: 0L).toInt()
             siguiendo = (userDoc.get("siguiendo") as? Long ?: 0L).toInt()
+            badges = (userDoc.get("badges") as? Long ?: 0L).toInt()
         }
     }
 
@@ -241,8 +243,8 @@ fun ProfileScreen(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceEvenly
                 ) {
-                    ProfileStatisticCard(Icons.Default.Verified, "Completado", (desafios.count { (it["participants"] as? List<*>)?.size == (it["maxParticipants"] as? Long)?.toInt() }).takeIf { it > 0 }?.toString() ?: "0", Color(0xFF00C853))
-                    ProfileStatisticCard(Icons.Default.Star, "En Curso", (desafios.count { ((it["participants"] as? List<*>)?.size ?: 0) < ((it["maxParticipants"] as? Long) ?: 0L).toInt() }).takeIf { it > 0 }?.toString() ?: "0", Color(0xFF2962FF))
+                    ProfileStatisticCard(Icons.Default.Verified, "Completado", (desafios.count { (it["participants"] as? Long)?.toInt() == (it["maxParticipants"] as? Long)?.toInt() }).takeIf { it > 0 }?.toString() ?: "0", Color(0xFF00C853))
+                    ProfileStatisticCard(Icons.Default.Star, "En Curso", (desafios.count { ((it["participants"] as? Long)?.toInt() ?: 0) < ((it["maxParticipants"] as? Long) ?: 0L).toInt() }).takeIf { it > 0 }?.toString() ?: "0", Color(0xFF2962FF))
                     ProfileStatisticCard(Icons.Default.Favorite, "Likes", totalLikes.takeIf { it > 0 }?.toString() ?: "0", Color(0xFFFF4081))
                 }
 
@@ -252,7 +254,10 @@ fun ProfileScreen(
                 ) {
                     ProfileStatisticCard(Icons.Default.People, "Seguidores", seguidores.takeIf { it > 0 }?.toString() ?: "0", Color(0xFFA259FF))
                     ProfileStatisticCard(Icons.Default.People, "Siguiendo", siguiendo.takeIf { it > 0 }?.toString() ?: "0", Color(0xFF00B8D4))
-                    ProfileStatisticCard(Icons.Default.Star, "Badges", "0", Color(0xFFFFD600))
+                    ProfileStatisticCard(Icons.Default.Star, "Badges", badges.takeIf { it > 0 }?.toString() ?: "0", Color(0xFFFFD600))
+                    if (badges >= 5000) {
+                        ProfileStatisticCard(Icons.Default.Verified, "Verificado", "✔", Color(0xFF00C853))
+                    }
                 }
 
                 // Tabs
@@ -324,7 +329,7 @@ fun ProfileScreen(
                                                     fontWeight = FontWeight.Bold,
                                                     color = Color.White
                                                 )
-                                                val participantes = (desafio["participants"] as? List<*>)?.size ?: 0
+                                                val participantes = (desafio["participants"] as? Long)?.toInt() ?: 0
                                                 val maxP = (desafio["maxParticipants"] as? Long)?.toInt() ?: 1
                                                 val activo = participantes < maxP
                                                 Text(

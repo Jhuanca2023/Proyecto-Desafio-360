@@ -518,7 +518,7 @@ fun saveChallengeToFirestore(
                 "comments" to 0,
                 "timestamp" to System.currentTimeMillis(),
                 "maxParticipants" to maxParticipants,
-                "participants" to emptyList<String>()
+                "participants" to 0
             )
             db.collection("desafios").add(challenge)
         }
@@ -546,7 +546,7 @@ fun saveChallengeToFirestore(
                 "comments" to 0,
                 "timestamp" to System.currentTimeMillis(),
                 "maxParticipants" to maxParticipants,
-                "participants" to emptyList<String>()
+                "participants" to 0
             )
             db.collection("desafios").add(challenge)
         }

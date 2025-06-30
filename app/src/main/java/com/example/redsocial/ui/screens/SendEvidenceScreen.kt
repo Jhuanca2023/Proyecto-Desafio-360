@@ -372,7 +372,7 @@ fun saveEvidenceToFirestore(
         .addOnSuccessListener { evidenciaDoc ->
             // Actualizamos el contador de participantes y contentTypes en el desafío
             val updates = hashMapOf<String, Any>(
-                "participants" to com.google.firebase.firestore.FieldValue.increment(-1)
+                "participants" to com.google.firebase.firestore.FieldValue.increment(1)
             )
             
             // Si es una imagen, video o audio, incrementamos el contador correspondiente
@@ -384,11 +384,11 @@ fun saveEvidenceToFirestore(
                 updates["audioCount"] = com.google.firebase.firestore.FieldValue.increment(1)
             }
             
-            db.collection("challenges").document(challengeId)
+            db.collection("desafios").document(challengeId)
                 .update(updates)
                 .addOnSuccessListener {
                     // Actualizamos el perfil del usuario para marcar el desafío como completado
-                    db.collection("users").document(userId)
+                    db.collection("usuarios").document(userId)
                         .collection("completedChallenges")
                         .document(challengeId)
                         .set(hashMapOf(
@@ -396,12 +396,32 @@ fun saveEvidenceToFirestore(
                             "evidenceId" to evidenciaDoc.id,
                             "contentType" to tipo
                         ))
+                    // Verificar si el desafío está completo para repartir puntos
+                    db.collection("desafios").document(challengeId).get().addOnSuccessListener { desafioDoc ->
+                        val participants = (desafioDoc.getLong("participants") ?: 0L).toInt()
+                        val maxParticipants = (desafioDoc.getLong("maxParticipants") ?: 1L).toInt()
+                        val puntosTotales = (desafioDoc.getLong("points") ?: 0L).toInt()
+                        if (participants >= maxParticipants && maxParticipants > 0 && puntosTotales > 0) {
+                            // Obtener todos los participantes (evidencias)
+                            db.collection("evidencias")
+                                .whereEqualTo("challengeId", challengeId)
+                                .get()
+                                .addOnSuccessListener { evidenciasSnapshot ->
+                                    val userIds = evidenciasSnapshot.documents.mapNotNull { it.getString("userId") }.distinct()
+                                    val puntosPorUsuario = puntosTotales / userIds.size
+                                    userIds.forEach { uid ->
+                                        val userRef = db.collection("usuarios").document(uid)
+                                        userRef.update("badges", com.google.firebase.firestore.FieldValue.increment(puntosPorUsuario.toLong()))
+                                    }
+                                }
+                        }
+                    }
                 }
             // Notificar al autor del desafío
-            db.collection("challenges").document(challengeId)
+            db.collection("desafios").document(challengeId)
                 .get()
                 .addOnSuccessListener { challengeDoc ->
-                    val autorId = challengeDoc.getString("creatorId")
+                    val autorId = challengeDoc.getString("authorId")
                     if (autorId != null && autorId != userId) {
                         val mensaje = "$userName participó en tu desafío"
                         NetworkUtils.notificarEvento(
