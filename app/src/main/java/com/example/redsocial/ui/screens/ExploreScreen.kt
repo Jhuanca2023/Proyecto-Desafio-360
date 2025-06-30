@@ -28,6 +28,7 @@ import androidx.compose.foundation.clickable
 import com.example.redsocial.ui.components.CommentsDialog
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.unit.sp
 import androidx.compose.foundation.background
 import androidx.compose.ui.draw.clip
@@ -82,41 +83,61 @@ fun ExploreScreen(navController: NavController) {
         (searchQuery.isEmpty() || challenge.title.contains(searchQuery, ignoreCase = true) || challenge.nombreUsuario.contains(searchQuery, ignoreCase = true))
     }
     
-    Column(
+    Box(
         modifier = Modifier
             .fillMaxSize()
-            .padding(16.dp)
+            .background(
+                Brush.verticalGradient(
+                    colors = listOf(
+                        Color(0xFF0A0F1C), // Celeste muy oscuro (noche)
+                        Color(0xFF1A1F2E), // Celeste oscuro
+                        Color(0xFF2A2F3E)  // Celeste medio oscuro
+                    )
+                )
+            )
     ) {
-        OutlinedTextField(
-            value = searchQuery,
-            onValueChange = { searchQuery = it },
-            modifier = Modifier.fillMaxWidth(),
-            placeholder = { Text("Buscar desafíos, creadores....") },
-            leadingIcon = { Icon(Icons.Default.Search, "Buscar") }
-        )
-        FiltersSection(
-            selectedCategory = selectedCategory,
-            selectedDuration = selectedDuration,
-            onCategorySelected = { selectedCategory = it },
-            onDurationSelected = { selectedDuration = it },
-            onClearFilters = {
-                selectedCategory = null
-                selectedDuration = null
-            }
-        )
-        if (isLoading) {
-            Box(Modifier.fillMaxWidth().padding(32.dp), contentAlignment = Alignment.Center) {
-                CircularProgressIndicator()
-            }
-        } else {
-            LazyColumn(
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(16.dp)
+        ) {
+            OutlinedTextField(
+                value = searchQuery,
+                onValueChange = { searchQuery = it },
                 modifier = Modifier.fillMaxWidth(),
-                verticalArrangement = Arrangement.spacedBy(16.dp)
-            ) {
-                items(filteredChallenges) { challenge ->
-                    ChallengePreviewCardFirestore(challenge, { challengeId ->
-                        navController.navigate("detalleDesafio/$challengeId")
-                    }, navController)
+                placeholder = { Text("Buscar desafíos, creadores....", color = Color(0xFF64748B)) },
+                leadingIcon = { Icon(Icons.Default.Search, "Buscar", tint = Color(0xFF60A5FA)) },
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedTextColor = Color.White,
+                    unfocusedTextColor = Color.White,
+                    focusedBorderColor = Color(0xFF3B82F6),
+                    unfocusedBorderColor = Color(0xFF64748B)
+                )
+            )
+            FiltersSection(
+                selectedCategory = selectedCategory,
+                selectedDuration = selectedDuration,
+                onCategorySelected = { selectedCategory = it },
+                onDurationSelected = { selectedDuration = it },
+                onClearFilters = {
+                    selectedCategory = null
+                    selectedDuration = null
+                }
+            )
+            if (isLoading) {
+                Box(Modifier.fillMaxWidth().padding(32.dp), contentAlignment = Alignment.Center) {
+                    CircularProgressIndicator(color = Color(0xFF3B82F6))
+                }
+            } else {
+                LazyColumn(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    items(filteredChallenges) { challenge ->
+                        ChallengePreviewCardFirestore(challenge, { challengeId ->
+                            navController.navigate("detalleDesafio/$challengeId")
+                        }, navController)
+                    }
                 }
             }
         }
@@ -248,11 +269,11 @@ fun ChallengePreviewCardFirestore(
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .background(Color(0xFF18122B), shape = RoundedCornerShape(20.dp))
+            .background(Color(0xFF2A2F3E), shape = RoundedCornerShape(20.dp))
             .padding(2.dp),
-        colors = CardDefaults.cardColors(containerColor = Color(0xFF18122B)),
+        colors = CardDefaults.cardColors(containerColor = Color(0xFF2A2F3E)),
         shape = RoundedCornerShape(20.dp),
-        elevation = CardDefaults.cardElevation(6.dp)
+        elevation = CardDefaults.cardElevation(8.dp)
     ) {
         Column(modifier = Modifier.padding(0.dp)) {
             Box(modifier = Modifier.fillMaxWidth()) {
@@ -267,7 +288,7 @@ fun ChallengePreviewCardFirestore(
                     )
                 }
                 Surface(
-                    color = Color(0xFFA259FF),
+                    color = Color(0xFF3B82F6),
                     shape = RoundedCornerShape(50),
                     shadowElevation = 4.dp,
                     modifier = Modifier
@@ -292,7 +313,7 @@ fun ChallengePreviewCardFirestore(
                 Text(
                     text = "Por: @${challenge.nombreUsuario}",
                     style = MaterialTheme.typography.bodySmall,
-                    color = Color(0xFFA259FF),
+                    color = Color(0xFF60A5FA),
                     modifier = Modifier
                         .padding(bottom = 4.dp)
                         .clickable {
@@ -329,7 +350,7 @@ fun ChallengePreviewCardFirestore(
                             Icon(
                                 if (isLiked) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
                                 contentDescription = "Likes",
-                                tint = if (isLiked) Color(0xFFFF4081) else Color(0xFFA259FF)
+                                tint = if (isLiked) Color(0xFFFF4081) else Color(0xFF60A5FA)
                             )
                         }
                         Spacer(Modifier.width(4.dp))
@@ -342,19 +363,19 @@ fun ChallengePreviewCardFirestore(
                             Icon(
                                 Icons.Default.Comment,
                                 contentDescription = "Comentarios",
-                                tint = Color(0xFFA259FF)
+                                tint = Color(0xFF60A5FA)
                             )
                         }
                         Spacer(Modifier.width(4.dp))
                         Text("$currentComments", color = Color.White)
                     }
                 }
-                Divider(color = Color(0xFFA259FF), thickness = 1.dp, modifier = Modifier.padding(vertical = 12.dp))
+                Divider(color = Color(0xFF3B82F6), thickness = 1.dp, modifier = Modifier.padding(vertical = 12.dp))
                 Button(
                     onClick = { onVerDesafio(challenge.id) },
                     modifier = Modifier.fillMaxWidth(),
-                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFA259FF)),
-                    shape = RoundedCornerShape(12.dp)
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF3B82F6)),
+                    shape = RoundedCornerShape(16.dp)
                 ) {
                     Text("Ver Desafío", color = Color.White, modifier = Modifier.weight(1f))
                     Icon(Icons.AutoMirrored.Filled.ArrowForward, contentDescription = null, tint = Color.White)

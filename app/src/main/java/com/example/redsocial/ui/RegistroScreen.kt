@@ -8,6 +8,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
@@ -77,199 +78,194 @@ fun RegistroScreen(navController: NavController, authViewModel: AuthViewModel = 
         scaffoldState = scaffoldState,
         snackbarHost = { SnackbarHost(hostState = scaffoldState.snackbarHostState) }
     ) { padding ->
-        Column(
+        Box(
             modifier = Modifier
                 .fillMaxSize()
-                .background(Color(0xFF1E1E1E))
-                .padding(16.dp)
-                .verticalScroll(rememberScrollState()),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center
+                .background(
+                    Brush.verticalGradient(
+                        colors = listOf(
+                            Color(0xFF0F172A), // Celeste muy oscuro
+                            Color(0xFF1E3A8A), // Celeste oscuro
+                            Color(0xFF3B82F6)  // Celeste medio
+                        )
+                    )
+                )
         ) {
-            Text(
-                text = "Crear Cuenta",
-                color = Color.White,
-                fontSize = 32.sp,
-                fontWeight = FontWeight.Bold,
-                modifier = Modifier.padding(bottom = 32.dp)
-            )
-
-            OutlinedTextField(
-                value = nombre,
-                onValueChange = { nombre = it },
-                label = { Text("Nombre completo", color = Color.Gray) },
-                leadingIcon = { Icon(Icons.Default.Person, contentDescription = null, tint = Color.Gray) },
+            Column(
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(bottom = 16.dp),
-                colors = TextFieldDefaults.outlinedTextFieldColors(
-                    textColor = Color.White,
-                    focusedBorderColor = Color(0xFFA259FF),
-                    unfocusedBorderColor = Color.Gray
-                )
-            )
-
-            OutlinedTextField(
-                value = nombreUsuario,
-                onValueChange = { nombreUsuario = it },
-                label = { Text("Nombre de usuario", color = Color.Gray) },
-                leadingIcon = { Icon(Icons.Default.AccountCircle, contentDescription = null, tint = Color.Gray) },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(bottom = 16.dp),
-                colors = TextFieldDefaults.outlinedTextFieldColors(
-                    textColor = Color.White,
-                    focusedBorderColor = Color(0xFFA259FF),
-                    unfocusedBorderColor = Color.Gray
-                )
-            )
-
-            OutlinedTextField(
-                value = email,
-                onValueChange = { email = it },
-                label = { Text("Correo electrónico", color = Color.Gray) },
-                leadingIcon = { Icon(Icons.Default.Email, contentDescription = null, tint = Color.Gray) },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(bottom = 16.dp),
-                colors = TextFieldDefaults.outlinedTextFieldColors(
-                    textColor = Color.White,
-                    focusedBorderColor = Color(0xFFA259FF),
-                    unfocusedBorderColor = Color.Gray
-                )
-            )
-
-            OutlinedTextField(
-                value = fechaNacimiento,
-                onValueChange = { fechaNacimiento = it },
-                label = { Text("Fecha de nacimiento (DD/MM/AAAA)", color = Color.Gray) },
-                leadingIcon = { Icon(Icons.Default.DateRange, contentDescription = null, tint = Color.Gray) },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(bottom = 16.dp),
-                colors = TextFieldDefaults.outlinedTextFieldColors(
-                    textColor = Color.White,
-                    focusedBorderColor = Color(0xFFA259FF),
-                    unfocusedBorderColor = Color.Gray
-                )
-            )
-
-            OutlinedTextField(
-                value = genero,
-                onValueChange = { genero = it },
-                label = { Text("Género", color = Color.Gray) },
-                leadingIcon = { Icon(Icons.Default.Person, contentDescription = null, tint = Color.Gray) },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(bottom = 16.dp),
-                colors = TextFieldDefaults.outlinedTextFieldColors(
-                    textColor = Color.White,
-                    focusedBorderColor = Color(0xFFA259FF),
-                    unfocusedBorderColor = Color.Gray
-                )
-            )
-
-            OutlinedTextField(
-                value = password,
-                onValueChange = { password = it },
-                label = { Text("Contraseña", color = Color.Gray) },
-                leadingIcon = { Icon(Icons.Default.Lock, contentDescription = null, tint = Color.Gray) },
-                trailingIcon = {
-                    IconButton(onClick = { mostrarPassword = !mostrarPassword }) {
-                        Icon(
-                            if (mostrarPassword) Icons.Default.VisibilityOff else Icons.Default.Visibility,
-                            contentDescription = if (mostrarPassword) "Ocultar contraseña" else "Mostrar contraseña",
-                            tint = Color.Gray
-                        )
-                    }
-                },
-                visualTransformation = if (mostrarPassword) VisualTransformation.None else PasswordVisualTransformation(),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(bottom = 16.dp),
-                colors = TextFieldDefaults.outlinedTextFieldColors(
-                    textColor = Color.White,
-                    focusedBorderColor = Color(0xFFA259FF),
-                    unfocusedBorderColor = Color.Gray
-                )
-            )
-
-            OutlinedTextField(
-                value = confirmPassword,
-                onValueChange = { confirmPassword = it },
-                label = { Text("Confirmar contraseña", color = Color.Gray) },
-                leadingIcon = { Icon(Icons.Default.Lock, contentDescription = null, tint = Color.Gray) },
-                trailingIcon = {
-                    IconButton(onClick = { mostrarConfirmPassword = !mostrarConfirmPassword }) {
-                        Icon(
-                            if (mostrarConfirmPassword) Icons.Default.VisibilityOff else Icons.Default.Visibility,
-                            contentDescription = if (mostrarConfirmPassword) "Ocultar contraseña" else "Mostrar contraseña",
-                            tint = Color.Gray
-                        )
-                    }
-                },
-                visualTransformation = if (mostrarConfirmPassword) VisualTransformation.None else PasswordVisualTransformation(),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(bottom = 24.dp),
-                colors = TextFieldDefaults.outlinedTextFieldColors(
-                    textColor = Color.White,
-                    focusedBorderColor = Color(0xFFA259FF),
-                    unfocusedBorderColor = Color.Gray
-                )
-            )
-
-            Button(
-                onClick = {
-                    when {
-                        nombre.isBlank() || nombreUsuario.isBlank() || email.isBlank() || 
-                        password.isBlank() || confirmPassword.isBlank() || 
-                        fechaNacimiento.isBlank() || genero.isBlank() -> {
-                            scope.launch { scaffoldState.snackbarHostState.showSnackbar("Completa todos los campos") }
-                        }
-                        password != confirmPassword -> {
-                            scope.launch { scaffoldState.snackbarHostState.showSnackbar("Las contraseñas no coinciden") }
-                        }
-                        else -> {
-                            authViewModel.registerWithEmail(
-                                email = email,
-                                password = password,
-                                nombreCompleto = nombre,
-                                nombreUsuario = nombreUsuario,
-                                fechaNacimiento = fechaNacimiento,
-                                genero = genero
-                            )
-                        }
-                    }
-                },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(56.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFA259FF)),
-                shape = RoundedCornerShape(12.dp)
-            ) {
-                Text("Crear Cuenta", fontSize = 18.sp, fontWeight = FontWeight.Bold)
-            }
-
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(top = 24.dp),
-                horizontalArrangement = Arrangement.Center,
-                verticalAlignment = Alignment.CenterVertically
+                    .fillMaxSize()
+                    .padding(24.dp)
+                    .verticalScroll(rememberScrollState()),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center
             ) {
                 Text(
-                    "¿Ya tienes una cuenta?",
-                    color = Color.Gray,
-                    fontSize = 16.sp
+                    text = "Crear Cuenta",
+                    color = Color.White,
+                    fontSize = 32.sp,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.padding(bottom = 32.dp)
                 )
-                TextButton(onClick = { navController.navigate("login") }) {
-                    Text(
-                        "Inicia sesión",
-                        color = Color(0xFFA259FF),
-                        fontSize = 16.sp,
-                        fontWeight = FontWeight.Bold
+
+                OutlinedTextField(
+                    value = nombre,
+                    onValueChange = { nombre = it },
+                    label = { Text("Nombre completo", color = Color(0xFFCBD5E1)) },
+                    leadingIcon = { Icon(Icons.Default.Person, contentDescription = null, tint = Color(0xFF60A5FA)) },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = 16.dp),
+                    colors = TextFieldDefaults.outlinedTextFieldColors(
+                        textColor = Color.White,
+                        focusedBorderColor = Color(0xFF3B82F6),
+                        unfocusedBorderColor = Color(0xFF64748B)
                     )
+                )
+
+                OutlinedTextField(
+                    value = nombreUsuario,
+                    onValueChange = { nombreUsuario = it },
+                    label = { Text("Nombre de usuario", color = Color(0xFFCBD5E1)) },
+                    leadingIcon = { Icon(Icons.Default.AccountCircle, contentDescription = null, tint = Color(0xFF60A5FA)) },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = 16.dp),
+                    colors = TextFieldDefaults.outlinedTextFieldColors(
+                        textColor = Color.White,
+                        focusedBorderColor = Color(0xFF3B82F6),
+                        unfocusedBorderColor = Color(0xFF64748B)
+                    )
+                )
+
+                OutlinedTextField(
+                    value = email,
+                    onValueChange = { email = it },
+                    label = { Text("Correo electrónico", color = Color(0xFFCBD5E1)) },
+                    leadingIcon = { Icon(Icons.Default.Email, contentDescription = null, tint = Color(0xFF60A5FA)) },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = 16.dp),
+                    colors = TextFieldDefaults.outlinedTextFieldColors(
+                        textColor = Color.White,
+                        focusedBorderColor = Color(0xFF3B82F6),
+                        unfocusedBorderColor = Color(0xFF64748B)
+                    )
+                )
+
+                OutlinedTextField(
+                    value = fechaNacimiento,
+                    onValueChange = { fechaNacimiento = it },
+                    label = { Text("Fecha de nacimiento (DD/MM/AAAA)", color = Color(0xFFCBD5E1)) },
+                    leadingIcon = { Icon(Icons.Default.DateRange, contentDescription = null, tint = Color(0xFF60A5FA)) },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = 16.dp),
+                    colors = TextFieldDefaults.outlinedTextFieldColors(
+                        textColor = Color.White,
+                        focusedBorderColor = Color(0xFF3B82F6),
+                        unfocusedBorderColor = Color(0xFF64748B)
+                    )
+                )
+
+                OutlinedTextField(
+                    value = genero,
+                    onValueChange = { genero = it },
+                    label = { Text("Género", color = Color(0xFFCBD5E1)) },
+                    leadingIcon = { Icon(Icons.Default.Person, contentDescription = null, tint = Color(0xFF60A5FA)) },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = 16.dp),
+                    colors = TextFieldDefaults.outlinedTextFieldColors(
+                        textColor = Color.White,
+                        focusedBorderColor = Color(0xFF3B82F6),
+                        unfocusedBorderColor = Color(0xFF64748B)
+                    )
+                )
+
+                OutlinedTextField(
+                    value = password,
+                    onValueChange = { password = it },
+                    label = { Text("Contraseña", color = Color(0xFFCBD5E1)) },
+                    leadingIcon = { Icon(Icons.Default.Lock, contentDescription = null, tint = Color(0xFF60A5FA)) },
+                    trailingIcon = {
+                        IconButton(onClick = { mostrarPassword = !mostrarPassword }) {
+                            Icon(
+                                if (mostrarPassword) Icons.Default.VisibilityOff else Icons.Default.Visibility,
+                                contentDescription = if (mostrarPassword) "Ocultar contraseña" else "Mostrar contraseña",
+                                tint = Color(0xFF60A5FA)
+                            )
+                        }
+                    },
+                    visualTransformation = if (mostrarPassword) VisualTransformation.None else PasswordVisualTransformation(),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = 16.dp),
+                    colors = TextFieldDefaults.outlinedTextFieldColors(
+                        textColor = Color.White,
+                        focusedBorderColor = Color(0xFF3B82F6),
+                        unfocusedBorderColor = Color(0xFF64748B)
+                    )
+                )
+
+                OutlinedTextField(
+                    value = confirmPassword,
+                    onValueChange = { confirmPassword = it },
+                    label = { Text("Confirmar contraseña", color = Color(0xFFCBD5E1)) },
+                    leadingIcon = { Icon(Icons.Default.Lock, contentDescription = null, tint = Color(0xFF60A5FA)) },
+                    trailingIcon = {
+                        IconButton(onClick = { mostrarConfirmPassword = !mostrarConfirmPassword }) {
+                            Icon(
+                                if (mostrarConfirmPassword) Icons.Default.VisibilityOff else Icons.Default.Visibility,
+                                contentDescription = if (mostrarConfirmPassword) "Ocultar contraseña" else "Mostrar contraseña",
+                                tint = Color(0xFF60A5FA)
+                            )
+                        }
+                    },
+                    visualTransformation = if (mostrarConfirmPassword) VisualTransformation.None else PasswordVisualTransformation(),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = 24.dp),
+                    colors = TextFieldDefaults.outlinedTextFieldColors(
+                        textColor = Color.White,
+                        focusedBorderColor = Color(0xFF3B82F6),
+                        unfocusedBorderColor = Color(0xFF64748B)
+                    )
+                )
+
+                Button(
+                    onClick = {
+                        if (password == confirmPassword) {
+                            authViewModel.registerWithEmail(nombre, nombreUsuario, email, password, fechaNacimiento, genero)
+                        } else {
+                            scope.launch {
+                                scaffoldState.snackbarHostState.showSnackbar("Las contraseñas no coinciden")
+                            }
+                        }
+                    },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(56.dp),
+                    shape = RoundedCornerShape(16.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = Color(0xFF3B82F6),
+                        contentColor = Color.White
+                    )
+                ) {
+                    Text("Crear Cuenta", fontSize = 18.sp, fontWeight = FontWeight.Bold)
+                }
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 16.dp),
+                    horizontalArrangement = Arrangement.Center
+                ) {
+                    Text("¿Ya tienes una cuenta? ", color = Color(0xFFCBD5E1))
+                    TextButton(onClick = { navController.navigate("login") }) {
+                        Text("Inicia sesión", color = Color(0xFF60A5FA))
+                    }
                 }
             }
         }

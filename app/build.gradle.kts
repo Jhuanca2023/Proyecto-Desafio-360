@@ -103,4 +103,7 @@ dependencies {
 
     // OneSignal
     implementation ("com.onesignal:OneSignal:5.1.7")
+    
+    // Lottie para animaciones
+    implementation("com.airbnb.android:lottie-compose:6.3.0")
 }

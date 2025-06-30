@@ -2,6 +2,7 @@ package com.example.redsocial.ui.screens
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
@@ -20,6 +21,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
@@ -42,11 +44,25 @@ import android.util.Log
 fun MainScreen(authViewModel: AuthViewModel) {
     val navController = rememberNavController()
     
-    Scaffold(
-        bottomBar = { BottomNavigationBar(navController) }
-    ) { paddingValues ->
-        Box(modifier = Modifier.padding(paddingValues)) {
-            NavigationGraph(navController = navController, authViewModel = authViewModel)
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(
+                Brush.verticalGradient(
+                    colors = listOf(
+                        Color(0xFF0F172A), // Celeste muy oscuro
+                        Color(0xFF1E3A8A), // Celeste oscuro
+                        Color(0xFF3B82F6)  // Celeste medio
+                    )
+                )
+            )
+    ) {
+        Scaffold(
+            bottomBar = { BottomNavigationBar(navController) }
+        ) { paddingValues ->
+            Box(modifier = Modifier.padding(paddingValues)) {
+                NavigationGraph(navController = navController, authViewModel = authViewModel)
+            }
         }
     }
 }
@@ -80,7 +96,10 @@ fun BottomNavigationBar(navController: NavHostController) {
         }
     }
     
-    NavigationBar {
+    NavigationBar(
+        containerColor = Color(0xFF1E293B),
+        contentColor = Color.White
+    ) {
         val navBackStackEntry by navController.currentBackStackEntryAsState()
         val currentRoute = navBackStackEntry?.destination?.route
 
@@ -92,7 +111,8 @@ fun BottomNavigationBar(navController: NavHostController) {
                             Icon(
                                 item.icon,
                                 contentDescription = item.title,
-                                modifier = Modifier.size(28.dp)
+                                modifier = Modifier.size(28.dp),
+                                tint = if (currentRoute == item.route) Color(0xFF3B82F6) else Color(0xFFCBD5E1)
                             )
                             if (notificationCount > 0) {
                                 Box(
@@ -116,10 +136,19 @@ fun BottomNavigationBar(navController: NavHostController) {
                             }
                         }
                     } else {
-                        Icon(item.icon, contentDescription = item.title)
+                        Icon(
+                            item.icon, 
+                            contentDescription = item.title,
+                            tint = if (currentRoute == item.route) Color(0xFF3B82F6) else Color(0xFFCBD5E1)
+                        )
                     }
                 },
-                label = { Text(text = item.title) },
+                label = { 
+                    Text(
+                        text = item.title,
+                        color = if (currentRoute == item.route) Color(0xFF3B82F6) else Color(0xFFCBD5E1)
+                    ) 
+                },
                 selected = currentRoute == item.route,
                 onClick = {
                     navController.navigate(item.route) {

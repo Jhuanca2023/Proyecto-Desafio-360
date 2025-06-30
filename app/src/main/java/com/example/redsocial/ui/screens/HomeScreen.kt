@@ -20,6 +20,7 @@ import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.tasks.await
 import coil.compose.AsyncImage
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.viewinterop.AndroidView
 import android.widget.VideoView
 import androidx.compose.foundation.ExperimentalFoundationApi
@@ -114,97 +115,131 @@ fun HomeScreen(
         isLoading = false
     }
 
-    Scaffold(
-        bottomBar = {
-            NavigationBar {
-                NavigationBarItem(
-                    icon = { Icon(Icons.Default.Home, contentDescription = "Home") },
-                    label = { Text("Home") },
-                    selected = true,
-                    onClick = { /* Already on Home */ }
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(
+                Brush.verticalGradient(
+                    colors = listOf(
+                        Color(0xFF0A0F1C), // Celeste muy oscuro (noche)
+                        Color(0xFF1A1F2E), // Celeste oscuro
+                        Color(0xFF2A2F3E)  // Celeste medio oscuro
+                    )
                 )
-                NavigationBarItem(
-                    icon = { Icon(Icons.Default.Search, contentDescription = "Explorar") },
-                    label = { Text("Explorar") },
-                    selected = false,
-                    onClick = onNavigateToExplore
-                )
-                NavigationBarItem(
-                    icon = { Icon(Icons.Default.Add, contentDescription = "Crear") },
-                    label = { Text("Crear") },
-                    selected = false,
-                    onClick = onNavigateToCreate
-                )
-                NavigationBarItem(
-                    icon = { Icon(Icons.Default.Notifications, contentDescription = "Avisos") },
-                    label = { Text("Avisos") },
-                    selected = false,
-                    onClick = onNavigateToNotifications
-                )
-                NavigationBarItem(
-                    icon = { Icon(Icons.Default.Person, contentDescription = "Perfil") },
-                    label = { Text("Perfil") },
-                    selected = false,
-                    onClick = onNavigateToProfile
-                )
-            }
-        }
-    ) { paddingValues ->
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(paddingValues)
-        ) {
-            if (isLoading) {
-                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    CircularProgressIndicator()
-                }
-            } else if (errorMsg != null) {
-                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    Text(errorMsg ?: "Error desconocido", color = MaterialTheme.colorScheme.error)
-                }
-            } else if (evidencias.isEmpty()) {
-                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    Text("No hay contenido disponible.", style = MaterialTheme.typography.titleMedium)
-                }
-            } else {
-                val pagerState = rememberPagerState(pageCount = { evidencias.size })
-                VerticalPager(
-                    state = pagerState,
-                    modifier = Modifier.fillMaxSize()
-                ) { page ->
-                    EvidenciaPage(
-                        evidencia = evidencias[page],
-                        onNavigateToChallengeDetail = onNavigateToChallengeDetail,
-                        onCategoryClick = {
-                            showBottomSheet = true
-                        }
+            )
+    ) {
+        Scaffold(
+            bottomBar = {
+                NavigationBar(
+                    containerColor = Color(0xFF1A1F2E),
+                    contentColor = Color.White
+                ) {
+                    NavigationBarItem(
+                        icon = { Icon(Icons.Default.Home, contentDescription = "Home", tint = Color(0xFF3B82F6)) },
+                        label = { Text("Home", color = Color(0xFF3B82F6)) },
+                        selected = true,
+                        onClick = { /* Already on Home */ }
+                    )
+                    NavigationBarItem(
+                        icon = { Icon(Icons.Default.Search, contentDescription = "Explorar", tint = Color(0xFFCBD5E1)) },
+                        label = { Text("Explorar", color = Color(0xFFCBD5E1)) },
+                        selected = false,
+                        onClick = onNavigateToExplore
+                    )
+                    NavigationBarItem(
+                        icon = { Icon(Icons.Default.Add, contentDescription = "Crear", tint = Color(0xFFCBD5E1)) },
+                        label = { Text("Crear", color = Color(0xFFCBD5E1)) },
+                        selected = false,
+                        onClick = onNavigateToCreate
+                    )
+                    NavigationBarItem(
+                        icon = { Icon(Icons.Default.Notifications, contentDescription = "Avisos", tint = Color(0xFFCBD5E1)) },
+                        label = { Text("Avisos", color = Color(0xFFCBD5E1)) },
+                        selected = false,
+                        onClick = onNavigateToNotifications
+                    )
+                    NavigationBarItem(
+                        icon = { Icon(Icons.Default.Person, contentDescription = "Perfil", tint = Color(0xFFCBD5E1)) },
+                        label = { Text("Perfil", color = Color(0xFFCBD5E1)) },
+                        selected = false,
+                        onClick = onNavigateToProfile
                     )
                 }
             }
+        ) { paddingValues ->
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(paddingValues)
+            ) {
+                if (isLoading) {
+                    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                        CircularProgressIndicator(color = Color(0xFF3B82F6))
+                    }
+                } else if (errorMsg != null) {
+                    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                        Text(
+                            errorMsg ?: "Error desconocido", 
+                            color = Color(0xFFFF6B6B),
+                            style = MaterialTheme.typography.bodyLarge
+                        )
+                    }
+                } else if (evidencias.isEmpty()) {
+                    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                        Text(
+                            "No hay contenido disponible.", 
+                            style = MaterialTheme.typography.titleMedium,
+                            color = Color(0xFFCBD5E1)
+                        )
+                    }
+                } else {
+                    val pagerState = rememberPagerState(pageCount = { evidencias.size })
+                    VerticalPager(
+                        state = pagerState,
+                        modifier = Modifier.fillMaxSize()
+                    ) { page ->
+                        EvidenciaPage(
+                            evidencia = evidencias[page],
+                            onNavigateToChallengeDetail = onNavigateToChallengeDetail,
+                            onCategoryClick = {
+                                showBottomSheet = true
+                            }
+                        )
+                    }
+                }
 
-            if (showBottomSheet) {
-                ModalBottomSheet(
-                    onDismissRequest = {
-                        showBottomSheet = false
-                    },
-                    sheetState = sheetState
-                ) {
-                    Column(Modifier.padding(16.dp)) {
-                        Text("Categorías", style = MaterialTheme.typography.titleLarge, modifier = Modifier.padding(bottom = 16.dp))
-                        listOf("video", "imagen", "texto", "audio").forEach { tipo ->
-                            TextButton(
-                                onClick = {
-                                    selectedTipo = tipo
-                                    scope.launch { sheetState.hide() }.invokeOnCompletion {
-                                        if (!sheetState.isVisible) {
-                                            showBottomSheet = false
+                if (showBottomSheet) {
+                    ModalBottomSheet(
+                        onDismissRequest = {
+                            showBottomSheet = false
+                        },
+                        sheetState = sheetState,
+                        containerColor = Color(0xFF1A1F2E)
+                    ) {
+                        Column(Modifier.padding(16.dp)) {
+                            Text(
+                                "Categorías", 
+                                style = MaterialTheme.typography.titleLarge, 
+                                modifier = Modifier.padding(bottom = 16.dp),
+                                color = Color.White
+                            )
+                            listOf("video", "imagen", "texto", "audio").forEach { tipo ->
+                                TextButton(
+                                    onClick = {
+                                        selectedTipo = tipo
+                                        scope.launch { sheetState.hide() }.invokeOnCompletion {
+                                            if (!sheetState.isVisible) {
+                                                showBottomSheet = false
+                                            }
                                         }
-                                    }
-                                },
-                                modifier = Modifier.fillMaxWidth()
-                            ) {
-                                Text(tipo.replaceFirstChar { it.uppercase() })
+                                    },
+                                    modifier = Modifier.fillMaxWidth()
+                                ) {
+                                    Text(
+                                        tipo.replaceFirstChar { it.uppercase() },
+                                        color = Color(0xFFCBD5E1)
+                                    )
+                                }
                             }
                         }
                     }
