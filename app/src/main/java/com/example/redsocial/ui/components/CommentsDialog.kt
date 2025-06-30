@@ -14,6 +14,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.compose.foundation.clickable
+import androidx.compose.ui.graphics.Color
+import androidx.compose.foundation.background
 import com.example.redsocial.models.Comment
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
@@ -108,12 +110,14 @@ fun CommentsDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Comentarios") },
+        title = { Text("Comentarios", color = Color.White) },
+        containerColor = Color(0xFF1A1F2E),
         text = {
             Column {
                 if (isLoading) {
                     CircularProgressIndicator(
-                        modifier = Modifier.align(Alignment.CenterHorizontally)
+                        modifier = Modifier.align(Alignment.CenterHorizontally),
+                        color = Color(0xFF3B82F6)
                     )
                 } else {
                     LazyColumn(
@@ -153,7 +157,13 @@ fun CommentsDialog(
                         value = newComment,
                         onValueChange = { newComment = it },
                         modifier = Modifier.weight(1f),
-                        placeholder = { Text("Escribe un comentario...") }
+                        placeholder = { Text("Escribe un comentario...", color = Color(0xFF64748B)) },
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedTextColor = Color.White,
+                            unfocusedTextColor = Color.White,
+                            focusedBorderColor = Color(0xFF3B82F6),
+                            unfocusedBorderColor = Color(0xFF64748B)
+                        )
                     )
                     IconButton(
                         onClick = {
@@ -249,14 +259,19 @@ fun CommentsDialog(
                             }
                         }
                     ) {
-                        Icon(Icons.Default.Send, "Enviar comentario")
+                        Icon(Icons.Default.Send, "Enviar comentario", tint = Color(0xFF3B82F6))
                     }
                 }
             }
         },
         confirmButton = {
-            TextButton(onClick = onDismiss) {
-                Text("Cerrar")
+            TextButton(
+                onClick = onDismiss,
+                colors = ButtonDefaults.textButtonColors(
+                    contentColor = Color(0xFF3B82F6)
+                )
+            ) {
+                Text("Cerrar", color = Color(0xFF3B82F6))
             }
         }
     )
@@ -269,13 +284,20 @@ fun CommentsDialog(
                 commentToEdit = null
                 editCommentText = ""
             },
-            title = { Text("Editar comentario") },
+            title = { Text("Editar comentario", color = Color.White) },
+            containerColor = Color(0xFF1A1F2E),
             text = {
                 OutlinedTextField(
                     value = editCommentText,
                     onValueChange = { editCommentText = it },
                     modifier = Modifier.fillMaxWidth(),
-                    placeholder = { Text("Escribe tu comentario...") }
+                    placeholder = { Text("Escribe tu comentario...", color = Color(0xFF64748B)) },
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedTextColor = Color.White,
+                        unfocusedTextColor = Color.White,
+                        focusedBorderColor = Color(0xFF3B82F6),
+                        unfocusedBorderColor = Color(0xFF64748B)
+                    )
                 )
             },
             confirmButton = {
@@ -284,9 +306,12 @@ fun CommentsDialog(
                         commentToEdit?.let { comment ->
                             editComment(comment, editCommentText)
                         }
-                    }
+                    },
+                    colors = ButtonDefaults.textButtonColors(
+                        contentColor = Color(0xFF3B82F6)
+                    )
                 ) {
-                    Text("Guardar")
+                    Text("Guardar", color = Color(0xFF3B82F6))
                 }
             },
             dismissButton = {
@@ -295,9 +320,12 @@ fun CommentsDialog(
                         showEditDialog = false
                         commentToEdit = null
                         editCommentText = ""
-                    }
+                    },
+                    colors = ButtonDefaults.textButtonColors(
+                        contentColor = Color(0xFF64748B)
+                    )
                 ) {
-                    Text("Cancelar")
+                    Text("Cancelar", color = Color(0xFF64748B))
                 }
             }
         )
@@ -310,17 +338,21 @@ fun CommentsDialog(
                 showDeleteDialog = false
                 commentToDelete = null
             },
-            title = { Text("Eliminar comentario") },
-            text = { Text("¿Estás seguro de que quieres eliminar este comentario? Esta acción no se puede deshacer.") },
+            title = { Text("Eliminar comentario", color = Color.White) },
+            text = { Text("¿Estás seguro de que quieres eliminar este comentario? Esta acción no se puede deshacer.", color = Color(0xFFCBD5E1)) },
+            containerColor = Color(0xFF1A1F2E),
             confirmButton = {
                 TextButton(
                     onClick = {
                         commentToDelete?.let { comment ->
                             deleteComment(comment)
                         }
-                    }
+                    },
+                    colors = ButtonDefaults.textButtonColors(
+                        contentColor = Color(0xFFFF6B6B)
+                    )
                 ) {
-                    Text("Eliminar", color = MaterialTheme.colorScheme.error)
+                    Text("Eliminar", color = Color(0xFFFF6B6B))
                 }
             },
             dismissButton = {
@@ -328,9 +360,12 @@ fun CommentsDialog(
                     onClick = {
                         showDeleteDialog = false
                         commentToDelete = null
-                    }
+                    },
+                    colors = ButtonDefaults.textButtonColors(
+                        contentColor = Color(0xFF64748B)
+                    )
                 ) {
-                    Text("Cancelar")
+                    Text("Cancelar", color = Color(0xFF64748B))
                 }
             }
         )
@@ -353,7 +388,7 @@ fun CommentItem(
             .fillMaxWidth()
             .padding(vertical = 4.dp),
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant
+            containerColor = Color(0xFF2A2F3E)
         )
     ) {
         Column(
@@ -369,15 +404,17 @@ fun CommentItem(
                         text = "@${comment.userName}",
                         style = MaterialTheme.typography.titleSmall,
                         modifier = Modifier.clickable { onUserClick(comment.userId) },
-                        color = MaterialTheme.colorScheme.primary
+                        color = Color(0xFF60A5FA)
                     )
                     Text(
                         text = comment.content,
-                        style = MaterialTheme.typography.bodyMedium
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = Color.White
                     )
                     Text(
                         text = dateFormat.format(Date(comment.timestamp)),
-                        style = MaterialTheme.typography.bodySmall
+                        style = MaterialTheme.typography.bodySmall,
+                        color = Color(0xFFCBD5E1)
                     )
                 }
                 
@@ -387,24 +424,25 @@ fun CommentItem(
                         IconButton(
                             onClick = { showMenu = true }
                         ) {
-                            Icon(Icons.Default.MoreVert, "Más opciones")
+                            Icon(Icons.Default.MoreVert, "Más opciones", tint = Color(0xFF60A5FA))
                         }
                         
                         DropdownMenu(
                             expanded = showMenu,
-                            onDismissRequest = { showMenu = false }
+                            onDismissRequest = { showMenu = false },
+                            modifier = Modifier.background(Color(0xFF1A1F2E))
                         ) {
                             DropdownMenuItem(
-                                text = { Text("Editar") },
-                                leadingIcon = { Icon(Icons.Default.Edit, "Editar") },
+                                text = { Text("Editar", color = Color.White) },
+                                leadingIcon = { Icon(Icons.Default.Edit, "Editar", tint = Color(0xFF60A5FA)) },
                                 onClick = {
                                     onEdit()
                                     showMenu = false
                                 }
                             )
                             DropdownMenuItem(
-                                text = { Text("Eliminar") },
-                                leadingIcon = { Icon(Icons.Default.Delete, "Eliminar") },
+                                text = { Text("Eliminar", color = Color.White) },
+                                leadingIcon = { Icon(Icons.Default.Delete, "Eliminar", tint = Color(0xFFFF6B6B)) },
                                 onClick = {
                                     onDelete()
                                     showMenu = false
