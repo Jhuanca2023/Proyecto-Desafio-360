@@ -189,7 +189,7 @@ fun HomeScreen(
                         Text(
                             "No hay contenido disponible.", 
                             style = MaterialTheme.typography.titleMedium,
-                            color = Color(0xFFCBD5E1)
+                            color = Color.White
                         )
                     }
                 } else {
@@ -237,7 +237,7 @@ fun HomeScreen(
                                 ) {
                                     Text(
                                         tipo.replaceFirstChar { it.uppercase() },
-                                        color = Color(0xFFCBD5E1)
+                                        color = Color.White
                                     )
                                 }
                             }
@@ -382,7 +382,7 @@ fun EvidenciaPage(
                         .fillMaxWidth()
                         .padding(horizontal = 16.dp)
                 ) {
-                    Text("Copiar link")
+                    Text("Copiar link", color = Color.White)
                 }
                 TextButton(
                     onClick = {
@@ -395,7 +395,7 @@ fun EvidenciaPage(
                         .fillMaxWidth()
                         .padding(horizontal = 16.dp)
                 ) {
-                    Text("Descargar")
+                    Text("Descargar", color = Color.White)
                 }
             }
         }
@@ -506,7 +506,11 @@ fun EvidenciasFeed(evidencias: List<Evidencia>) {
             modifier = Modifier.fillMaxSize(),
             contentAlignment = Alignment.Center
         ) {
-            Text("Aún no hay evidencias, ¡sé el primero en participar!", style = MaterialTheme.typography.titleMedium)
+            Text(
+                "Aún no hay evidencias, ¡sé el primero en participar!", 
+                style = MaterialTheme.typography.titleMedium,
+                color = Color.White
+            )
         }
     } else {
         LazyColumn {
@@ -539,12 +543,14 @@ fun EvidenciaCard(evidencia: Evidencia) {
             Text(
                 text = challengeTitle,
                 style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold
+                fontWeight = FontWeight.Bold,
+                color = Color.White
             )
             Spacer(Modifier.height(4.dp))
             Text(
                 text = "Por: @${evidencia.userName}",
-                style = MaterialTheme.typography.bodyMedium
+                style = MaterialTheme.typography.bodyMedium,
+                color = Color(0xFFCBD5E1)
             )
             Spacer(Modifier.height(8.dp))
             evidencia.url?.let { url ->
@@ -605,7 +611,7 @@ fun EvidenciaCard(evidencia: Evidencia) {
                 Text(
                     text = evidencia.texto,
                     style = MaterialTheme.typography.bodyMedium,
-                    color = Color.Gray
+                    color = Color.White
                 )
             }
         }
@@ -639,12 +645,12 @@ fun ChallengeCard(challenge: ChallengePreview) {
                 text = challenge.title,
                 fontSize = 20.sp,
                 fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onSurface
+                color = Color.White
             )
             Text(
                 text = challenge.description,
                 fontSize = 16.sp,
-                color = MaterialTheme.colorScheme.onSurface
+                color = Color(0xFFCBD5E1)
             )
             Row(
                 modifier = Modifier
@@ -652,11 +658,17 @@ fun ChallengeCard(challenge: ChallengePreview) {
                     .padding(top = 16.dp),
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                Button(onClick = { /* Participar */ }) {
-                    Text("Participar")
+                Button(
+                    onClick = { /* Participar */ },
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF3B82F6))
+                ) {
+                    Text("Participar", color = Color.White)
                 }
-                Button(onClick = { /* Ver categoría */ }) {
-                    Text("Categoría")
+                Button(
+                    onClick = { /* Ver categoría */ },
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF64748B))
+                ) {
+                    Text("Categoría", color = Color.White)
                 }
             }
         }

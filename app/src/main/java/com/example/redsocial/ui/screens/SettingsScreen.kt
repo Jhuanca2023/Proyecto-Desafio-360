@@ -106,7 +106,7 @@ fun SettingsScreen(
                     onClick = { /* Cambiar contraseña */ },
                     colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF3B82F6))
                 ) {
-                    Text("Cambiar Contraseña")
+                    Text("Cambiar Contraseña", color = Color.White)
                 }
             }
             // Preferencias
@@ -147,7 +147,7 @@ fun SettingsScreen(
                     modifier = Modifier.align(Alignment.End).padding(top = 8.dp),
                     colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF3B82F6))
                 ) {
-                    Text("Guardar Preferencias")
+                    Text("Guardar Preferencias", color = Color.White)
                 }
             }
             // Ayuda
@@ -172,9 +172,9 @@ fun SettingsScreen(
                     colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF3B82F6)),
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    Icon(Icons.AutoMirrored.Filled.ExitToApp, contentDescription = null)
+                    Icon(Icons.AutoMirrored.Filled.ExitToApp, contentDescription = null, tint = Color.White)
                     Spacer(Modifier.width(8.dp))
-                    Text("Cerrar Sesión")
+                    Text("Cerrar Sesión", color = Color.White)
                 }
                 Spacer(Modifier.height(8.dp))
                 Button(
@@ -182,9 +182,9 @@ fun SettingsScreen(
                     colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFF1744)),
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    Icon(Icons.Default.Delete, contentDescription = null)
+                    Icon(Icons.Default.Delete, contentDescription = null, tint = Color.White)
                     Spacer(Modifier.width(8.dp))
-                    Text("Eliminar Cuenta")
+                    Text("Eliminar Cuenta", color = Color.White)
                 }
                 Text("Esta acción es permanente e irreversible.", color = Color(0xFFCBD5E1), fontSize = 12.sp, modifier = Modifier.padding(top = 4.dp))
             }
@@ -194,8 +194,8 @@ fun SettingsScreen(
     if (showDeleteDialog) {
         AlertDialog(
             onDismissRequest = { if (!isDeleting) showDeleteDialog = false },
-            title = { Text("¿Eliminar cuenta?") },
-            text = { Text("Esta acción es permanente e irreversible. ¿Seguro que deseas continuar?") },
+            title = { Text("¿Eliminar cuenta?", color = Color.White) },
+            text = { Text("Esta acción es permanente e irreversible. ¿Seguro que deseas continuar?", color = Color(0xFFCBD5E1)) },
             confirmButton = {
                 Button(
                     onClick = {
@@ -229,20 +229,25 @@ fun SettingsScreen(
                     colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFF1744)),
                     enabled = !isDeleting
                 ) {
-                    Text(if (isDeleting) "Eliminando..." else "Eliminar Cuenta")
+                    Text(if (isDeleting) "Eliminando..." else "Eliminar Cuenta", color = Color.White)
                 }
             },
             dismissButton = {
                 if (!isDeleting) {
-                    OutlinedButton(onClick = { showDeleteDialog = false }) {
-                        Text("Cancelar")
+                    OutlinedButton(
+                        onClick = { showDeleteDialog = false },
+                        colors = ButtonDefaults.outlinedButtonColors(
+                            contentColor = Color(0xFF3B82F6)
+                        )
+                    ) {
+                        Text("Cancelar", color = Color(0xFF3B82F6))
                     }
                 }
             },
-            containerColor = Color(0xFF18122B)
+            containerColor = Color(0xFF1A1F2E)
         )
         if (deleteError != null) {
-            Text(deleteError!!, color = Color.Red, modifier = Modifier.padding(8.dp))
+            Text(deleteError!!, color = Color(0xFFFF6B6B), modifier = Modifier.padding(8.dp))
         }
     }
 }
@@ -282,16 +287,28 @@ fun DropdownMenuBox(selected: String, onChange: (String) -> Unit) {
     var expanded by remember { mutableStateOf(false) }
     val idiomas = listOf("Español", "Inglés", "Portugués")
     Box {
-        OutlinedButton(onClick = { expanded = true }) {
-            Text(selected)
-            Icon(Icons.Default.ArrowDropDown, contentDescription = null)
+        OutlinedButton(
+            onClick = { expanded = true },
+            colors = ButtonDefaults.outlinedButtonColors(
+                contentColor = Color(0xFF3B82F6)
+            )
+        ) {
+            Text(selected, color = Color.White)
+            Icon(Icons.Default.ArrowDropDown, contentDescription = null, tint = Color(0xFF3B82F6))
         }
-        DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+        DropdownMenu(
+            expanded = expanded, 
+            onDismissRequest = { expanded = false },
+            modifier = Modifier.background(Color(0xFF1A1F2E))
+        ) {
             idiomas.forEach {
-                DropdownMenuItem(text = { Text(it) }, onClick = {
-                    onChange(it)
-                    expanded = false
-                })
+                DropdownMenuItem(
+                    text = { Text(it, color = Color.White) }, 
+                    onClick = {
+                        onChange(it)
+                        expanded = false
+                    }
+                )
             }
         }
     }

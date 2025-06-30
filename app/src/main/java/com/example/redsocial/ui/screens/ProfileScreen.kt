@@ -230,7 +230,7 @@ fun ProfileScreen(
 
                     Text(
                         text = data["biografia"] as? String ?: "Sin biografía",
-                        color = Color.Gray,
+                        color = Color(0xFFCBD5E1),
                         fontSize = 16.sp,
                         modifier = Modifier.padding(top = 8.dp)
                     )
@@ -285,7 +285,7 @@ fun ProfileScreen(
                         Text("Mis Desafíos", color = Color.White, fontSize = 20.sp, fontWeight = FontWeight.Bold)
                         Text(
                             "Desliza hacia abajo para ver todos tus desafíos",
-                            color = Color.Gray,
+                            color = Color(0xFFCBD5E1),
                             fontSize = 14.sp,
                             modifier = Modifier.padding(bottom = 8.dp)
                         )
@@ -293,7 +293,7 @@ fun ProfileScreen(
                         if (desafios.isEmpty()) {
                             Text(
                                 text = "No has creado desafíos aún",
-                                color = Color.Gray,
+                                color = Color(0xFFCBD5E1),
                                 style = MaterialTheme.typography.bodyLarge,
                                 modifier = Modifier.padding(32.dp)
                             )
@@ -309,7 +309,7 @@ fun ProfileScreen(
                                 ) {
                                     Card(
                                         modifier = Modifier.fillMaxWidth(),
-                                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+                                        colors = CardDefaults.cardColors(containerColor = Color(0xFF1A1F2E))
                                     ) {
                                         Row(modifier = Modifier.padding(12.dp)) {
                                             AsyncImage(
@@ -319,13 +319,20 @@ fun ProfileScreen(
                                             )
                                             Spacer(Modifier.width(12.dp))
                                             Column {
-                                                Text(desafio["title"] as? String ?: "", fontWeight = FontWeight.Bold)
+                                                Text(
+                                                    desafio["title"] as? String ?: "", 
+                                                    fontWeight = FontWeight.Bold,
+                                                    color = Color.White
+                                                )
                                                 val participantes = (desafio["participants"] as? List<*>)?.size ?: 0
                                                 val maxP = (desafio["maxParticipants"] as? Long)?.toInt() ?: 1
                                                 val activo = participantes < maxP
-                                                Text(if (activo) "Activo" else "Inactivo", color = if (activo) Color.Green else Color.Red)
-                                                Text("Participantes: $participantes/$maxP")
-                                                Text("Likes: ${(desafio["likes"] as? Long ?: 0L)}")
+                                                Text(
+                                                    if (activo) "Activo" else "Inactivo", 
+                                                    color = if (activo) Color(0xFF00C853) else Color(0xFFFF6B6B)
+                                                )
+                                                Text("Participantes: $participantes/$maxP", color = Color(0xFFCBD5E1))
+                                                Text("Likes: ${(desafio["likes"] as? Long ?: 0L)}", color = Color(0xFFCBD5E1))
                                             }
                                         }
                                     }
@@ -360,7 +367,7 @@ fun ProfileScreen(
                         Text("Mis Evidencias", color = Color.White, fontSize = 20.sp, fontWeight = FontWeight.Bold)
                         Text(
                             "Desafíos que has completado",
-                            color = Color.Gray,
+                            color = Color(0xFFCBD5E1),
                             fontSize = 14.sp,
                             modifier = Modifier.padding(bottom = 8.dp)
                         )
@@ -368,7 +375,7 @@ fun ProfileScreen(
                         if (evidencias.isEmpty()) {
                             Text(
                                 text = "No has completado desafíos aún",
-                                color = Color.Gray,
+                                color = Color(0xFFCBD5E1),
                                 style = MaterialTheme.typography.bodyLarge,
                                 modifier = Modifier.padding(32.dp)
                             )
@@ -379,7 +386,7 @@ fun ProfileScreen(
                                         .fillMaxWidth()
                                         .padding(vertical = 4.dp),
                                     colors = CardDefaults.cardColors(
-                                        containerColor = MaterialTheme.colorScheme.surfaceVariant
+                                        containerColor = Color(0xFF1A1F2E)
                                     )
                                 ) {
                                     Row(modifier = Modifier.padding(8.dp)) {
@@ -398,13 +405,14 @@ fun ProfileScreen(
                                             Text(
                                                 text = "Completaste un desafío",
                                                 style = MaterialTheme.typography.bodyMedium,
-                                                fontWeight = FontWeight.Bold
+                                                fontWeight = FontWeight.Bold,
+                                                color = Color.White
                                             )
                                             if (evidencia.texto != null) {
                                                 Text(
                                                     text = evidencia.texto,
                                                     style = MaterialTheme.typography.bodyMedium,
-                                                    color = Color.Gray
+                                                    color = Color(0xFFCBD5E1)
                                                 )
                                             }
                                             Text(
@@ -426,8 +434,8 @@ fun ProfileScreen(
     if (showDeleteDialog && desafioToDelete != null) {
         AlertDialog(
             onDismissRequest = { showDeleteDialog = false },
-            title = { Text("¿Eliminar desafío?") },
-            text = { Text("Esta acción eliminará el desafío de tu perfil, de explorar y de la base de datos. ¿Deseas continuar?") },
+            title = { Text("¿Eliminar desafío?", color = Color.White) },
+            text = { Text("Esta acción eliminará el desafío de tu perfil, de explorar y de la base de datos. ¿Deseas continuar?", color = Color(0xFFCBD5E1)) },
             confirmButton = {
                 Button(
                     onClick = {
@@ -445,17 +453,22 @@ fun ProfileScreen(
                             }
                         }
                     },
-                    colors = ButtonDefaults.buttonColors(containerColor = Color.Red)
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFF6B6B))
                 ) {
-                    Text("Eliminar")
+                    Text("Eliminar", color = Color.White)
                 }
             },
             dismissButton = {
-                OutlinedButton(onClick = { showDeleteDialog = false }) {
-                    Text("Cancelar")
+                OutlinedButton(
+                    onClick = { showDeleteDialog = false },
+                    colors = ButtonDefaults.outlinedButtonColors(
+                        contentColor = Color(0xFF3B82F6)
+                    )
+                ) {
+                    Text("Cancelar", color = Color(0xFF3B82F6))
                 }
             },
-            containerColor = Color(0xFF18122B)
+            containerColor = Color(0xFF1A1F2E)
         )
     }
 }

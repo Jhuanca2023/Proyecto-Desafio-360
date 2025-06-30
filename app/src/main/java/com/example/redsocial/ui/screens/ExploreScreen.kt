@@ -412,7 +412,8 @@ fun FiltersSection(
     ) {
         Text(
             text = "Filtros",
-            style = MaterialTheme.typography.titleMedium
+            style = MaterialTheme.typography.titleMedium,
+            color = Color.White
         )
         
         Row(
@@ -423,18 +424,27 @@ fun FiltersSection(
         ) {
             AssistChip(
                 onClick = onClearFilters,
-                label = { Text("Limpiar Filtros") }
+                label = { Text("Limpiar Filtros", color = Color.White) },
+                colors = AssistChipDefaults.assistChipColors(
+                    containerColor = Color(0xFF3B82F6)
+                )
             )
             selectedCategory?.let {
                 AssistChip(
                     onClick = { onCategorySelected(it) },
-                    label = { Text(it) }
+                    label = { Text(it, color = Color.White) },
+                    colors = AssistChipDefaults.assistChipColors(
+                        containerColor = Color(0xFF64748B)
+                    )
                 )
             }
             selectedDuration?.let {
                 AssistChip(
                     onClick = { onDurationSelected(it) },
-                    label = { Text(it) }
+                    label = { Text(it, color = Color.White) },
+                    colors = AssistChipDefaults.assistChipColors(
+                        containerColor = Color(0xFF64748B)
+                    )
                 )
             }
         }
@@ -467,7 +477,8 @@ fun CategoriesSection(onCategorySelected: (String) -> Unit) {
     ) {
         Text(
             text = "Categoría",
-            style = MaterialTheme.typography.titleMedium
+            style = MaterialTheme.typography.titleMedium,
+            color = Color.White
         )
         
         LazyRow(
@@ -478,7 +489,11 @@ fun CategoriesSection(onCategorySelected: (String) -> Unit) {
                 FilterChip(
                     selected = false,
                     onClick = { onCategorySelected(category) },
-                    label = { Text(category) }
+                    label = { Text(category, color = Color.White) },
+                    colors = FilterChipDefaults.filterChipColors(
+                        containerColor = Color(0xFF2A2F3E),
+                        selectedContainerColor = Color(0xFF3B82F6)
+                    )
                 )
             }
         }
@@ -492,7 +507,8 @@ fun DurationSection(onDurationSelected: (String) -> Unit) {
     ) {
         Text(
             text = "Duración",
-            style = MaterialTheme.typography.titleMedium
+            style = MaterialTheme.typography.titleMedium,
+            color = Color.White
         )
         
         LazyRow(
@@ -503,7 +519,11 @@ fun DurationSection(onDurationSelected: (String) -> Unit) {
                 FilterChip(
                     selected = false,
                     onClick = { onDurationSelected(duration) },
-                    label = { Text(duration) }
+                    label = { Text(duration, color = Color.White) },
+                    colors = FilterChipDefaults.filterChipColors(
+                        containerColor = Color(0xFF2A2F3E),
+                        selectedContainerColor = Color(0xFF3B82F6)
+                    )
                 )
             }
         }

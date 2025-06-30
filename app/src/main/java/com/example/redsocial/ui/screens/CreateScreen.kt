@@ -297,7 +297,7 @@ fun CreateScreen() {
                     ) {
                         Text(
                             "Imagen actual",
-                            color = Color.Gray,
+                            color = Color(0xFFCBD5E1),
                             fontSize = 14.sp,
                             modifier = Modifier.padding(bottom = 8.dp)
                         )
@@ -333,11 +333,11 @@ fun CreateScreen() {
                         strokeWidth = 2.dp
                     )
                     Spacer(modifier = Modifier.width(8.dp))
-                    Text("Subiendo imagen...")
+                    Text("Subiendo imagen...", color = Color.White)
                 } else {
                     Icon(Icons.Default.Image, contentDescription = null)
                     Spacer(modifier = Modifier.width(8.dp))
-                    Text(if (coverImageUrl != null) "Cambiar imagen" else "Agregar imagen")
+                    Text(if (coverImageUrl != null) "Cambiar imagen" else "Agregar imagen", color = Color.White)
                 }
             }
             Spacer(Modifier.height(16.dp))
@@ -360,7 +360,7 @@ fun CreateScreen() {
                         )
                         Text(
                             if (privacy == "friends") "Visibles solo para tus amigos" else "Visible para todos",
-                            color = Color.Gray,
+                            color = Color(0xFFCBD5E1),
                             fontSize = 12.sp
                         )
                     }
@@ -402,7 +402,7 @@ fun CreateScreen() {
                     }
                     Spacer(Modifier.height(8.dp))
                     Text(title, style = MaterialTheme.typography.titleLarge, color = Color.White)
-                    Text(description, style = MaterialTheme.typography.bodyMedium, color = Color.White)
+                    Text(description, style = MaterialTheme.typography.bodyMedium, color = Color(0xFFCBD5E1))
                     Row(modifier = Modifier.padding(vertical = 8.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         if (category.isNotBlank()) ChipPreview(category)
                         if (duration.isNotBlank()) ChipPreview(duration)
@@ -468,7 +468,7 @@ fun CreateScreen() {
                 Spacer(Modifier.width(8.dp))
                 Text(if (isLoading) "Publicando..." else "Publicar Desafío")
             }
-            errorMessage?.let { Text(it, color = MaterialTheme.colorScheme.error) }
+            errorMessage?.let { Text(it, color = Color(0xFFFF6B6B)) }
         }
     }
 }
@@ -978,7 +978,7 @@ fun EditChallengeScreen(desafioId: String, navController: NavController) {
                 ) {
                     Text(
                         "Imagen actual",
-                        color = Color.Gray,
+                        color = Color(0xFFCBD5E1),
                         fontSize = 14.sp,
                         modifier = Modifier.padding(bottom = 8.dp)
                     )
@@ -1014,11 +1014,11 @@ fun EditChallengeScreen(desafioId: String, navController: NavController) {
                     strokeWidth = 2.dp
                 )
                 Spacer(modifier = Modifier.width(8.dp))
-                Text("Subiendo imagen...")
+                Text("Subiendo imagen...", color = Color.White)
             } else {
                 Icon(Icons.Default.Image, contentDescription = null)
                 Spacer(modifier = Modifier.width(8.dp))
-                Text(if (coverImageUrl != null) "Cambiar imagen" else "Agregar imagen")
+                Text(if (coverImageUrl != null) "Cambiar imagen" else "Agregar imagen", color = Color.White)
             }
         }
 
@@ -1026,7 +1026,7 @@ fun EditChallengeScreen(desafioId: String, navController: NavController) {
         errorMessage?.let {
             Text(
                 text = it,
-                color = Color.Red,
+                color = Color(0xFFFF6B6B),
                 modifier = Modifier.padding(bottom = 8.dp)
             )
         }

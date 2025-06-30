@@ -9,6 +9,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.graphics.Color
 
 @Composable
 fun ChipPreview(text: String) {
@@ -17,8 +18,8 @@ fun ChipPreview(text: String) {
         modifier = Modifier
             .wrapContentWidth()
             .clip(MaterialTheme.shapes.small)
-            .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.15f))
+            .background(Color(0xFF3B82F6).copy(alpha = 0.3f))
             .padding(horizontal = 12.dp, vertical = 4.dp),
-        color = MaterialTheme.colorScheme.primary
+        color = Color.White
     )
 } 
