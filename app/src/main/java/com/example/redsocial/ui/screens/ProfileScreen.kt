@@ -99,8 +99,10 @@ fun ProfileScreen(
                 )
             }
             
-            totalLikes = desafios.sumOf { (it["likes"] as? Long ?: 0L).toInt() }
             val userDoc = db.collection("usuarios").document(uid).get().await()
+            val totalLikesEvidencias = (userDoc.get("totalLikes") as? Long ?: 0L).toInt()
+            val totalLikesDesafios = desafios.sumOf { (it["likes"] as? Long ?: 0L).toInt() }
+            totalLikes = totalLikesEvidencias + totalLikesDesafios
             seguidores = (userDoc.get("seguidores") as? Long ?: 0L).toInt()
             siguiendo = (userDoc.get("siguiendo") as? Long ?: 0L).toInt()
             badges = (userDoc.get("badges") as? Long ?: 0L).toInt()

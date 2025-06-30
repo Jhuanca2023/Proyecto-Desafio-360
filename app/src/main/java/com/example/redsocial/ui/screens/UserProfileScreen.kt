@@ -55,55 +55,46 @@ fun UserProfileScreen(
     val db = FirebaseFirestore.getInstance()
 
     LaunchedEffect(userId) {
-        try {
-            isLoading = true
-            
-            // Obtener datos del usuario
-            val userDoc = db.collection("usuarios").document(userId).get().await()
-            userData = userDoc.data
-            
-            // Obtener desafíos creados por el usuario
-            val challengesSnapshot = db.collection("desafios")
-                .whereEqualTo("authorId", userId)
-                .get()
-                .await()
-            
-            createdChallenges = challengesSnapshot.documents.mapNotNull { doc ->
-                doc.data?.toMutableMap()?.apply { put("id", doc.id) }
-            }
-            
-            // Calcular total de likes de los desafíos creados
-            totalLikes = createdChallenges.sumOf { (it["likes"] as? Long ?: 0L).toInt() }
-            
-            // Obtener evidencias completadas por el usuario
-            val evidencesSnapshot = db.collection("evidencias")
-                .whereEqualTo("userId", userId)
-                .get()
-                .await()
-            
-            completedEvidences = evidencesSnapshot.documents.mapNotNull { doc ->
-                val data = doc.data ?: return@mapNotNull null
-                Evidencia(
-                    id = doc.id,
-                    challengeId = data["challengeId"] as? String ?: "",
-                    userId = data["userId"] as? String ?: "",
-                    userName = data["userName"] as? String ?: "",
-                    tipo = data["tipo"] as? String ?: "",
-                    url = data["url"] as? String,
-                    texto = data["texto"] as? String,
-                    timestamp = data["timestamp"] as? Long ?: 0L
-                )
-            }
-            
-            // Obtener estadísticas de seguidores/siguiendo
-            val userStats = userDoc.data
-            seguidores = (userStats?.get("seguidores") as? Long ?: 0L).toInt()
-            siguiendo = (userStats?.get("siguiendo") as? Long ?: 0L).toInt()
-            
-            isLoading = false
-        } catch (e: Exception) {
-            isLoading = false
+        isLoading = true
+        // Obtener datos del usuario
+        val userDoc = db.collection("usuarios").document(userId).get().await()
+        userData = userDoc.data
+        // Obtener desafíos creados por el usuario
+        val challengesSnapshot = db.collection("desafios")
+            .whereEqualTo("authorId", userId)
+            .get()
+            .await()
+        createdChallenges = challengesSnapshot.documents.mapNotNull { doc ->
+            doc.data?.toMutableMap()?.apply { put("id", doc.id) }
         }
+        // Calcular total de likes de los desafíos creados
+        val totalLikesDesafios = createdChallenges.sumOf { (it["likes"] as? Long ?: 0L).toInt() }
+        // Obtener likes de evidencias
+        val totalLikesEvidencias = (userDoc.get("totalLikes") as? Long ?: 0L).toInt()
+        totalLikes = totalLikesDesafios + totalLikesEvidencias
+        // Obtener evidencias completadas por el usuario
+        val evidencesSnapshot = db.collection("evidencias")
+            .whereEqualTo("userId", userId)
+            .get()
+            .await()
+        completedEvidences = evidencesSnapshot.documents.mapNotNull { doc ->
+            val data = doc.data ?: return@mapNotNull null
+            Evidencia(
+                id = doc.id,
+                challengeId = data["challengeId"] as? String ?: "",
+                userId = data["userId"] as? String ?: "",
+                userName = data["userName"] as? String ?: "",
+                tipo = data["tipo"] as? String ?: "",
+                url = data["url"] as? String,
+                texto = data["texto"] as? String,
+                timestamp = data["timestamp"] as? Long ?: 0L
+            )
+        }
+        // Obtener estadísticas de seguidores/siguiendo
+        val userStats = userDoc.data
+        seguidores = (userStats?.get("seguidores") as? Long ?: 0L).toInt()
+        siguiendo = (userStats?.get("siguiendo") as? Long ?: 0L).toInt()
+        isLoading = false
     }
 
     // Verificar si el usuario actual ya sigue a este usuario
