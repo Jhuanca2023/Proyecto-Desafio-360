@@ -11,6 +11,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -41,130 +42,160 @@ fun SettingsScreen(
     var idioma by remember { mutableStateOf("Español") }
     val user = FirebaseAuth.getInstance().currentUser
 
-    Column(
+    Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color(0xFF18122B))
-            .padding(16.dp)
-            .verticalScroll(rememberScrollState()),
-        verticalArrangement = Arrangement.spacedBy(16.dp)
+            .background(
+                Brush.verticalGradient(
+                    colors = listOf(
+                        Color(0xFF0A0F1C), // Celeste muy oscuro (noche)
+                        Color(0xFF1A1F2E), // Celeste oscuro
+                        Color(0xFF2A2F3E)  // Celeste medio oscuro
+                    )
+                )
+            )
     ) {
-        Text("Ajustes", color = Color.White, fontSize = 28.sp, fontWeight = FontWeight.Bold, modifier = Modifier.align(Alignment.CenterHorizontally))
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(16.dp)
+                .verticalScroll(rememberScrollState()),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            Text(
+                "Ajustes", 
+                color = Color.White, 
+                fontSize = 28.sp, 
+                fontWeight = FontWeight.Bold, 
+                modifier = Modifier.align(Alignment.CenterHorizontally)
+            )
 
-        // Cuenta
-        SettingsCard {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(Icons.Default.Person, contentDescription = null, tint = Color(0xFFA259FF))
-                Spacer(Modifier.width(8.dp))
-                Text("Cuenta", color = Color.White, fontWeight = FontWeight.Bold)
-            }
-            Spacer(Modifier.height(8.dp))
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(Icons.Default.Email, contentDescription = null, tint = Color(0xFFA259FF))
-                Spacer(Modifier.width(8.dp))
-                Column {
-                    Text("Email", color = Color.White)
-                    Text(user?.email ?: "Usuario@example.com", color = Color.Gray, fontSize = 13.sp)
-                    Button(onClick = { /* Cambiar email */ }, modifier = Modifier.padding(top = 4.dp)) {
-                        Text("Cambiar Email")
+            // Cuenta
+            SettingsCard {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(Icons.Default.Person, contentDescription = null, tint = Color(0xFF60A5FA))
+                    Spacer(Modifier.width(8.dp))
+                    Text("Cuenta", color = Color.White, fontWeight = FontWeight.Bold)
+                }
+                Spacer(Modifier.height(8.dp))
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(Icons.Default.Email, contentDescription = null, tint = Color(0xFF60A5FA))
+                    Spacer(Modifier.width(8.dp))
+                    Column {
+                        Text("Email", color = Color.White)
+                        Text(user?.email ?: "Usuario@example.com", color = Color(0xFFCBD5E1), fontSize = 13.sp)
+                        Button(
+                            onClick = { /* Cambiar email */ }, 
+                            modifier = Modifier.padding(top = 4.dp),
+                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF3B82F6))
+                        ) {
+                            Text("Cambiar Email")
+                        }
                     }
                 }
             }
-        }
-        // Contraseña
-        SettingsCard {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(Icons.Default.Key, contentDescription = null, tint = Color(0xFFA259FF))
-                Spacer(Modifier.width(8.dp))
-                Text("Contraseña", color = Color.White, fontWeight = FontWeight.Bold)
+            // Contraseña
+            SettingsCard {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(Icons.Default.Key, contentDescription = null, tint = Color(0xFF60A5FA))
+                    Spacer(Modifier.width(8.dp))
+                    Text("Contraseña", color = Color.White, fontWeight = FontWeight.Bold)
+                }
+                Spacer(Modifier.height(8.dp))
+                Button(
+                    onClick = { /* Cambiar contraseña */ },
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF3B82F6))
+                ) {
+                    Text("Cambiar Contraseña", color = Color.White)
+                }
             }
-            Spacer(Modifier.height(8.dp))
-            Button(onClick = { /* Cambiar contraseña */ }) {
-                Text("Cambiar Contraseña")
+            // Preferencias
+            SettingsCard {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(Icons.Default.Language, contentDescription = null, tint = Color(0xFF60A5FA))
+                    Spacer(Modifier.width(8.dp))
+                    Text("Preferencias", color = Color.White, fontWeight = FontWeight.Bold)
+                }
+                Spacer(Modifier.height(8.dp))
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(Icons.Default.DarkMode, contentDescription = null, tint = Color(0xFF60A5FA))
+                    Spacer(Modifier.width(8.dp))
+                    Text("Modo de Apariencia", color = Color.White)
+                    Spacer(Modifier.weight(1f))
+                    Switch(checked = darkMode, onCheckedChange = { darkMode = it })
+                }
+                Text("Actualmente en modo ${if (darkMode) "oscuro" else "claro"}", color = Color(0xFFCBD5E1), fontSize = 13.sp, modifier = Modifier.padding(start = 32.dp))
+                Spacer(Modifier.height(8.dp))
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(Icons.Default.Notifications, contentDescription = null, tint = Color(0xFF60A5FA))
+                    Spacer(Modifier.width(8.dp))
+                    Text("Notificaciones", color = Color.White)
+                    Spacer(Modifier.weight(1f))
+                    Switch(checked = notifications, onCheckedChange = { notifications = it })
+                }
+                Text("Recibir alertas sobre actividad relevante", color = Color(0xFFCBD5E1), fontSize = 13.sp, modifier = Modifier.padding(start = 32.dp))
+                Spacer(Modifier.height(8.dp))
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(Icons.Default.Language, contentDescription = null, tint = Color(0xFF60A5FA))
+                    Spacer(Modifier.width(8.dp))
+                    Text("Idioma", color = Color.White)
+                    Spacer(Modifier.weight(1f))
+                    DropdownMenuBox(idioma, onChange = { idioma = it })
+                }
+                Button(
+                    onClick = { /* Guardar preferencias */ }, 
+                    modifier = Modifier.align(Alignment.End).padding(top = 8.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF3B82F6))
+                ) {
+                    Text("Guardar Preferencias", color = Color.White)
+                }
             }
-        }
-        // Preferencias
-        SettingsCard {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(Icons.Default.Language, contentDescription = null, tint = Color(0xFFA259FF))
-                Spacer(Modifier.width(8.dp))
-                Text("Preferencias", color = Color.White, fontWeight = FontWeight.Bold)
+            // Ayuda
+            SettingsCard {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(Icons.AutoMirrored.Filled.Help, contentDescription = null, tint = Color(0xFF60A5FA))
+                    Spacer(Modifier.width(8.dp))
+                    Text("Ayuda", color = Color.White, fontWeight = FontWeight.Bold)
+                }
+                Spacer(Modifier.height(8.dp))
+                SettingsLink(Icons.Default.QuestionAnswer, "Preguntas Frecuentes (FAQs)")
+                SettingsLink(Icons.Default.Support, "Contactar Soporte")
+                SettingsLink(Icons.Default.Policy, "Política de Privacidad")
+                SettingsLink(Icons.Default.Description, "Términos de Servicio")
             }
-            Spacer(Modifier.height(8.dp))
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(Icons.Default.DarkMode, contentDescription = null, tint = Color(0xFFA259FF))
-                Spacer(Modifier.width(8.dp))
-                Text("Modo de Apariencia", color = Color.White)
-                Spacer(Modifier.weight(1f))
-                Switch(checked = darkMode, onCheckedChange = { darkMode = it })
+            // Zona peligrosa
+            SettingsCard(borderColor = Color(0xFFFF1744)) {
+                Text("Zona Peligrosa", color = Color(0xFFFF1744), fontWeight = FontWeight.Bold)
+                Spacer(Modifier.height(8.dp))
+                Button(
+                    onClick = { onSignOut() },
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF3B82F6)),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Icon(Icons.AutoMirrored.Filled.ExitToApp, contentDescription = null, tint = Color.White)
+                    Spacer(Modifier.width(8.dp))
+                    Text("Cerrar Sesión", color = Color.White)
+                }
+                Spacer(Modifier.height(8.dp))
+                Button(
+                    onClick = { showDeleteDialog = true },
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFF1744)),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Icon(Icons.Default.Delete, contentDescription = null, tint = Color.White)
+                    Spacer(Modifier.width(8.dp))
+                    Text("Eliminar Cuenta", color = Color.White)
+                }
+                Text("Esta acción es permanente e irreversible.", color = Color(0xFFCBD5E1), fontSize = 12.sp, modifier = Modifier.padding(top = 4.dp))
             }
-            Text("Actualmente en modo ${if (darkMode) "oscuro" else "claro"}", color = Color.Gray, fontSize = 13.sp, modifier = Modifier.padding(start = 32.dp))
-            Spacer(Modifier.height(8.dp))
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(Icons.Default.Notifications, contentDescription = null, tint = Color(0xFFA259FF))
-                Spacer(Modifier.width(8.dp))
-                Text("Notificaciones", color = Color.White)
-                Spacer(Modifier.weight(1f))
-                Switch(checked = notifications, onCheckedChange = { notifications = it })
-            }
-            Text("Recibir alertas sobre actividad relevante", color = Color.Gray, fontSize = 13.sp, modifier = Modifier.padding(start = 32.dp))
-            Spacer(Modifier.height(8.dp))
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(Icons.Default.Language, contentDescription = null, tint = Color(0xFFA259FF))
-                Spacer(Modifier.width(8.dp))
-                Text("Idioma", color = Color.White)
-                Spacer(Modifier.weight(1f))
-                DropdownMenuBox(idioma, onChange = { idioma = it })
-            }
-            Button(onClick = { /* Guardar preferencias */ }, modifier = Modifier.align(Alignment.End).padding(top = 8.dp)) {
-                Text("Guardar Preferencias")
-            }
-        }
-        // Ayuda
-        SettingsCard {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(Icons.AutoMirrored.Filled.Help, contentDescription = null, tint = Color(0xFFA259FF))
-                Spacer(Modifier.width(8.dp))
-                Text("Ayuda", color = Color.White, fontWeight = FontWeight.Bold)
-            }
-            Spacer(Modifier.height(8.dp))
-            SettingsLink(Icons.Default.QuestionAnswer, "Preguntas Frecuentes (FAQs)")
-            SettingsLink(Icons.Default.Support, "Contactar Soporte")
-            SettingsLink(Icons.Default.Policy, "Política de Privacidad")
-            SettingsLink(Icons.Default.Description, "Términos de Servicio")
-        }
-        // Zona peligrosa
-        SettingsCard(borderColor = Color(0xFFFF1744)) {
-            Text("Zona Peligrosa", color = Color(0xFFFF1744), fontWeight = FontWeight.Bold)
-            Spacer(Modifier.height(8.dp))
-            Button(
-                onClick = { onSignOut() },
-                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFA259FF)),
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Icon(Icons.AutoMirrored.Filled.ExitToApp, contentDescription = null)
-                Spacer(Modifier.width(8.dp))
-                Text("Cerrar Sesión")
-            }
-            Spacer(Modifier.height(8.dp))
-            Button(
-                onClick = { showDeleteDialog = true },
-                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFF1744)),
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Icon(Icons.Default.Delete, contentDescription = null)
-                Spacer(Modifier.width(8.dp))
-                Text("Eliminar Cuenta")
-            }
-            Text("Esta acción es permanente e irreversible.", color = Color.Gray, fontSize = 12.sp, modifier = Modifier.padding(top = 4.dp))
         }
     }
 
     if (showDeleteDialog) {
         AlertDialog(
             onDismissRequest = { if (!isDeleting) showDeleteDialog = false },
-            title = { Text("¿Eliminar cuenta?") },
-            text = { Text("Esta acción es permanente e irreversible. ¿Seguro que deseas continuar?") },
+            title = { Text("¿Eliminar cuenta?", color = Color.White) },
+            text = { Text("Esta acción es permanente e irreversible. ¿Seguro que deseas continuar?", color = Color(0xFFCBD5E1)) },
             confirmButton = {
                 Button(
                     onClick = {
@@ -198,20 +229,25 @@ fun SettingsScreen(
                     colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFF1744)),
                     enabled = !isDeleting
                 ) {
-                    Text(if (isDeleting) "Eliminando..." else "Eliminar Cuenta")
+                    Text(if (isDeleting) "Eliminando..." else "Eliminar Cuenta", color = Color.White)
                 }
             },
             dismissButton = {
                 if (!isDeleting) {
-                    OutlinedButton(onClick = { showDeleteDialog = false }) {
-                        Text("Cancelar")
+                    OutlinedButton(
+                        onClick = { showDeleteDialog = false },
+                        colors = ButtonDefaults.outlinedButtonColors(
+                            contentColor = Color(0xFF3B82F6)
+                        )
+                    ) {
+                        Text("Cancelar", color = Color(0xFF3B82F6))
                     }
                 }
             },
-            containerColor = Color(0xFF18122B)
+            containerColor = Color(0xFF1A1F2E)
         )
         if (deleteError != null) {
-            Text(deleteError!!, color = Color.Red, modifier = Modifier.padding(8.dp))
+            Text(deleteError!!, color = Color(0xFFFF6B6B), modifier = Modifier.padding(8.dp))
         }
     }
 }
@@ -251,16 +287,28 @@ fun DropdownMenuBox(selected: String, onChange: (String) -> Unit) {
     var expanded by remember { mutableStateOf(false) }
     val idiomas = listOf("Español", "Inglés", "Portugués")
     Box {
-        OutlinedButton(onClick = { expanded = true }) {
-            Text(selected)
-            Icon(Icons.Default.ArrowDropDown, contentDescription = null)
+        OutlinedButton(
+            onClick = { expanded = true },
+            colors = ButtonDefaults.outlinedButtonColors(
+                contentColor = Color(0xFF3B82F6)
+            )
+        ) {
+            Text(selected, color = Color.White)
+            Icon(Icons.Default.ArrowDropDown, contentDescription = null, tint = Color(0xFF3B82F6))
         }
-        DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+        DropdownMenu(
+            expanded = expanded, 
+            onDismissRequest = { expanded = false },
+            modifier = Modifier.background(Color(0xFF1A1F2E))
+        ) {
             idiomas.forEach {
-                DropdownMenuItem(text = { Text(it) }, onClick = {
-                    onChange(it)
-                    expanded = false
-                })
+                DropdownMenuItem(
+                    text = { Text(it, color = Color.White) }, 
+                    onClick = {
+                        onChange(it)
+                        expanded = false
+                    }
+                )
             }
         }
     }

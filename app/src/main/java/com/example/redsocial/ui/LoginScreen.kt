@@ -7,6 +7,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
@@ -237,169 +238,192 @@ fun LoginScreen(navController: NavController, authViewModel: AuthViewModel = vie
             }
         }
     ) { padding ->
-        Column(
+        Box(
             modifier = Modifier
                 .fillMaxSize()
-                .background(Color(0xFF1E1E1E))
-                .padding(16.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center
-        ) {
-            Text(
-                text = "Iniciar Sesión",
-                color = Color.White,
-                fontSize = 32.sp,
-                fontWeight = FontWeight.Bold,
-                modifier = Modifier.padding(bottom = 32.dp)
-            )
-
-            OutlinedTextField(
-                value = email,
-                onValueChange = { email = it },
-                label = { Text("Correo electrónico", color = Color.Gray) },
-                leadingIcon = { Icon(Icons.Default.Email, contentDescription = null, tint = Color.Gray) },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(bottom = 16.dp),
-                colors = OutlinedTextFieldDefaults.colors(
-                    focusedTextColor = Color.White,
-                    unfocusedTextColor = Color.White,
-                    focusedBorderColor = Color(0xFFA259FF),
-                    unfocusedBorderColor = Color.Gray
-                )
-            )
-
-            OutlinedTextField(
-                value = password,
-                onValueChange = { password = it },
-                label = { Text("Contraseña", color = Color.Gray) },
-                leadingIcon = { Icon(Icons.Default.Lock, contentDescription = null) },
-                trailingIcon = {
-                    IconButton(onClick = { mostrarPassword = !mostrarPassword }) {
-                        Icon(
-                            if (mostrarPassword) Icons.Default.Visibility else Icons.Default.VisibilityOff,
-                            contentDescription = if (mostrarPassword) "Ocultar contraseña" else "Mostrar contraseña"
+                .background(
+                    Brush.verticalGradient(
+                        colors = listOf(
+                            Color(0xFF0F172A), // Celeste muy oscuro
+                            Color(0xFF1E3A8A), // Celeste oscuro
+                            Color(0xFF3B82F6)  // Celeste medio
                         )
-                    }
-                },
-                visualTransformation = if (mostrarPassword) VisualTransformation.None else PasswordVisualTransformation(),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(bottom = 24.dp),
-                colors = OutlinedTextFieldDefaults.colors(
-                    focusedTextColor = Color.White,
-                    unfocusedTextColor = Color.White,
-                    focusedBorderColor = Color(0xFFA259FF),
-                    unfocusedBorderColor = Color.Gray
+                    )
                 )
-            )
-
-            Button(
-                onClick = {
-                    if (!NetworkUtils.isNetworkAvailable(context)) {
-                        scope.launch {
-                            snackbarHostState.showSnackbar("No hay conexión a internet")
-                        }
-                        return@Button
-                    }
-                    authViewModel.loginWithEmail(email, password)
-                },
+        ) {
+            Column(
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .height(50.dp),
-                shape = RoundedCornerShape(8.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFA259FF))
-            ) {
-                Text("Iniciar Sesión", color = Color.White)
-            }
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            TextButton(
-                onClick = { mostrarDialogoRecuperacion = true },
-                modifier = Modifier.padding(bottom = 8.dp)
+                    .fillMaxSize()
+                    .padding(24.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center
             ) {
                 Text(
-                    "¿Olvidaste tu contraseña?",
-                    color = Color(0xFFA259FF),
-                    textAlign = TextAlign.Center
+                    text = "Iniciar Sesión",
+                    color = Color.White,
+                    fontSize = 32.sp,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.padding(bottom = 32.dp)
                 )
-            }
 
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(vertical = 16.dp),
-                horizontalArrangement = Arrangement.Center
-            ) {
-                Text("¿No tienes una cuenta? ", color = Color.Gray)
-                TextButton(onClick = { navController.navigate("registro") }) {
-                    Text("Regístrate", color = Color(0xFFA259FF))
-                }
-            }
+                OutlinedTextField(
+                    value = email,
+                    onValueChange = { email = it },
+                    label = { Text("Correo electrónico", color = Color(0xFFCBD5E1)) },
+                    leadingIcon = { Icon(Icons.Default.Email, contentDescription = null, tint = Color(0xFF60A5FA)) },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = 16.dp),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedTextColor = Color.White,
+                        unfocusedTextColor = Color.White,
+                        focusedBorderColor = Color(0xFF3B82F6),
+                        unfocusedBorderColor = Color(0xFF64748B)
+                    )
+                )
 
-            // Botones de sesión con redes sociales
-            Button(
-                onClick = { handleGoogleSignIn() },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(50.dp)
-                    .padding(vertical = 4.dp),
-                shape = RoundedCornerShape(8.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF4285F4))
-            ) {
-                Text("Continuar con Google", color = Color.White)
-            }
-
-            Button(
-                onClick = { launchGitHubLogin() },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(50.dp)
-                    .padding(vertical = 4.dp),
-                shape = RoundedCornerShape(8.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF24292E))
-            ) {
-                Text("Continuar con GitHub", color = Color.White)
-            }
-
-            if (mostrarDialogoRecuperacion) {
-                AlertDialog(
-                    onDismissRequest = { mostrarDialogoRecuperacion = false },
-                    title = { Text("Recuperar Contraseña") },
-                    text = {
-                        OutlinedTextField(
-                            value = emailRecuperacion,
-                            onValueChange = { emailRecuperacion = it },
-                            label = { Text("Correo electrónico") },
-                            modifier = Modifier.fillMaxWidth(),
-                            colors = OutlinedTextFieldDefaults.colors(
-                                focusedTextColor = Color.Black,
-                                unfocusedTextColor = Color.Black,
-                                focusedBorderColor = Color(0xFFA259FF),
-                                unfocusedBorderColor = Color.Gray
+                OutlinedTextField(
+                    value = password,
+                    onValueChange = { password = it },
+                    label = { Text("Contraseña", color = Color(0xFFCBD5E1)) },
+                    leadingIcon = { Icon(Icons.Default.Lock, contentDescription = null, tint = Color(0xFF60A5FA)) },
+                    trailingIcon = {
+                        IconButton(onClick = { mostrarPassword = !mostrarPassword }) {
+                            Icon(
+                                if (mostrarPassword) Icons.Default.Visibility else Icons.Default.VisibilityOff,
+                                contentDescription = if (mostrarPassword) "Ocultar contraseña" else "Mostrar contraseña",
+                                tint = Color(0xFF60A5FA)
                             )
-                        )
-                    },
-                    confirmButton = {
-                        TextButton(
-                            onClick = {
-                                if (emailRecuperacion.isNotEmpty()) {
-                                    authViewModel.resetPassword(emailRecuperacion)
-                                    mostrarDialogoRecuperacion = false
-                                    emailRecuperacion = ""
-                                }
-                            }
-                        ) {
-                            Text("Enviar")
                         }
                     },
-                    dismissButton = {
-                        TextButton(onClick = { mostrarDialogoRecuperacion = false }) {
-                            Text("Cancelar")
-                        }
-                    }
+                    visualTransformation = if (mostrarPassword) VisualTransformation.None else PasswordVisualTransformation(),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = 24.dp),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedTextColor = Color.White,
+                        unfocusedTextColor = Color.White,
+                        focusedBorderColor = Color(0xFF3B82F6),
+                        unfocusedBorderColor = Color(0xFF64748B)
+                    )
                 )
+
+                Button(
+                    onClick = {
+                        if (!NetworkUtils.isNetworkAvailable(context)) {
+                            scope.launch {
+                                snackbarHostState.showSnackbar("No hay conexión a internet")
+                            }
+                            return@Button
+                        }
+                        authViewModel.loginWithEmail(email, password)
+                    },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(56.dp),
+                    shape = RoundedCornerShape(16.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = Color(0xFF3B82F6),
+                        contentColor = Color.White
+                    )
+                ) {
+                    Text("Iniciar Sesión", fontSize = 18.sp, fontWeight = FontWeight.Bold)
+                }
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                TextButton(
+                    onClick = { mostrarDialogoRecuperacion = true },
+                    modifier = Modifier.padding(bottom = 8.dp)
+                ) {
+                    Text(
+                        "¿Olvidaste tu contraseña?",
+                        color = Color(0xFF60A5FA),
+                        textAlign = TextAlign.Center
+                    )
+                }
+
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 16.dp),
+                    horizontalArrangement = Arrangement.Center
+                ) {
+                    Text("¿No tienes una cuenta? ", color = Color(0xFFCBD5E1))
+                    TextButton(onClick = { navController.navigate("registro") }) {
+                        Text("Regístrate", color = Color(0xFF60A5FA))
+                    }
+                }
+
+                // Botones de sesión con redes sociales
+                Button(
+                    onClick = { handleGoogleSignIn() },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(56.dp)
+                        .padding(vertical = 4.dp),
+                    shape = RoundedCornerShape(16.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = Color(0xFF4285F4),
+                        contentColor = Color.White
+                    )
+                ) {
+                    Text("Continuar con Google", fontSize = 16.sp, fontWeight = FontWeight.Medium)
+                }
+
+                Button(
+                    onClick = { launchGitHubLogin() },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(56.dp)
+                        .padding(vertical = 4.dp),
+                    shape = RoundedCornerShape(16.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = Color(0xFF24292E),
+                        contentColor = Color.White
+                    )
+                ) {
+                    Text("Continuar con GitHub", fontSize = 16.sp, fontWeight = FontWeight.Medium)
+                }
+
+                if (mostrarDialogoRecuperacion) {
+                    AlertDialog(
+                        onDismissRequest = { mostrarDialogoRecuperacion = false },
+                        title = { Text("Recuperar Contraseña") },
+                        text = {
+                            OutlinedTextField(
+                                value = emailRecuperacion,
+                                onValueChange = { emailRecuperacion = it },
+                                label = { Text("Correo electrónico") },
+                                modifier = Modifier.fillMaxWidth(),
+                                colors = OutlinedTextFieldDefaults.colors(
+                                    focusedTextColor = Color.Black,
+                                    unfocusedTextColor = Color.Black,
+                                    focusedBorderColor = Color(0xFF3B82F6),
+                                    unfocusedBorderColor = Color.Gray
+                                )
+                            )
+                        },
+                        confirmButton = {
+                            TextButton(
+                                onClick = {
+                                    if (emailRecuperacion.isNotEmpty()) {
+                                        authViewModel.resetPassword(emailRecuperacion)
+                                        mostrarDialogoRecuperacion = false
+                                        emailRecuperacion = ""
+                                    }
+                                }
+                            ) {
+                                Text("Enviar")
+                            }
+                        },
+                        dismissButton = {
+                            TextButton(onClick = { mostrarDialogoRecuperacion = false }) {
+                                Text("Cancelar")
+                            }
+                        }
+                    )
+                }
             }
         }
     }
