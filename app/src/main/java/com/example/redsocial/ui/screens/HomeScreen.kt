@@ -1,3 +1,5 @@
+@file:OptIn(androidx.media3.common.util.UnstableApi::class)
+
 package com.example.redsocial.ui.screens
 
 import androidx.compose.foundation.layout.*
@@ -66,6 +68,14 @@ import androidx.media3.common.util.UnstableApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.ui.draw.clip
+import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material.icons.outlined.FavoriteBorder
+import androidx.compose.material.icons.filled.Share
+import androidx.compose.material.icons.filled.Comment
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.firestore.FieldValue
+import android.content.Intent
+import androidx.compose.foundation.shape.RoundedCornerShape
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
@@ -337,31 +347,8 @@ fun EvidenciaPage(
                 }
             }
 
-            // Right side: Social Actions
-            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                IconButton(onClick = { /* TODO */ }) {
-                    Icon(Icons.Default.FavoriteBorder, contentDescription = "Like", tint = Color.White, modifier = Modifier.size(32.dp))
-                }
-                Text("2.3k", color = Color.White)
-                Spacer(Modifier.height(24.dp))
-
-                IconButton(onClick = { /* TODO */ }) {
-                    Icon(Icons.AutoMirrored.Filled.Comment, contentDescription = "Comment", tint = Color.White, modifier = Modifier.size(32.dp))
-                }
-                Text("1.2k", color = Color.White)
-                Spacer(Modifier.height(24.dp))
-
-                IconButton(onClick = { /* TODO */ }) {
-                    Icon(Icons.AutoMirrored.Filled.Send, contentDescription = "Send", tint = Color.White, modifier = Modifier.size(32.dp))
-                }
-                Text("500", color = Color.White)
-                Spacer(Modifier.height(24.dp))
-
-                IconButton(onClick = { /* TODO */ }) {
-                    Icon(Icons.Default.BookmarkBorder, contentDescription = "Save", tint = Color.White, modifier = Modifier.size(32.dp))
-                }
-                 Text("100", color = Color.White)
-            }
+            // Right side: Social Actions (reemplazo la columna temporal por la lógica real)
+            EvidenciaSocialActions(evidencia = evidencia)
         }
     }
 
@@ -521,98 +508,164 @@ fun EvidenciasFeed(evidencias: List<Evidencia>) {
     }
 }
 
-@Composable
-fun EvidenciaCard(evidencia: Evidencia) {
-    var challengeTitle by remember { mutableStateOf("") }
-    var challengeDescription by remember { mutableStateOf("") }
+data class Comentario(
+    val id: String = "",
+    val userId: String = "",
+    val userName: String = "",
+    val texto: String = "",
+    val timestamp: Long = System.currentTimeMillis()
+)
 
-    // Obtener información del desafío
-    LaunchedEffect(evidencia.challengeId) {
-        val db = FirebaseFirestore.getInstance()
-        val challengeDoc = db.collection("desafios").document(evidencia.challengeId).get().await()
-        challengeTitle = challengeDoc.getString("title") ?: ""
-        challengeDescription = challengeDoc.getString("description") ?: ""
+@Composable
+fun ComentariosDialog(
+    evidenciaId: String,
+    onDismiss: () -> Unit
+) {
+    val db = FirebaseFirestore.getInstance()
+    val currentUser = FirebaseAuth.getInstance().currentUser
+    var comentarios by remember { mutableStateOf(listOf<Comentario>()) }
+    var nuevoComentario by remember { mutableStateOf("") }
+
+    // Escuchar comentarios en tiempo real
+    LaunchedEffect(evidenciaId) {
+        db.collection("evidencias").document(evidenciaId)
+            .collection("comentarios")
+            .orderBy("timestamp")
+            .addSnapshotListener { snapshot, _ ->
+                comentarios = snapshot?.documents?.map { doc ->
+                    Comentario(
+                        id = doc.id,
+                        userId = doc.getString("userId") ?: "",
+                        userName = doc.getString("userName") ?: "",
+                        texto = doc.getString("texto") ?: "",
+                        timestamp = doc.getLong("timestamp") ?: 0L
+                    )
+                } ?: emptyList()
+            }
     }
 
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Comentarios") },
+        text = {
+            Column {
+                if (comentarios.isEmpty()) {
+                    Text("Aún no hay comentarios.", color = Color.Gray)
+                } else {
+                    comentarios.forEach { comentario ->
+                        Text("@${comentario.userName}: ${comentario.texto}", color = Color.White)
+                    }
+                }
+                OutlinedTextField(
+                    value = nuevoComentario,
+                    onValueChange = { nuevoComentario = it },
+                    label = { Text("Escribe un comentario...") },
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
+        },
+        confirmButton = {
+            Button(
+                onClick = {
+                    if (nuevoComentario.isNotBlank() && currentUser != null) {
+                        db.collection("evidencias").document(evidenciaId)
+                            .collection("comentarios")
+                            .add(
+                                mapOf(
+                                    "userId" to currentUser.uid,
+                                    "userName" to (currentUser.displayName ?: "Usuario"),
+                                    "texto" to nuevoComentario,
+                                    "timestamp" to System.currentTimeMillis()
+                                )
+                            )
+                        nuevoComentario = ""
+                    }
+                }
+            ) {
+                Text("Enviar")
+            }
+        },
+        dismissButton = {
+            Button(onClick = onDismiss) { Text("Cerrar") }
+        },
+        containerColor = Color(0xFF1A1F2E)
+    )
+}
+
+@Composable
+fun EvidenciaCard(evidencia: Evidencia) {
+    val currentUser = FirebaseAuth.getInstance().currentUser
+    val db = FirebaseFirestore.getInstance()
+    val context = LocalContext.current
+    var likesCount by remember { mutableStateOf(0) }
+    var isLiked by remember { mutableStateOf(false) }
+    var commentsCount by remember { mutableStateOf(0) }
+    var showComentarios by remember { mutableStateOf(false) }
+    // Escuchar likes en tiempo real
+    LaunchedEffect(evidencia.id) {
+        val likesRef = db.collection("evidencias").document(evidencia.id).collection("likes")
+        likesRef.addSnapshotListener { snapshot, _ ->
+            likesCount = snapshot?.size() ?: 0
+            isLiked = snapshot?.documents?.any { it.id == currentUser?.uid } == true
+        }
+        val commentsRef = db.collection("evidencias").document(evidencia.id).collection("comentarios")
+        commentsRef.addSnapshotListener { snapshot, _ ->
+            commentsCount = snapshot?.size() ?: 0
+        }
+    }
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(8.dp)
+            .padding(vertical = 8.dp),
+        colors = CardDefaults.cardColors(containerColor = Color(0xFF2A1B3D)),
+        shape = RoundedCornerShape(12.dp)
     ) {
-        Column(Modifier.padding(16.dp)) {
-            Text(
-                text = challengeTitle,
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold,
-                color = Color.White
-            )
-            Spacer(Modifier.height(4.dp))
-            Text(
-                text = "Por: @${evidencia.userName}",
-                style = MaterialTheme.typography.bodyMedium,
-                color = Color(0xFFCBD5E1)
-            )
-            Spacer(Modifier.height(8.dp))
-            evidencia.url?.let { url ->
-                if (evidencia.tipo == "imagen") {
-                    AsyncImage(
-                        model = url,
-                        contentDescription = "Imagen de evidencia",
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(200.dp)
-                    )
-                } else if (evidencia.tipo == "video") {
-                    // Mostrar video usando AndroidView y VideoView
-                    androidx.compose.ui.viewinterop.AndroidView(
-                        factory = { context ->
-                            android.widget.VideoView(context).apply {
-                                setVideoPath(url)
-                                setOnPreparedListener { mp ->
-                                    mp.isLooping = true
-                                    start()
-                                }
-                            }
-                        },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(200.dp)
-                    )
-                } else if (evidencia.tipo == "audio") {
-                    // Mostrar audio con icono y controles
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(100.dp)
-                            .background(Color(0xFF1A1333)),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(16.dp)
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Mic,
-                                contentDescription = "Audio",
-                                tint = Color.White,
-                                modifier = Modifier.size(32.dp)
-                            )
-                            Text(
-                                text = "🎵 Audio Evidence",
-                                color = Color.White,
-                                style = MaterialTheme.typography.bodyMedium
-                            )
-                        }
+        Column(modifier = Modifier.padding(12.dp)) {
+            // ... Mostrar contenido de la evidencia (imagen, video, texto, audio) ...
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                // Botón Like
+                IconButton(onClick = {
+                    val likesRef = db.collection("evidencias").document(evidencia.id).collection("likes")
+                    val userLikeRef = likesRef.document(currentUser!!.uid)
+                    if (isLiked) {
+                        userLikeRef.delete()
+                        db.collection("evidencias").document(evidencia.id).update("likes", FieldValue.increment(-1))
+                        db.collection("usuarios").document(evidencia.userId).update("totalLikes", FieldValue.increment(-1))
+                    } else {
+                        userLikeRef.set(mapOf("userId" to currentUser.uid, "timestamp" to System.currentTimeMillis()))
+                        db.collection("evidencias").document(evidencia.id).update("likes", FieldValue.increment(1))
+                        db.collection("usuarios").document(evidencia.userId).update("totalLikes", FieldValue.increment(1))
                     }
+                }) {
+                    Icon(
+                        if (isLiked) Icons.Filled.Favorite else Icons.Outlined.FavoriteBorder,
+                        contentDescription = "Like",
+                        tint = if (isLiked) Color(0xFFFF4081) else Color.Gray
+                    )
+                }
+                Text("$likesCount", color = Color.White)
+                Spacer(Modifier.width(16.dp))
+                // Botón Comentar
+                IconButton(onClick = { showComentarios = true }) {
+                    Icon(Icons.Filled.Comment, contentDescription = "Comentar", tint = Color(0xFFA259FF))
+                }
+                Text("$commentsCount", color = Color.White)
+                Spacer(Modifier.width(16.dp))
+                // Botón Compartir
+                IconButton(onClick = {
+                    val sendIntent = Intent().apply {
+                        action = Intent.ACTION_SEND
+                        putExtra(Intent.EXTRA_TEXT, evidencia.url ?: evidencia.texto ?: "Evidencia de FLUXI")
+                        type = "text/plain"
+                    }
+                    val shareIntent = Intent.createChooser(sendIntent, null)
+                    context.startActivity(shareIntent)
+                }) {
+                    Icon(Icons.Filled.Share, contentDescription = "Compartir", tint = Color(0xFF3B82F6))
                 }
             }
-            Spacer(Modifier.height(8.dp))
-            if (evidencia.texto != null) {
-                Text(
-                    text = evidencia.texto,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = Color.White
-                )
+            if (showComentarios) {
+                ComentariosDialog(evidenciaId = evidencia.id, onDismiss = { showComentarios = false })
             }
         }
     }
@@ -799,5 +852,81 @@ fun AudioPlayer(url: String, onLongPress: () -> Unit) {
                 showControls = false
             }
         }
+    }
+}
+
+@Composable
+fun EvidenciaSocialActions(evidencia: Evidencia) {
+    val currentUser = FirebaseAuth.getInstance().currentUser
+    val db = FirebaseFirestore.getInstance()
+    val context = LocalContext.current
+    var likesCount by remember { mutableStateOf(0) }
+    var isLiked by remember { mutableStateOf(false) }
+    var commentsCount by remember { mutableStateOf(0) }
+    var showComentarios by remember { mutableStateOf(false) }
+    // Escuchar likes y comentarios en tiempo real
+    LaunchedEffect(evidencia.id) {
+        val likesRef = db.collection("evidencias").document(evidencia.id).collection("likes")
+        likesRef.addSnapshotListener { snapshot, _ ->
+            likesCount = snapshot?.size() ?: 0
+            isLiked = snapshot?.documents?.any { it.id == currentUser?.uid } == true
+        }
+        val commentsRef = db.collection("evidencias").document(evidencia.id).collection("comentarios")
+        commentsRef.addSnapshotListener { snapshot, _ ->
+            commentsCount = snapshot?.size() ?: 0
+        }
+    }
+    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        // Botón Like
+        IconButton(onClick = {
+            val likesRef = db.collection("evidencias").document(evidencia.id).collection("likes")
+            val userLikeRef = likesRef.document(currentUser!!.uid)
+            if (isLiked) {
+                userLikeRef.delete()
+                db.collection("evidencias").document(evidencia.id).update("likes", FieldValue.increment(-1))
+                db.collection("usuarios").document(evidencia.userId).update("totalLikes", FieldValue.increment(-1))
+            } else {
+                userLikeRef.set(mapOf("userId" to currentUser.uid, "timestamp" to System.currentTimeMillis()))
+                db.collection("evidencias").document(evidencia.id).update("likes", FieldValue.increment(1))
+                db.collection("usuarios").document(evidencia.userId).update("totalLikes", FieldValue.increment(1))
+            }
+        }) {
+            Icon(
+                if (isLiked) Icons.Filled.Favorite else Icons.Outlined.FavoriteBorder,
+                contentDescription = "Like",
+                tint = if (isLiked) Color(0xFFFF4081) else Color.Gray,
+                modifier = Modifier.size(32.dp)
+            )
+        }
+        Text("$likesCount", color = Color.White)
+        Spacer(Modifier.height(24.dp))
+        // Botón Comentar
+        IconButton(onClick = { showComentarios = true }) {
+            Icon(Icons.Filled.Comment, contentDescription = "Comentar", tint = Color(0xFFA259FF), modifier = Modifier.size(32.dp))
+        }
+        Text("$commentsCount", color = Color.White)
+        Spacer(Modifier.height(24.dp))
+        // Botón Compartir
+        IconButton(onClick = {
+            val sendIntent = Intent().apply {
+                action = Intent.ACTION_SEND
+                putExtra(Intent.EXTRA_TEXT, evidencia.url ?: evidencia.texto ?: "Evidencia de FLUXI")
+                type = "text/plain"
+            }
+            val shareIntent = Intent.createChooser(sendIntent, null)
+            context.startActivity(shareIntent)
+        }) {
+            Icon(Icons.Filled.Share, contentDescription = "Compartir", tint = Color(0xFF3B82F6), modifier = Modifier.size(32.dp))
+        }
+        Text("", color = Color.White) // Puedes mostrar un contador si lo deseas
+        Spacer(Modifier.height(24.dp))
+        // Botón Guardar (opcional, puedes dejarlo sin funcionalidad real)
+        IconButton(onClick = { /* TODO: lógica de guardado si la implementas */ }) {
+            Icon(Icons.Default.BookmarkBorder, contentDescription = "Save", tint = Color.White, modifier = Modifier.size(32.dp))
+        }
+        Text("", color = Color.White)
+    }
+    if (showComentarios) {
+        ComentariosDialog(evidenciaId = evidencia.id, onDismiss = { showComentarios = false })
     }
 } 

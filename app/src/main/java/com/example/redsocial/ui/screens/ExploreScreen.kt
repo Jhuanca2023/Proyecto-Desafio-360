@@ -42,6 +42,7 @@ import android.util.Log
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.material.icons.filled.People
+import com.google.firebase.firestore.FieldValue
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
@@ -232,14 +233,12 @@ fun ChallengePreviewCardFirestore(
     // Función para manejar like/unlike
     fun handleLike() {
         if (currentUser == null) return
-        
         Log.d("ExploreScreen", "handleLike - isLiked: $isLiked, challengeId: ${challenge.id}, authorId: ${challenge.authorId}")
-        
         val likeRef = db.collection("desafios")
             .document(challenge.id)
             .collection("likes")
             .document(currentUser.uid)
-        
+        val authorId = challenge.authorId
         if (isLiked) {
             // Quitar like
             likeRef.delete().addOnSuccessListener {
@@ -247,11 +246,13 @@ fun ChallengePreviewCardFirestore(
                     .document(challenge.id)
                     .update("likes", currentLikes - 1)
                 isLiked = false
-                
+                // Quitar like al total del autor
+                db.collection("usuarios").document(authorId)
+                    .update("totalLikes", FieldValue.increment(-1))
                 // Eliminar notificación de like
                 Log.d("ExploreScreen", "Eliminando notificación de like")
                 NotificationUtils.removeLikeNotification(
-                    challengeAuthorId = challenge.authorId,
+                    challengeAuthorId = authorId,
                     challengeId = challenge.id
                 )
             }
@@ -265,11 +266,13 @@ fun ChallengePreviewCardFirestore(
                     .document(challenge.id)
                     .update("likes", currentLikes + 1)
                 isLiked = true
-                
+                // Sumar like al total del autor
+                db.collection("usuarios").document(authorId)
+                    .update("totalLikes", FieldValue.increment(1))
                 // Enviar notificación de like
-                Log.d("ExploreScreen", "Enviando notificación de like - authorId: ${challenge.authorId}, title: ${challenge.title}")
+                Log.d("ExploreScreen", "Enviando notificación de like - authorId: $authorId, title: ${challenge.title}")
                 NotificationUtils.sendLikeNotification(
-                    challengeAuthorId = challenge.authorId,
+                    challengeAuthorId = authorId,
                     challengeId = challenge.id,
                     challengeTitle = challenge.title
                 )
