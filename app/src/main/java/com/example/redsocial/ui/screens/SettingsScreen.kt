@@ -26,7 +26,9 @@ import androidx.compose.foundation.BorderStroke
 import kotlinx.coroutines.tasks.await
 import androidx.compose.material.icons.automirrored.filled.Help
 import androidx.compose.material.icons.automirrored.filled.ExitToApp
+import androidx.compose.ui.graphics.vector.ImageVector
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsScreen(
     navController: NavController,
@@ -158,10 +160,11 @@ fun SettingsScreen(
                     Text("Ayuda", color = Color.White, fontWeight = FontWeight.Bold)
                 }
                 Spacer(Modifier.height(8.dp))
-                SettingsLink(Icons.Default.QuestionAnswer, "Preguntas Frecuentes (FAQs)")
-                SettingsLink(Icons.Default.Support, "Contactar Soporte")
-                SettingsLink(Icons.Default.Policy, "Política de Privacidad")
-                SettingsLink(Icons.Default.Description, "Términos de Servicio")
+                SettingsLink(Icons.Default.QuestionAnswer, "Preguntas Frecuentes (FAQs)", onClick = { navController.navigate("faqs") })
+                SettingsLink(Icons.Default.Support, "Contactar Soporte", onClick = { navController.navigate("soporte") })
+                SettingsLink(Icons.Default.Policy, "Política de Privacidad", onClick = { navController.navigate("privacidad") })
+                SettingsLink(Icons.Default.Description, "Términos de Servicio", onClick = { navController.navigate("terminos") })
+                SettingsLink(Icons.Default.Info, "Acerca de FLUXI", onClick = { navController.navigate("acerca") })
             }
             // Zona peligrosa
             SettingsCard(borderColor = Color(0xFFFF1744)) {
@@ -268,17 +271,17 @@ fun SettingsCard(
 }
 
 @Composable
-fun SettingsLink(icon: androidx.compose.ui.graphics.vector.ImageVector, text: String) {
+fun SettingsLink(icon: ImageVector, text: String, onClick: () -> Unit) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable { /* Navegar a la sección */ }
+            .clickable { onClick() }
             .padding(vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Icon(icon, contentDescription = null, tint = Color(0xFFA259FF))
-        Spacer(Modifier.width(8.dp))
-        Text(text, color = Color.White)
+        Icon(icon, contentDescription = null, tint = Color(0xFF60A5FA))
+        Spacer(Modifier.width(12.dp))
+        Text(text, color = Color.White, fontSize = 16.sp)
     }
 }
 
