@@ -533,6 +533,15 @@ fun ComentariosDialog(
     val currentUser = FirebaseAuth.getInstance().currentUser
     var comentarios by remember { mutableStateOf(listOf<Comentario>()) }
     var nuevoComentario by remember { mutableStateOf("") }
+    var currentUserName by remember { mutableStateOf("") }
+
+    // Obtener el nombre del usuario actual
+    LaunchedEffect(currentUser?.uid) {
+        if (currentUser != null) {
+            val userDoc = db.collection("usuarios").document(currentUser.uid).get().await()
+            currentUserName = userDoc.getString("nombreUsuario") ?: currentUser.displayName ?: "Usuario"
+        }
+    }
 
     // Escuchar comentarios en tiempo real
     LaunchedEffect(evidenciaId) {
@@ -554,21 +563,84 @@ fun ComentariosDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Comentarios") },
+        title = { Text("Comentarios", color = Color.White) },
         text = {
-            Column {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(max = 400.dp)
+            ) {
                 if (comentarios.isEmpty()) {
-                    Text("Aún no hay comentarios.", color = Color.Gray)
+                    Text("Aún no hay comentarios.", color = Color.Gray, modifier = Modifier.padding(vertical = 16.dp))
                 } else {
-                    comentarios.forEach { comentario ->
-                        Text("@${comentario.userName}: ${comentario.texto}", color = Color.White)
+                    LazyColumn(
+                        modifier = Modifier
+                            .weight(1f)
+                            .fillMaxWidth()
+                    ) {
+                        items(comentarios) { comentario ->
+                            Card(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(vertical = 4.dp),
+                                colors = CardDefaults.cardColors(containerColor = Color(0xFF2A1B3D)),
+                                shape = RoundedCornerShape(8.dp)
+                            ) {
+                                Column(
+                                    modifier = Modifier.padding(12.dp)
+                                ) {
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Text(
+                                            text = "@${comentario.userName}",
+                                            color = Color(0xFFA259FF),
+                                            fontWeight = FontWeight.Bold,
+                                            fontSize = 14.sp
+                                        )
+                                        Spacer(modifier = Modifier.width(8.dp))
+                                        Text(
+                                            text = formatTimestamp(comentario.timestamp),
+                                            color = Color.Gray,
+                                            fontSize = 12.sp
+                                        )
+                                    }
+                                    Spacer(modifier = Modifier.height(4.dp))
+                                    Text(
+                                        text = comentario.texto,
+                                        color = Color.White,
+                                        fontSize = 14.sp
+                                    )
+                                }
+                            }
+                        }
                     }
+                }
+                Spacer(modifier = Modifier.height(8.dp))
+                Row(
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "Comentando como: @$currentUserName",
+                        color = Color(0xFFA259FF),
+                        fontSize = 12.sp,
+                        modifier = Modifier.weight(1f)
+                    )
                 }
                 OutlinedTextField(
                     value = nuevoComentario,
                     onValueChange = { nuevoComentario = it },
-                    label = { Text("Escribe un comentario...") },
-                    modifier = Modifier.fillMaxWidth()
+                    label = { Text("Escribe un comentario...", color = Color.Gray) },
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedTextColor = Color.White,
+                        unfocusedTextColor = Color.White,
+                        focusedBorderColor = Color(0xFFA259FF),
+                        unfocusedBorderColor = Color.Gray,
+                        focusedLabelColor = Color(0xFFA259FF),
+                        unfocusedLabelColor = Color.Gray
+                    ),
+                    maxLines = 3
                 )
             }
         },
@@ -581,23 +653,38 @@ fun ComentariosDialog(
                             .add(
                                 mapOf(
                                     "userId" to currentUser.uid,
-                                    "userName" to (currentUser.displayName ?: "Usuario"),
+                                    "userName" to currentUserName,
                                     "texto" to nuevoComentario,
                                     "timestamp" to System.currentTimeMillis()
                                 )
                             )
                         nuevoComentario = ""
                     }
-                }
+                },
+                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFA259FF))
             ) {
-                Text("Enviar")
+                Text("Enviar", color = Color.White)
             }
         },
         dismissButton = {
-            Button(onClick = onDismiss) { Text("Cerrar") }
+            TextButton(onClick = onDismiss) { 
+                Text("Cerrar", color = Color(0xFFA259FF)) 
+            }
         },
         containerColor = Color(0xFF1A1F2E)
     )
+}
+
+private fun formatTimestamp(timestamp: Long): String {
+    val now = System.currentTimeMillis()
+    val diff = now - timestamp
+    
+    return when {
+        diff < 60000 -> "Ahora"
+        diff < 3600000 -> "${diff / 60000}m"
+        diff < 86400000 -> "${diff / 3600000}h"
+        else -> "${diff / 86400000}d"
+    }
 }
 
 @Composable
