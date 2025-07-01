@@ -8,5 +8,6 @@ data class Evidencia(
     val tipo: String = "", // video, imagen, texto, audio
     val url: String? = null, // para imagen/video/audio
     val texto: String? = null, // para texto
-    val timestamp: Long = System.currentTimeMillis()
+    val timestamp: Long = System.currentTimeMillis(),
+    val views: Int = 0 // NUEVO campo para vistas
 ) 

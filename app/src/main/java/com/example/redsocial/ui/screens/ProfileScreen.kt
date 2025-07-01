@@ -25,8 +25,6 @@ import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.tasks.await
 import coil.compose.AsyncImage
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.filled.Star
@@ -50,6 +48,47 @@ import com.example.redsocial.utils.uploadImageToImgur
 import android.util.Base64
 import androidx.compose.ui.layout.ContentScale
 import com.example.redsocial.utils.NotificationUtils
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
+import androidx.compose.ui.ExperimentalComposeUiApi
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.zIndex
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.graphics.RectangleShape
+import androidx.compose.foundation.Image
+import androidx.compose.material.icons.filled.Audiotrack
+import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.lazy.grid.items
+import androidx.media3.exoplayer.ExoPlayer
+import androidx.compose.ui.viewinterop.AndroidView
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.remember
+import androidx.compose.ui.platform.LocalLifecycleOwner
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.media3.common.MediaItem
+import androidx.media3.common.Player
+import androidx.media3.ui.PlayerView
+import androidx.media3.ui.AspectRatioFrameLayout
+import androidx.compose.material.icons.filled.Pause
+import androidx.compose.material.icons.outlined.FavoriteBorder
+import androidx.compose.material.icons.filled.Comment
+import androidx.compose.material.icons.filled.Share
+import androidx.compose.material.icons.filled.MoreVert
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
@@ -387,46 +426,272 @@ fun ProfileScreen(
                                 modifier = Modifier.padding(32.dp)
                             )
                         } else {
-                            evidencias.forEach { evidencia ->
-                                Card(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(vertical = 4.dp),
-                                    colors = CardDefaults.cardColors(
-                                        containerColor = Color(0xFF1A1F2E)
-                                    )
+                            // Agrupar evidencias por tipo
+                            val videos = evidencias.filter { it.tipo == "video" }
+                            val imagenes = evidencias.filter { it.tipo == "imagen" }
+                            val textos = evidencias.filter { it.tipo == "texto" }
+                            val audios = evidencias.filter { it.tipo == "audio" }
+
+                            var showVideoDialog by remember { mutableStateOf<String?>(null) }
+
+                            // Sección Videos
+                            if (videos.isNotEmpty()) {
+                                Text("Videos", color = Color(0xFFA259FF), fontSize = 18.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(vertical = 8.dp))
+                                Divider(color = Color(0xFFA259FF), thickness = 1.dp, modifier = Modifier.padding(bottom = 8.dp))
+                                LazyVerticalGrid(
+                                    columns = GridCells.Fixed(3),
+                                    modifier = Modifier.heightIn(max = 300.dp)
                                 ) {
-                                    Row(modifier = Modifier.padding(8.dp)) {
-                                        Icon(
-                                            when (evidencia.tipo) {
-                                                "imagen" -> Icons.Default.Image
-                                                "video" -> Icons.Default.VideoLibrary
-                                                else -> Icons.Default.TextFields
-                                            },
-                                            contentDescription = evidencia.tipo,
-                                            tint = Color(0xFFA259FF),
-                                            modifier = Modifier.size(40.dp)
-                                        )
-                                        Spacer(modifier = Modifier.width(12.dp))
-                                        Column(modifier = Modifier.weight(1f)) {
-                                            Text(
-                                                text = "Completaste un desafío",
-                                                style = MaterialTheme.typography.bodyMedium,
-                                                fontWeight = FontWeight.Bold,
-                                                color = Color.White
+                                    items(videos) { evidencia ->
+                                        val context = LocalContext.current
+                                        val exoPlayer = remember(evidencia.url) {
+                                            androidx.media3.exoplayer.ExoPlayer.Builder(context).build().apply {
+                                                setMediaItem(androidx.media3.common.MediaItem.fromUri(evidencia.url!!))
+                                                prepare()
+                                                playWhenReady = true // autoplay
+                                                volume = 0f // sin audio
+                                                repeatMode = androidx.media3.common.Player.REPEAT_MODE_ONE
+                                            }
+                                        }
+                                        DisposableEffect(exoPlayer) {
+                                            onDispose { exoPlayer.release() }
+                                        }
+                                        Box(
+                                            modifier = Modifier
+                                                .padding(4.dp)
+                                                .aspectRatio(9f/16f)
+                                                .clip(RoundedCornerShape(12.dp))
+                                                .background(Color(0xFF1A1F2E))
+                                                .clickable { showVideoDialog = evidencia.url },
+                                            contentAlignment = Alignment.Center
+                                        ) {
+                                            AndroidView(
+                                                factory = {
+                                                    androidx.media3.ui.PlayerView(it).apply {
+                                                        player = exoPlayer
+                                                        useController = false
+                                                        resizeMode = androidx.media3.ui.AspectRatioFrameLayout.RESIZE_MODE_ZOOM
+                                                    }
+                                                },
+                                                modifier = Modifier.fillMaxSize()
                                             )
-                                            if (evidencia.texto != null) {
+                                            // Vistas en la esquina inferior izquierda
+                                            Row(
+                                                modifier = Modifier
+                                                    .align(Alignment.BottomStart)
+                                                    .padding(8.dp)
+                                                    .background(Color.Black.copy(alpha = 0.4f), RoundedCornerShape(8.dp))
+                                                    .padding(horizontal = 6.dp, vertical = 2.dp),
+                                                verticalAlignment = Alignment.CenterVertically
+                                            ) {
+                                                Icon(Icons.Default.PlayArrow, contentDescription = "Vistas", tint = Color.White, modifier = Modifier.size(16.dp))
+                                                Spacer(Modifier.width(4.dp))
                                                 Text(
-                                                    text = evidencia.texto,
-                                                    style = MaterialTheme.typography.bodyMedium,
-                                                    color = Color(0xFFCBD5E1)
+                                                    text = evidencia.views.toString(),
+                                                    color = Color.White,
+                                                    fontSize = 13.sp,
+                                                    fontWeight = FontWeight.Bold
                                                 )
                                             }
+                                        }
+                                    }
+                                }
+                            }
+                            // Sección Imágenes
+                            if (imagenes.isNotEmpty()) {
+                                Text("Imágenes", color = Color(0xFFA259FF), fontSize = 18.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(vertical = 8.dp))
+                                Divider(color = Color(0xFFA259FF), thickness = 1.dp, modifier = Modifier.padding(bottom = 8.dp))
+                                LazyVerticalGrid(
+                                    columns = GridCells.Fixed(3),
+                                    modifier = Modifier.heightIn(max = 300.dp)
+                                ) {
+                                    items(imagenes) { evidencia ->
+                                        Box(
+                                            modifier = Modifier
+                                                .padding(4.dp)
+                                                .aspectRatio(9f/16f)
+                                                .clip(RoundedCornerShape(12.dp))
+                                                .background(Color(0xFF1A1F2E)),
+                                            contentAlignment = Alignment.Center
+                                        ) {
+                                            evidencia.url?.let { url ->
+                                                AsyncImage(
+                                                    model = url,
+                                                    contentDescription = "Imagen",
+                                                    contentScale = ContentScale.Crop,
+                                                    modifier = Modifier.fillMaxSize()
+                                                )
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                            // Sección Texto
+                            if (textos.isNotEmpty()) {
+                                Text("Textos", color = Color(0xFFA259FF), fontSize = 18.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(vertical = 8.dp))
+                                Divider(color = Color(0xFFA259FF), thickness = 1.dp, modifier = Modifier.padding(bottom = 8.dp))
+                                LazyVerticalGrid(
+                                    columns = GridCells.Fixed(3),
+                                    modifier = Modifier.heightIn(max = 200.dp)
+                                ) {
+                                    items(textos) { evidencia ->
+                                        Box(
+                                            modifier = Modifier
+                                                .padding(4.dp)
+                                                .aspectRatio(9f/16f)
+                                                .clip(RoundedCornerShape(12.dp))
+                                                .background(Color(0xFF1A1F2E)),
+                                            contentAlignment = Alignment.Center
+                                        ) {
                                             Text(
-                                                text = "Tipo: ${evidencia.tipo.replaceFirstChar { it.uppercase() }}",
-                                                style = MaterialTheme.typography.bodySmall,
-                                                color = Color(0xFFA259FF)
+                                                evidencia.texto ?: "",
+                                                color = Color.White,
+                                                fontSize = 14.sp,
+                                                textAlign = TextAlign.Center,
+                                                modifier = Modifier.padding(8.dp)
                                             )
+                                        }
+                                    }
+                                }
+                            }
+                            // Sección Audio
+                            if (audios.isNotEmpty()) {
+                                Text("Audios", color = Color(0xFFA259FF), fontSize = 18.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(vertical = 8.dp))
+                                Divider(color = Color(0xFFA259FF), thickness = 1.dp, modifier = Modifier.padding(bottom = 8.dp))
+                                LazyVerticalGrid(
+                                    columns = GridCells.Fixed(3),
+                                    modifier = Modifier.heightIn(max = 200.dp)
+                                ) {
+                                    items(audios) { evidencia ->
+                                        Box(
+                                            modifier = Modifier
+                                                .padding(4.dp)
+                                                .aspectRatio(9f/16f)
+                                                .clip(RoundedCornerShape(12.dp))
+                                                .background(Color(0xFF1A1F2E)),
+                                            contentAlignment = Alignment.Center
+                                        ) {
+                                            Icon(Icons.Default.Audiotrack, contentDescription = "Audio", tint = Color.White, modifier = Modifier.size(32.dp))
+                                            // Aquí podrías agregar un botón para reproducir el audio
+                                        }
+                                    }
+                                }
+                            }
+
+                            // Modal de video pantalla completa
+                            if (showVideoDialog != null) {
+                                val evidencia = (videos + imagenes + textos + audios).find { it.url == showVideoDialog }
+                                // Incrementar vistas en Firestore solo una vez por apertura
+                                LaunchedEffect(showVideoDialog) {
+                                    evidencia?.let {
+                                        val db = FirebaseFirestore.getInstance()
+                                        db.collection("evidencias").document(it.id)
+                                            .update("views", com.google.firebase.firestore.FieldValue.increment(1))
+                                    }
+                                }
+                                Dialog(
+                                    onDismissRequest = { showVideoDialog = null },
+                                    properties = DialogProperties(usePlatformDefaultWidth = false)
+                                ) {
+                                    Box(
+                                        Modifier
+                                            .fillMaxSize()
+                                            .background(Color.Black.copy(alpha = 0.95f)),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        val context = LocalContext.current
+                                        val url = showVideoDialog!!
+                                        val exoPlayer = remember(url) {
+                                            ExoPlayer.Builder(context).build().apply {
+                                                setMediaItem(MediaItem.fromUri(url))
+                                                prepare()
+                                                playWhenReady = true
+                                                repeatMode = Player.REPEAT_MODE_ONE
+                                            }
+                                        }
+                                        var showControls by remember { mutableStateOf(false) }
+                                        val lifecycleOwner = LocalLifecycleOwner.current
+                                        DisposableEffect(exoPlayer, lifecycleOwner) {
+                                            val observer = LifecycleEventObserver { _, event ->
+                                                when (event) {
+                                                    Lifecycle.Event.ON_PAUSE -> exoPlayer.pause()
+                                                    Lifecycle.Event.ON_RESUME -> exoPlayer.play()
+                                                    else -> {}
+                                                }
+                                            }
+                                            lifecycleOwner.lifecycle.addObserver(observer)
+                                            onDispose {
+                                                lifecycleOwner.lifecycle.removeObserver(observer)
+                                                exoPlayer.release()
+                                            }
+                                        }
+                                        // Overlay igual que en el home
+                                        Box(modifier = Modifier.fillMaxSize()) {
+                                            AndroidView(
+                                                factory = {
+                                                    PlayerView(it).apply {
+                                                        player = exoPlayer
+                                                        useController = false
+                                                        resizeMode = AspectRatioFrameLayout.RESIZE_MODE_ZOOM
+                                                    }
+                                                },
+                                                modifier = Modifier
+                                                    .fillMaxSize()
+                                                    .pointerInput(Unit) {
+                                                        detectTapGestures(
+                                                            onTap = {
+                                                                exoPlayer.playWhenReady = !exoPlayer.playWhenReady
+                                                                showControls = true
+                                                            }
+                                                        )
+                                                    }
+                                            )
+                                            // Overlay de info y acciones sociales
+                                            evidencia?.let { ev ->
+                                                Row(
+                                                    modifier = Modifier
+                                                        .fillMaxSize()
+                                                        .padding(16.dp),
+                                                    verticalAlignment = Alignment.Bottom
+                                                ) {
+                                                    // Info izquierda
+                                                    Column(modifier = Modifier.weight(1f)) {
+                                                        Text(
+                                                            text = ev.challengeId, // Puedes cambiar por el título real si lo tienes
+                                                            color = Color.White,
+                                                            style = MaterialTheme.typography.titleLarge,
+                                                            fontWeight = FontWeight.Bold
+                                                        )
+                                                        Spacer(modifier = Modifier.height(4.dp))
+                                                        Text(
+                                                            text = "By @${ev.userName}",
+                                                            color = Color.White,
+                                                            style = MaterialTheme.typography.bodyMedium
+                                                        )
+                                                        Spacer(modifier = Modifier.height(16.dp))
+                                                    }
+                                                    // Acciones sociales
+                                                    EvidenciaSocialActionsPerfilModal(evidencia = ev)
+                                                }
+                                            }
+                                            androidx.compose.animation.AnimatedVisibility(
+                                                visible = showControls,
+                                                enter = fadeIn(),
+                                                exit = fadeOut()
+                                            ) {
+                                                Icon(
+                                                    imageVector = if (exoPlayer.isPlaying) Icons.Filled.Pause else Icons.Filled.PlayArrow,
+                                                    contentDescription = "Play/Pause",
+                                                    tint = Color.White.copy(alpha = 0.7f),
+                                                    modifier = Modifier.size(64.dp)
+                                                )
+                                            }
+                                            if (showControls) {
+                                                LaunchedEffect(Unit) {
+                                                    kotlinx.coroutines.delay(800)
+                                                    showControls = false
+                                                }
+                                            }
                                         }
                                     }
                                 }
@@ -498,5 +763,112 @@ private fun ProfileStatisticCard(icon: androidx.compose.ui.graphics.vector.Image
             Text(value, fontWeight = FontWeight.Bold, color = color, fontSize = 18.sp)
             Text(label, color = Color.White, fontSize = 12.sp)
         }
+    }
+}
+
+@Composable
+fun EvidenciaSocialActionsPerfilModal(evidencia: Evidencia) {
+    val currentUser = FirebaseAuth.getInstance().currentUser
+    val db = FirebaseFirestore.getInstance()
+    val context = LocalContext.current
+    var likesCount by remember { mutableStateOf(0) }
+    var isLiked by remember { mutableStateOf(false) }
+    var commentsCount by remember { mutableStateOf(0) }
+    var showComentarios by remember { mutableStateOf(false) }
+    var expanded by remember { mutableStateOf(false) }
+    var commentsRestricted by remember { mutableStateOf(false) }
+    // Escuchar likes, comentarios y restricción en tiempo real
+    LaunchedEffect(evidencia.id) {
+        val likesRef = db.collection("evidencias").document(evidencia.id).collection("likes")
+        likesRef.addSnapshotListener { snapshot, _ ->
+            likesCount = snapshot?.size() ?: 0
+            isLiked = snapshot?.documents?.any { it.id == currentUser?.uid } == true
+        }
+        val commentsRef = db.collection("evidencias").document(evidencia.id).collection("comentarios")
+        commentsRef.addSnapshotListener { snapshot, _ ->
+            commentsCount = snapshot?.size() ?: 0
+        }
+        db.collection("evidencias").document(evidencia.id)
+            .addSnapshotListener { snapshot, _ ->
+                commentsRestricted = snapshot?.getBoolean("commentsRestricted") ?: false
+            }
+    }
+    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        // Botón Like
+        IconButton(onClick = {
+            val likesRef = db.collection("evidencias").document(evidencia.id).collection("likes")
+            val userLikeRef = likesRef.document(currentUser!!.uid)
+            if (isLiked) {
+                userLikeRef.delete()
+                db.collection("evidencias").document(evidencia.id).update("likes", com.google.firebase.firestore.FieldValue.increment(-1))
+                db.collection("usuarios").document(evidencia.userId).update("totalLikes", com.google.firebase.firestore.FieldValue.increment(-1))
+            } else {
+                userLikeRef.set(mapOf("userId" to currentUser.uid, "timestamp" to System.currentTimeMillis()))
+                db.collection("evidencias").document(evidencia.id).update("likes", com.google.firebase.firestore.FieldValue.increment(1))
+                db.collection("usuarios").document(evidencia.userId).update("totalLikes", com.google.firebase.firestore.FieldValue.increment(1))
+            }
+        }) {
+            Icon(
+                if (isLiked) Icons.Filled.Favorite else Icons.Outlined.FavoriteBorder,
+                contentDescription = "Like",
+                tint = if (isLiked) Color(0xFFFF4081) else Color.Gray,
+                modifier = Modifier.size(32.dp)
+            )
+        }
+        Text("$likesCount", color = Color.White)
+        Spacer(Modifier.height(24.dp))
+        // Botón Comentar (solo si no está restringido o si es el dueño)
+        val puedeComentar = !commentsRestricted || (currentUser != null && evidencia.userId == currentUser.uid)
+        if (puedeComentar) {
+            IconButton(onClick = { showComentarios = true }) {
+                Icon(Icons.Filled.Comment, contentDescription = "Comentar", tint = Color(0xFFA259FF), modifier = Modifier.size(32.dp))
+            }
+            Text("$commentsCount", color = Color.White)
+        } else {
+            Icon(Icons.Filled.Comment, contentDescription = "Comentarios restringidos", tint = Color.Gray, modifier = Modifier.size(32.dp))
+            Text("Comentarios restringidos", color = Color.Gray, fontSize = 12.sp)
+        }
+        Spacer(Modifier.height(24.dp))
+        // Botón Compartir
+        IconButton(onClick = {
+            val sendIntent = android.content.Intent().apply {
+                action = android.content.Intent.ACTION_SEND
+                putExtra(android.content.Intent.EXTRA_TEXT, evidencia.url ?: evidencia.texto ?: "Evidencia de FLUXI")
+                type = "text/plain"
+            }
+            val shareIntent = android.content.Intent.createChooser(sendIntent, null)
+            context.startActivity(shareIntent)
+        }) {
+            Icon(Icons.Filled.Share, contentDescription = "Compartir", tint = Color(0xFF3B82F6), modifier = Modifier.size(32.dp))
+        }
+        Text("", color = Color.White)
+        Spacer(Modifier.height(24.dp))
+        // Menú de 3 puntos solo para el dueño
+        if (currentUser != null && evidencia.userId == currentUser.uid) {
+            Box {
+                IconButton(onClick = { expanded = true }) {
+                    Icon(Icons.Default.MoreVert, contentDescription = "Más opciones", tint = Color.White, modifier = Modifier.size(32.dp))
+                }
+                DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+                    DropdownMenuItem(text = { Text("Eliminar") }, onClick = {
+                        expanded = false
+                        db.collection("evidencias").document(evidencia.id).delete()
+                    })
+                    DropdownMenuItem(text = { Text(if (commentsRestricted) "Activar comentarios" else "Restringir comentarios") }, onClick = {
+                        expanded = false
+                        db.collection("evidencias").document(evidencia.id).update("commentsRestricted", !commentsRestricted)
+                    })
+                    DropdownMenuItem(text = { Text("No permitir descargas") }, onClick = {
+                        expanded = false
+                        db.collection("evidencias").document(evidencia.id).update("downloadsAllowed", false)
+                    })
+                }
+            }
+        } else {
+            Spacer(Modifier.height(32.dp))
+        }
+    }
+    if (showComentarios && (!commentsRestricted || (currentUser != null && evidencia.userId == currentUser.uid))) {
+        ComentariosDialog(evidenciaId = evidencia.id, onDismiss = { showComentarios = false })
     }
 } 

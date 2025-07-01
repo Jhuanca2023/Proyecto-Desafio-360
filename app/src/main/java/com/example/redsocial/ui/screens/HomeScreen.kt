@@ -32,6 +32,8 @@ import androidx.compose.material.icons.automirrored.filled.Comment
 import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.BookmarkBorder
 import androidx.compose.material.icons.filled.FavoriteBorder
+import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material.icons.outlined.FavoriteBorder
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
@@ -69,9 +71,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.ui.draw.clip
 import androidx.compose.material.icons.filled.Favorite
-import androidx.compose.material.icons.outlined.FavoriteBorder
 import androidx.compose.material.icons.filled.Share
-import androidx.compose.material.icons.filled.Comment
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FieldValue
 import android.content.Intent
@@ -864,7 +864,9 @@ fun EvidenciaSocialActions(evidencia: Evidencia) {
     var isLiked by remember { mutableStateOf(false) }
     var commentsCount by remember { mutableStateOf(0) }
     var showComentarios by remember { mutableStateOf(false) }
-    // Escuchar likes y comentarios en tiempo real
+    var commentsRestricted by remember { mutableStateOf(false) }
+    var showRestrictDialog by remember { mutableStateOf(false) }
+    // Escuchar likes, comentarios y restricción en tiempo real
     LaunchedEffect(evidencia.id) {
         val likesRef = db.collection("evidencias").document(evidencia.id).collection("likes")
         likesRef.addSnapshotListener { snapshot, _ ->
@@ -875,6 +877,10 @@ fun EvidenciaSocialActions(evidencia: Evidencia) {
         commentsRef.addSnapshotListener { snapshot, _ ->
             commentsCount = snapshot?.size() ?: 0
         }
+        db.collection("evidencias").document(evidencia.id)
+            .addSnapshotListener { snapshot, _ ->
+                commentsRestricted = snapshot?.getBoolean("commentsRestricted") ?: false
+            }
     }
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
         // Botón Like
@@ -901,8 +907,15 @@ fun EvidenciaSocialActions(evidencia: Evidencia) {
         Text("$likesCount", color = Color.White)
         Spacer(Modifier.height(24.dp))
         // Botón Comentar
-        IconButton(onClick = { showComentarios = true }) {
-            Icon(Icons.Filled.Comment, contentDescription = "Comentar", tint = Color(0xFFA259FF), modifier = Modifier.size(32.dp))
+        val puedeComentar = !commentsRestricted || (currentUser != null && evidencia.userId == currentUser.uid)
+        IconButton(onClick = {
+            if (puedeComentar) {
+                showComentarios = true
+            } else {
+                showRestrictDialog = true
+            }
+        }) {
+            Icon(Icons.Filled.Comment, contentDescription = "Comentar", tint = if (puedeComentar) Color(0xFFA259FF) else Color.Gray, modifier = Modifier.size(32.dp))
         }
         Text("$commentsCount", color = Color.White)
         Spacer(Modifier.height(24.dp))
@@ -918,15 +931,27 @@ fun EvidenciaSocialActions(evidencia: Evidencia) {
         }) {
             Icon(Icons.Filled.Share, contentDescription = "Compartir", tint = Color(0xFF3B82F6), modifier = Modifier.size(32.dp))
         }
-        Text("", color = Color.White) // Puedes mostrar un contador si lo deseas
+        Text("", color = Color.White)
         Spacer(Modifier.height(24.dp))
-        // Botón Guardar (opcional, puedes dejarlo sin funcionalidad real)
+        // Botón Guardar (opcional)
         IconButton(onClick = { /* TODO: lógica de guardado si la implementas */ }) {
             Icon(Icons.Default.BookmarkBorder, contentDescription = "Save", tint = Color.White, modifier = Modifier.size(32.dp))
         }
         Text("", color = Color.White)
     }
-    if (showComentarios) {
+    if (showComentarios && (!commentsRestricted || (currentUser != null && evidencia.userId == currentUser.uid))) {
         ComentariosDialog(evidenciaId = evidencia.id, onDismiss = { showComentarios = false })
+    }
+    if (showRestrictDialog) {
+        AlertDialog(
+            onDismissRequest = { showRestrictDialog = false },
+            title = { Text("Comentarios restringidos") },
+            text = { Text("El propietario de esta evidencia ha restringido los comentarios.") },
+            confirmButton = {
+                TextButton(onClick = { showRestrictDialog = false }) {
+                    Text("Aceptar")
+                }
+            }
+        )
     }
 } 
