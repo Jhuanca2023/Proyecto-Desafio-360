@@ -75,7 +75,9 @@ import androidx.compose.material.icons.filled.Share
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FieldValue
 import android.content.Intent
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.navigation.NavController
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
@@ -84,7 +86,8 @@ fun HomeScreen(
     onNavigateToCreate: () -> Unit,
     onNavigateToNotifications: () -> Unit,
     onNavigateToProfile: () -> Unit,
-    onNavigateToChallengeDetail: (String) -> Unit
+    onNavigateToChallengeDetail: (String) -> Unit,
+    navController: NavController
 ) {
     var selectedTab by remember { mutableStateOf(0) }
     var selectedTipo by remember { mutableStateOf("video") }
@@ -213,7 +216,8 @@ fun HomeScreen(
                             onNavigateToChallengeDetail = onNavigateToChallengeDetail,
                             onCategoryClick = {
                                 showBottomSheet = true
-                            }
+                            },
+                            navController = navController
                         )
                     }
                 }
@@ -264,7 +268,8 @@ fun HomeScreen(
 fun EvidenciaPage(
     evidencia: Evidencia,
     onNavigateToChallengeDetail: (String) -> Unit,
-    onCategoryClick: () -> Unit
+    onCategoryClick: () -> Unit,
+    navController: NavController
 ) {
     var challenge by remember { mutableStateOf<Challenge?>(null) }
     var showOptionsBottomSheet by remember { mutableStateOf(false) }
@@ -332,7 +337,10 @@ fun EvidenciaPage(
                     Text(
                         text = "By @${evidencia.userName}",
                         color = Color.White,
-                        style = MaterialTheme.typography.bodyMedium
+                        style = MaterialTheme.typography.bodyMedium,
+                        modifier = Modifier.clickable {
+                            navController.navigate("userProfile/${evidencia.userId}")
+                        }
                     )
                 }
                 Spacer(modifier = Modifier.height(16.dp))
@@ -348,7 +356,7 @@ fun EvidenciaPage(
             }
 
             // Right side: Social Actions (reemplazo la columna temporal por la lógica real)
-            EvidenciaSocialActions(evidencia = evidencia)
+            EvidenciaSocialActions(evidencia = evidencia, navController = navController)
         }
     }
 
@@ -856,7 +864,7 @@ fun AudioPlayer(url: String, onLongPress: () -> Unit) {
 }
 
 @Composable
-fun EvidenciaSocialActions(evidencia: Evidencia) {
+fun EvidenciaSocialActions(evidencia: Evidencia, navController: NavController) {
     val currentUser = FirebaseAuth.getInstance().currentUser
     val db = FirebaseFirestore.getInstance()
     val context = LocalContext.current

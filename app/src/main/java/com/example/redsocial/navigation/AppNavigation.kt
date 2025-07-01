@@ -62,7 +62,8 @@ fun AppNavigation(authViewModel: AuthViewModel) {
                 onNavigateToProfile = { navController.navigate("profile") },
                 onNavigateToChallengeDetail = { challengeId ->
                     navController.navigate("detalleDesafio/$challengeId")
-                }
+                },
+                navController = navController
             )
         }
 
