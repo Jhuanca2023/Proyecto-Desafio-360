@@ -10,6 +10,7 @@ import androidx.compose.material.icons.filled.DoneAll
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.PersonAdd
 import androidx.compose.material.icons.filled.Comment
+import androidx.compose.material.icons.filled.EmojiEvents
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -178,42 +179,52 @@ fun NotiCard(noti: Notificacion, userId: String, db: FirebaseFirestore, navContr
             modifier = Modifier.padding(12.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // Foto de perfil circular con borde y sombra
-            val actorPhotoUrl = noti.actorPhotoUrl
-            if (actorPhotoUrl != null) {
-                AsyncImage(
-                    model = actorPhotoUrl,
-                    contentDescription = "Foto de usuario",
-                    modifier = Modifier
-                        .size(48.dp)
-                        .clip(CircleShape)
-                        .border(2.dp, Color(0xFF3B82F6), CircleShape)
-                        .shadow(4.dp, CircleShape)
-                        .clickable {
-                            noti.actorId?.let { actorId ->
-                                navController.navigate("userProfile/$actorId")
-                            }
-                        }
+            // Icono especial para participacion
+            if (noti.tipo == "participacion") {
+                Icon(
+                    Icons.Filled.EmojiEvents,
+                    contentDescription = "Participación",
+                    tint = Color(0xFFFFC107), // Amarillo trofeo
+                    modifier = Modifier.size(40.dp)
                 )
+                Spacer(modifier = Modifier.width(12.dp))
             } else {
-                // Placeholder circular si no hay foto
-                Box(
-                    modifier = Modifier
-                        .size(48.dp)
-                        .clip(CircleShape)
-                        .background(Color(0xFF64748B))
-                        .border(2.dp, Color(0xFF3B82F6), CircleShape)
-                        .shadow(4.dp, CircleShape)
-                        .clickable {
-                            noti.actorId?.let { actorId ->
-                                navController.navigate("userProfile/$actorId")
+                // Foto de perfil circular con borde y sombra
+                val actorPhotoUrl = noti.actorPhotoUrl
+                if (actorPhotoUrl != null) {
+                    AsyncImage(
+                        model = actorPhotoUrl,
+                        contentDescription = "Foto de usuario",
+                        modifier = Modifier
+                            .size(48.dp)
+                            .clip(CircleShape)
+                            .border(2.dp, Color(0xFF3B82F6), CircleShape)
+                            .shadow(4.dp, CircleShape)
+                            .clickable {
+                                noti.actorId?.let { actorId ->
+                                    navController.navigate("userProfile/$actorId")
+                                }
                             }
-                        }
-                )
+                    )
+                } else {
+                    // Placeholder circular si no hay foto
+                    Box(
+                        modifier = Modifier
+                            .size(48.dp)
+                            .clip(CircleShape)
+                            .background(Color(0xFF64748B))
+                            .border(2.dp, Color(0xFF3B82F6), CircleShape)
+                            .shadow(4.dp, CircleShape)
+                            .clickable {
+                                noti.actorId?.let { actorId ->
+                                    navController.navigate("userProfile/$actorId")
+                                }
+                            }
+                    )
+                }
+                Spacer(modifier = Modifier.width(12.dp))
             }
-            Spacer(modifier = Modifier.width(12.dp))
             Column(modifier = Modifier.weight(1f)) {
-                // Resaltar el texto entre comillas con color celeste y hacer clickeable el nombre
                 val mensaje = noti.mensaje
                 val regex = Regex("\"(.*?)\"")
                 val partes = regex.findAll(mensaje).toList()
@@ -235,7 +246,7 @@ fun NotiCard(noti: Notificacion, userId: String, db: FirebaseFirestore, navContr
                     }
                     Text(
                         text = annotated,
-                        color = Color.White,
+                        color = if (noti.tipo == "participacion") Color(0xFFFFC107) else Color.White,
                         style = MaterialTheme.typography.bodyLarge,
                         fontWeight = FontWeight.Bold,
                         modifier = Modifier.clickable {
@@ -247,7 +258,7 @@ fun NotiCard(noti: Notificacion, userId: String, db: FirebaseFirestore, navContr
                 } else {
                     Text(
                         text = mensaje,
-                        color = Color.White,
+                        color = if (noti.tipo == "participacion") Color(0xFFFFC107) else Color.White,
                         style = MaterialTheme.typography.bodyLarge,
                         fontWeight = FontWeight.Bold,
                         modifier = Modifier.clickable {
@@ -258,7 +269,6 @@ fun NotiCard(noti: Notificacion, userId: String, db: FirebaseFirestore, navContr
                     )
                 }
                 Spacer(modifier = Modifier.height(2.dp))
-                // Fecha/hora relativa
                 val fechaRelativa = remember(noti.fecha) { getRelativeTime(noti.fecha) }
                 Text(
                     text = fechaRelativa,
@@ -266,7 +276,6 @@ fun NotiCard(noti: Notificacion, userId: String, db: FirebaseFirestore, navContr
                     style = MaterialTheme.typography.bodySmall
                 )
             }
-            // Botón eliminar
             IconButton(onClick = {
                 db.collection("usuarios").document(userId).collection("notificaciones").document(noti.id).delete()
             }) {

@@ -44,6 +44,12 @@ import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.material.icons.filled.People
+import androidx.compose.material.icons.outlined.FavoriteBorder
+import androidx.compose.material.icons.filled.Share
+import androidx.compose.material.icons.filled.Comment
+import com.google.firebase.firestore.FieldValue
+import android.content.Intent
+import androidx.compose.ui.platform.LocalContext
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
@@ -107,14 +113,12 @@ fun DetalleDesafioScreen(challengeId: String, navController: NavController) {
     // Función para manejar like/unlike
     fun handleLike() {
         if (currentUser == null) return
-        
         Log.d("DetalleDesafioScreen", "handleLike - isLiked: $isLiked, challengeId: $challengeId")
-        
         val likeRef = db.collection("desafios")
             .document(challengeId)
             .collection("likes")
             .document(currentUser.uid)
-        
+        val authorId = challenge?.get("authorId") as? String
         if (isLiked) {
             // Quitar like
             likeRef.delete().addOnSuccessListener {
@@ -123,17 +127,15 @@ fun DetalleDesafioScreen(challengeId: String, navController: NavController) {
                     .update("likes", currentLikes - 1)
                 isLiked = false
                 currentLikes--
-                
                 // Eliminar notificación de like
-                challenge?.let { data ->
-                    val authorId = data["authorId"] as? String
-                    Log.d("DetalleDesafioScreen", "Eliminando like - authorId: $authorId")
-                    if (authorId != null) {
-                        NotificationUtils.removeLikeNotification(
-                            challengeAuthorId = authorId,
-                            challengeId = challengeId
-                        )
-                    }
+                if (authorId != null) {
+                    NotificationUtils.removeLikeNotification(
+                        challengeAuthorId = authorId,
+                        challengeId = challengeId
+                    )
+                    // Quitar like al total del autor
+                    db.collection("usuarios").document(authorId)
+                        .update("totalLikes", FieldValue.increment(-1))
                 }
             }
         } else {
@@ -147,21 +149,15 @@ fun DetalleDesafioScreen(challengeId: String, navController: NavController) {
                     .update("likes", currentLikes + 1)
                 isLiked = true
                 currentLikes++
-                
-                // Enviar notificación de like
-                challenge?.let { data ->
-                    val authorId = data["authorId"] as? String
-                    val title = data["title"] as? String ?: "Desafío"
-                    Log.d("DetalleDesafioScreen", "Enviando notificación de like - authorId: $authorId, title: $title")
-                    if (authorId != null) {
-                        NotificationUtils.sendLikeNotification(
-                            challengeAuthorId = authorId,
-                            challengeId = challengeId,
-                            challengeTitle = title
-                        )
-                    } else {
-                        Log.e("DetalleDesafioScreen", "authorId es null - data: $data")
-                    }
+                if (authorId != null) {
+                    NotificationUtils.sendLikeNotification(
+                        challengeAuthorId = authorId,
+                        challengeId = challengeId,
+                        challengeTitle = challenge?.get("title") as? String ?: "Desafío"
+                    )
+                    // Sumar like al total del autor
+                    db.collection("usuarios").document(authorId)
+                        .update("totalLikes", FieldValue.increment(1))
                 }
             }
         }
@@ -333,11 +329,10 @@ fun DetalleDesafioScreen(challengeId: String, navController: NavController) {
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .padding(vertical = 4.dp),
-                                colors = CardDefaults.cardColors(
-                                    containerColor = Color(0xFF1A1F2E)
-                                )
+                                colors = CardDefaults.cardColors(containerColor = Color(0xFF1A1F2E)),
+                                shape = RoundedCornerShape(12.dp)
                             ) {
-                                Column(modifier = Modifier.padding(8.dp)) {
+                                Column(modifier = Modifier.padding(12.dp)) {
                                     Text(
                                         text = "Participó en el desafío: @${evidencia.userName}",
                                         style = MaterialTheme.typography.bodyMedium,
