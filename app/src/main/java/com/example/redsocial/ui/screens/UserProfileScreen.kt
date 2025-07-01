@@ -51,6 +51,8 @@ fun UserProfileScreen(
     var siguiendo by remember { mutableStateOf(0) }
     var isFollowing by remember { mutableStateOf<Boolean?>(null) }
     var isFollowLoading by remember { mutableStateOf(false) }
+    var commentsRestricted by remember { mutableStateOf(false) }
+    var downloadsAllowed by remember { mutableStateOf(true) }
     val currentUser = FirebaseAuth.getInstance().currentUser
     val db = FirebaseFirestore.getInstance()
 
@@ -102,6 +104,19 @@ fun UserProfileScreen(
         if (currentUser != null && userId != currentUser.uid) {
             authViewModel.isFollowing(userId) { result ->
                 isFollowing = result
+            }
+        }
+    }
+
+    LaunchedEffect(completedEvidences) {
+        completedEvidences.forEach { evidencia ->
+            evidencia.let {
+                val db = FirebaseFirestore.getInstance()
+                db.collection("evidencias").document(it.id)
+                    .addSnapshotListener { snapshot, _ ->
+                        commentsRestricted = snapshot?.getBoolean("commentsRestricted") ?: false
+                        downloadsAllowed = snapshot?.getBoolean("downloadsAllowed") ?: true
+                    }
             }
         }
     }
@@ -344,7 +359,9 @@ fun UserProfileScreen(
                                         evidencia = evidencia,
                                         onEvidenceClick = { challengeId ->
                                             navController.navigate("detalleDesafio/$challengeId")
-                                        }
+                                        },
+                                        commentsRestricted = commentsRestricted,
+                                        downloadsAllowed = downloadsAllowed
                                     )
                                     Spacer(modifier = Modifier.height(8.dp))
                                 }
@@ -470,7 +487,9 @@ fun CreatedChallengeCard(
 @Composable
 fun EvidenceCard(
     evidencia: Evidencia,
-    onEvidenceClick: (String) -> Unit
+    onEvidenceClick: (String) -> Unit,
+    commentsRestricted: Boolean,
+    downloadsAllowed: Boolean
 ) {
     val currentUser = FirebaseAuth.getInstance().currentUser
     var showDialog by remember { mutableStateOf(false) }
