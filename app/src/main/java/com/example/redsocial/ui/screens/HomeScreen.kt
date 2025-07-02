@@ -34,6 +34,7 @@ import androidx.compose.material.icons.filled.BookmarkBorder
 import androidx.compose.material.icons.filled.FavoriteBorder
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.outlined.FavoriteBorder
+import androidx.compose.material.icons.outlined.InsertComment
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
@@ -75,9 +76,12 @@ import androidx.compose.material.icons.filled.Share
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FieldValue
 import android.content.Intent
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.navigation.NavController
+import androidx.compose.ui.res.painterResource
+import com.example.redsocial.R
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
@@ -345,12 +349,22 @@ fun EvidenciaPage(
                 }
                 Spacer(modifier = Modifier.height(16.dp))
                 Row {
-                    Button(onClick = { onNavigateToChallengeDetail(evidencia.challengeId) }) {
-                        Text("Participate")
+                    Button(
+                        onClick = { onNavigateToChallengeDetail(evidencia.challengeId) },
+                        modifier = Modifier
+                            .border(2.dp, Color.White, shape = RoundedCornerShape(50)),
+                        colors = ButtonDefaults.buttonColors(containerColor = Color.Transparent)
+                    ) {
+                        Text("Participar", color = Color.White)
                     }
                     Spacer(Modifier.width(8.dp))
-                    Button(onClick = onCategoryClick) {
-                        Text("Category")
+                    Button(
+                        onClick = onCategoryClick,
+                        modifier = Modifier
+                            .border(2.dp, Color.White, shape = RoundedCornerShape(50)),
+                        colors = ButtonDefaults.buttonColors(containerColor = Color.Transparent)
+                    ) {
+                        Text("Categoría", color = Color.White)
                     }
                 }
             }
@@ -719,44 +733,54 @@ fun EvidenciaCard(evidencia: Evidencia) {
             // ... Mostrar contenido de la evidencia (imagen, video, texto, audio) ...
             Row(verticalAlignment = Alignment.CenterVertically) {
                 // Botón Like
-                IconButton(onClick = {
-                    val likesRef = db.collection("evidencias").document(evidencia.id).collection("likes")
-                    val userLikeRef = likesRef.document(currentUser!!.uid)
-                    if (isLiked) {
-                        userLikeRef.delete()
-                        db.collection("evidencias").document(evidencia.id).update("likes", FieldValue.increment(-1))
-                        db.collection("usuarios").document(evidencia.userId).update("totalLikes", FieldValue.increment(-1))
-                    } else {
-                        userLikeRef.set(mapOf("userId" to currentUser.uid, "timestamp" to System.currentTimeMillis()))
-                        db.collection("evidencias").document(evidencia.id).update("likes", FieldValue.increment(1))
-                        db.collection("usuarios").document(evidencia.userId).update("totalLikes", FieldValue.increment(1))
-                    }
-                }) {
+                IconButton(
+                    onClick = {
+                        val likesRef = db.collection("evidencias").document(evidencia.id).collection("likes")
+                        val userLikeRef = likesRef.document(currentUser!!.uid)
+                        if (isLiked) {
+                            userLikeRef.delete()
+                            db.collection("evidencias").document(evidencia.id).update("likes", FieldValue.increment(-1))
+                            db.collection("usuarios").document(evidencia.userId).update("totalLikes", FieldValue.increment(-1))
+                        } else {
+                            userLikeRef.set(mapOf("userId" to currentUser.uid, "timestamp" to System.currentTimeMillis()))
+                            db.collection("evidencias").document(evidencia.id).update("likes", FieldValue.increment(1))
+                            db.collection("usuarios").document(evidencia.userId).update("totalLikes", FieldValue.increment(1))
+                        }
+                    },
+                    modifier = Modifier.size(32.dp)
+                ) {
                     Icon(
                         if (isLiked) Icons.Filled.Favorite else Icons.Outlined.FavoriteBorder,
                         contentDescription = "Like",
-                        tint = if (isLiked) Color(0xFFFF4081) else Color.Gray
+                        tint = Color.White,
+                        modifier = Modifier.size(32.dp)
                     )
                 }
                 Text("$likesCount", color = Color.White)
                 Spacer(Modifier.width(16.dp))
                 // Botón Comentar
-                IconButton(onClick = { showComentarios = true }) {
-                    Icon(Icons.Filled.Comment, contentDescription = "Comentar", tint = Color(0xFFA259FF))
+                IconButton(
+                    onClick = { showComentarios = true },
+                    modifier = Modifier.size(32.dp)
+                ) {
+                    Icon(painterResource(id = R.drawable.ic_comment_outline), contentDescription = "Comentar", tint = Color.White, modifier = Modifier.size(32.dp))
                 }
                 Text("$commentsCount", color = Color.White)
                 Spacer(Modifier.width(16.dp))
                 // Botón Compartir
-                IconButton(onClick = {
-                    val sendIntent = Intent().apply {
-                        action = Intent.ACTION_SEND
-                        putExtra(Intent.EXTRA_TEXT, evidencia.url ?: evidencia.texto ?: "Evidencia de FLUXI")
-                        type = "text/plain"
-                    }
-                    val shareIntent = Intent.createChooser(sendIntent, null)
-                    context.startActivity(shareIntent)
-                }) {
-                    Icon(Icons.Filled.Share, contentDescription = "Compartir", tint = Color(0xFF3B82F6))
+                IconButton(
+                    onClick = {
+                        val sendIntent = Intent().apply {
+                            action = Intent.ACTION_SEND
+                            putExtra(Intent.EXTRA_TEXT, evidencia.url ?: evidencia.texto ?: "Evidencia de FLUXI")
+                            type = "text/plain"
+                        }
+                        val shareIntent = Intent.createChooser(sendIntent, null)
+                        context.startActivity(shareIntent)
+                    },
+                    modifier = Modifier.size(32.dp)
+                ) {
+                    Icon(Icons.Filled.Share, contentDescription = "Compartir", tint = Color.White, modifier = Modifier.size(32.dp))
                 }
             }
             if (showComentarios) {
@@ -979,23 +1003,26 @@ fun EvidenciaSocialActions(evidencia: Evidencia, navController: NavController) {
     }
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
         // Botón Like
-        IconButton(onClick = {
-            val likesRef = db.collection("evidencias").document(evidencia.id).collection("likes")
-            val userLikeRef = likesRef.document(currentUser!!.uid)
-            if (isLiked) {
-                userLikeRef.delete()
-                db.collection("evidencias").document(evidencia.id).update("likes", FieldValue.increment(-1))
-                db.collection("usuarios").document(evidencia.userId).update("totalLikes", FieldValue.increment(-1))
-            } else {
-                userLikeRef.set(mapOf("userId" to currentUser.uid, "timestamp" to System.currentTimeMillis()))
-                db.collection("evidencias").document(evidencia.id).update("likes", FieldValue.increment(1))
-                db.collection("usuarios").document(evidencia.userId).update("totalLikes", FieldValue.increment(1))
-            }
-        }) {
+        IconButton(
+            onClick = {
+                val likesRef = db.collection("evidencias").document(evidencia.id).collection("likes")
+                val userLikeRef = likesRef.document(currentUser!!.uid)
+                if (isLiked) {
+                    userLikeRef.delete()
+                    db.collection("evidencias").document(evidencia.id).update("likes", FieldValue.increment(-1))
+                    db.collection("usuarios").document(evidencia.userId).update("totalLikes", FieldValue.increment(-1))
+                } else {
+                    userLikeRef.set(mapOf("userId" to currentUser.uid, "timestamp" to System.currentTimeMillis()))
+                    db.collection("evidencias").document(evidencia.id).update("likes", FieldValue.increment(1))
+                    db.collection("usuarios").document(evidencia.userId).update("totalLikes", FieldValue.increment(1))
+                }
+            },
+            modifier = Modifier.size(32.dp)
+        ) {
             Icon(
                 if (isLiked) Icons.Filled.Favorite else Icons.Outlined.FavoriteBorder,
                 contentDescription = "Like",
-                tint = if (isLiked) Color(0xFFFF4081) else Color.Gray,
+                tint = Color.White,
                 modifier = Modifier.size(32.dp)
             )
         }
@@ -1003,33 +1030,42 @@ fun EvidenciaSocialActions(evidencia: Evidencia, navController: NavController) {
         Spacer(Modifier.height(24.dp))
         // Botón Comentar
         val puedeComentar = !commentsRestricted || (currentUser != null && evidencia.userId == currentUser.uid)
-        IconButton(onClick = {
-            if (puedeComentar) {
-                showComentarios = true
-            } else {
-                showRestrictDialog = true
-            }
-        }) {
-            Icon(Icons.Filled.Comment, contentDescription = "Comentar", tint = if (puedeComentar) Color(0xFFA259FF) else Color.Gray, modifier = Modifier.size(32.dp))
+        IconButton(
+            onClick = {
+                if (puedeComentar) {
+                    showComentarios = true
+                } else {
+                    showRestrictDialog = true
+                }
+            },
+            modifier = Modifier.size(32.dp)
+        ) {
+            Icon(painterResource(id = R.drawable.ic_comment_outline), contentDescription = "Comentar", tint = Color.White, modifier = Modifier.size(32.dp))
         }
         Text("$commentsCount", color = Color.White)
         Spacer(Modifier.height(24.dp))
         // Botón Compartir
-        IconButton(onClick = {
-            val sendIntent = Intent().apply {
-                action = Intent.ACTION_SEND
-                putExtra(Intent.EXTRA_TEXT, evidencia.url ?: evidencia.texto ?: "Evidencia de FLUXI")
-                type = "text/plain"
-            }
-            val shareIntent = Intent.createChooser(sendIntent, null)
-            context.startActivity(shareIntent)
-        }) {
-            Icon(Icons.Filled.Share, contentDescription = "Compartir", tint = Color(0xFF3B82F6), modifier = Modifier.size(32.dp))
+        IconButton(
+            onClick = {
+                val sendIntent = Intent().apply {
+                    action = Intent.ACTION_SEND
+                    putExtra(Intent.EXTRA_TEXT, evidencia.url ?: evidencia.texto ?: "Evidencia de FLUXI")
+                    type = "text/plain"
+                }
+                val shareIntent = Intent.createChooser(sendIntent, null)
+                context.startActivity(shareIntent)
+            },
+            modifier = Modifier.size(32.dp)
+        ) {
+            Icon(Icons.Filled.Share, contentDescription = "Compartir", tint = Color.White, modifier = Modifier.size(32.dp))
         }
         Text("", color = Color.White)
         Spacer(Modifier.height(24.dp))
         // Botón Guardar (opcional)
-        IconButton(onClick = { /* TODO: lógica de guardado si la implementas */ }) {
+        IconButton(
+            onClick = { /* TODO: lógica de guardado si la implementas */ },
+            modifier = Modifier.size(32.dp)
+        ) {
             Icon(Icons.Default.BookmarkBorder, contentDescription = "Save", tint = Color.White, modifier = Modifier.size(32.dp))
         }
         Text("", color = Color.White)

@@ -15,6 +15,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.graphics.Color
 import com.example.redsocial.ui.components.ChipPreview
+import androidx.compose.foundation.border
+import androidx.compose.foundation.shape.RoundedCornerShape
 
 data class ChallengePreview(
     val id: String = "",
@@ -114,13 +116,17 @@ private fun FullChallengeCard(challenge: ChallengePreview) {
             ) {
                 Button(
                     onClick = { /* Participar */ },
-                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF3B82F6))
+                    modifier = Modifier
+                        .border(2.dp, Color.White, shape = RoundedCornerShape(50)),
+                    colors = ButtonDefaults.buttonColors(containerColor = Color.Transparent)
                 ) {
                     Text("Participar", color = Color.White)
                 }
                 Button(
                     onClick = { /* Ver categoría */ },
-                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF64748B))
+                    modifier = Modifier
+                        .border(2.dp, Color.White, shape = RoundedCornerShape(50)),
+                    colors = ButtonDefaults.buttonColors(containerColor = Color.Transparent)
                 ) {
                     Text("Categoría", color = Color.White)
                 }
