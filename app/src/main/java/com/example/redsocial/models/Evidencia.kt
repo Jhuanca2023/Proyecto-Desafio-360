@@ -10,5 +10,6 @@ data class Evidencia(
     val texto: String? = null, // para texto
     val descripcion: String? = null, // descripción de la evidencia
     val timestamp: Long = System.currentTimeMillis(),
-    val views: Int = 0 // NUEVO campo para vistas
+    val views: Int = 0, // NUEVO campo para vistas
+    val downloadsAllowed: Boolean = true // NUEVO campo para controlar descargas
 ) 

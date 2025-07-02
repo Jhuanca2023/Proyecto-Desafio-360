@@ -34,6 +34,17 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import com.example.redsocial.viewmodel.AuthViewModel
 import androidx.compose.material.icons.filled.Delete
+import com.example.redsocial.ui.components.EvidenciaViewerDialog
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.viewinterop.AndroidView
+import androidx.media3.common.MediaItem
+import androidx.media3.exoplayer.ExoPlayer
+import androidx.media3.ui.PlayerView
+import androidx.media3.ui.AspectRatioFrameLayout
+import com.example.redsocial.ui.theme.BackgroundDark
 
 @Composable
 fun UserProfileScreen(
@@ -53,6 +64,7 @@ fun UserProfileScreen(
     var isFollowLoading by remember { mutableStateOf(false) }
     var commentsRestricted by remember { mutableStateOf(false) }
     var downloadsAllowed by remember { mutableStateOf(true) }
+    var showEvidenciaDialog by remember { mutableStateOf<Evidencia?>(null) }
     val currentUser = FirebaseAuth.getInstance().currentUser
     val db = FirebaseFirestore.getInstance()
 
@@ -133,7 +145,7 @@ fun UserProfileScreen(
             Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    .background(Color(0xFF1A1333))
+                    .background(BackgroundDark)
             ) {
                 // Header con botón de regreso
                 Row(
@@ -354,16 +366,159 @@ fun UserProfileScreen(
                                     }
                                 }
                             } else {
-                                items(completedEvidences) { evidencia ->
-                                    EvidenceCard(
-                                        evidencia = evidencia,
-                                        onEvidenceClick = { challengeId ->
-                                            navController.navigate("detalleDesafio/$challengeId")
-                                        },
-                                        commentsRestricted = commentsRestricted,
-                                        downloadsAllowed = downloadsAllowed
-                                    )
-                                    Spacer(modifier = Modifier.height(8.dp))
+                                item {
+                                    // Agrupa aquí, dentro del bloque composable
+                                    val videos = completedEvidences.filter { it.tipo == "video" }
+                                    val imagenes = completedEvidences.filter { it.tipo == "imagen" }
+                                    val textos = completedEvidences.filter { it.tipo == "texto" }
+                                    val audios = completedEvidences.filter { it.tipo == "audio" }
+
+                                    // Sección Videos
+                                    if (videos.isNotEmpty()) {
+                                        Text("Videos", color = Color(0xFFA259FF), fontSize = 18.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(vertical = 8.dp))
+                                        Divider(color = Color(0xFFA259FF), thickness = 1.dp, modifier = Modifier.padding(bottom = 8.dp))
+                                        LazyVerticalGrid(
+                                            columns = GridCells.Fixed(3),
+                                            modifier = Modifier.heightIn(max = 300.dp)
+                                        ) {
+                                            items(videos) { evidencia ->
+                                                val context = LocalContext.current
+                                                val exoPlayer = remember(evidencia.url) {
+                                                    ExoPlayer.Builder(context).build().apply {
+                                                        setMediaItem(MediaItem.fromUri(evidencia.url!!))
+                                                        prepare()
+                                                        playWhenReady = true // autoplay
+                                                        volume = 0f // sin audio
+                                                        repeatMode = ExoPlayer.REPEAT_MODE_ONE
+                                                    }
+                                                }
+                                                DisposableEffect(exoPlayer) {
+                                                    onDispose { exoPlayer.release() }
+                                                }
+                                                Box(
+                                                    modifier = Modifier
+                                                        .padding(4.dp)
+                                                        .aspectRatio(9f/16f)
+                                                        .clip(RoundedCornerShape(12.dp))
+                                                        .background(Color(0xFF1A1F2E))
+                                                        .clickable { showEvidenciaDialog = evidencia },
+                                                    contentAlignment = Alignment.Center
+                                                ) {
+                                                    AndroidView(
+                                                        factory = {
+                                                            androidx.media3.ui.PlayerView(it).apply {
+                                                                player = exoPlayer
+                                                                useController = false
+                                                                resizeMode = AspectRatioFrameLayout.RESIZE_MODE_ZOOM
+                                                            }
+                                                        },
+                                                        modifier = Modifier.fillMaxSize()
+                                                    )
+                                                    // Vistas en la esquina inferior izquierda
+                                                    Row(
+                                                        modifier = Modifier
+                                                            .align(Alignment.BottomStart)
+                                                            .padding(8.dp)
+                                                            .background(Color.Black.copy(alpha = 0.4f), RoundedCornerShape(8.dp))
+                                                            .padding(horizontal = 6.dp, vertical = 2.dp),
+                                                        verticalAlignment = Alignment.CenterVertically
+                                                    ) {
+                                                        Icon(Icons.Default.PlayArrow, contentDescription = "Vistas", tint = Color.White, modifier = Modifier.size(16.dp))
+                                                        Spacer(Modifier.width(4.dp))
+                                                        Text(
+                                                            text = evidencia.views.toString(),
+                                                            color = Color.White,
+                                                            fontSize = 13.sp,
+                                                            fontWeight = FontWeight.Bold
+                                                        )
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+
+                                    // Sección Imágenes
+                                    if (imagenes.isNotEmpty()) {
+                                        Text("Imágenes", color = Color(0xFFA259FF), fontSize = 18.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(vertical = 8.dp))
+                                        Divider(color = Color(0xFFA259FF), thickness = 1.dp, modifier = Modifier.padding(bottom = 8.dp))
+                                        LazyVerticalGrid(
+                                            columns = GridCells.Fixed(3),
+                                            modifier = Modifier.heightIn(max = 300.dp)
+                                        ) {
+                                            items(imagenes) { evidencia ->
+                                                Box(
+                                                    modifier = Modifier
+                                                        .padding(4.dp)
+                                                        .clip(RoundedCornerShape(12.dp))
+                                                        .background(Color(0xFF1A1F2E))
+                                                        .clickable { showEvidenciaDialog = evidencia },
+                                                    contentAlignment = Alignment.Center
+                                                ) {
+                                                    AsyncImage(
+                                                        model = evidencia.url,
+                                                        contentDescription = "Imagen",
+                                                        modifier = Modifier.fillMaxSize()
+                                                    )
+                                                }
+                                            }
+                                        }
+                                    }
+
+                                    // Sección Textos
+                                    if (textos.isNotEmpty()) {
+                                        Text("Textos", color = Color(0xFFA259FF), fontSize = 18.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(vertical = 8.dp))
+                                        Divider(color = Color(0xFFA259FF), thickness = 1.dp, modifier = Modifier.padding(bottom = 8.dp))
+                                        LazyVerticalGrid(
+                                            columns = GridCells.Fixed(3),
+                                            modifier = Modifier.heightIn(max = 300.dp)
+                                        ) {
+                                            items(textos) { evidencia ->
+                                                Box(
+                                                    modifier = Modifier
+                                                        .padding(4.dp)
+                                                        .clip(RoundedCornerShape(12.dp))
+                                                        .background(Color(0xFF1A1F2E))
+                                                        .clickable { showEvidenciaDialog = evidencia },
+                                                    contentAlignment = Alignment.Center
+                                                ) {
+                                                    Text(
+                                                        text = evidencia.texto ?: "",
+                                                        color = Color.White,
+                                                        fontSize = 13.sp,
+                                                        fontWeight = FontWeight.Bold
+                                                    )
+                                                }
+                                            }
+                                        }
+                                    }
+
+                                    // Sección Audios
+                                    if (audios.isNotEmpty()) {
+                                        Text("Audios", color = Color(0xFFA259FF), fontSize = 18.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(vertical = 8.dp))
+                                        Divider(color = Color(0xFFA259FF), thickness = 1.dp, modifier = Modifier.padding(bottom = 8.dp))
+                                        LazyVerticalGrid(
+                                            columns = GridCells.Fixed(3),
+                                            modifier = Modifier.heightIn(max = 300.dp)
+                                        ) {
+                                            items(audios) { evidencia ->
+                                                Box(
+                                                    modifier = Modifier
+                                                        .padding(4.dp)
+                                                        .clip(RoundedCornerShape(12.dp))
+                                                        .background(Color(0xFF1A1F2E))
+                                                        .clickable { showEvidenciaDialog = evidencia },
+                                                    contentAlignment = Alignment.Center
+                                                ) {
+                                                    Text(
+                                                        text = evidencia.texto ?: "",
+                                                        color = Color.White,
+                                                        fontSize = 13.sp,
+                                                        fontWeight = FontWeight.Bold
+                                                    )
+                                                }
+                                            }
+                                        }
+                                    }
                                 }
                             }
                         }
@@ -372,6 +527,13 @@ fun UserProfileScreen(
             }
         }
     }
+
+    // Modal de evidencia pantalla completa
+    EvidenciaViewerDialog(
+        evidencia = showEvidenciaDialog,
+        visible = showEvidenciaDialog != null,
+        onDismiss = { showEvidenciaDialog = null }
+    )
 }
 
 @Composable
