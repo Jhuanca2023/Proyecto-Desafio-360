@@ -134,6 +134,7 @@ fun ProfileScreen(
                     tipo = data["tipo"] as? String ?: "",
                     url = data["url"] as? String,
                     texto = data["texto"] as? String,
+                    descripcion = data["descripcion"] as? String,
                     timestamp = data["timestamp"] as? Long ?: 0L
                 )
             }
@@ -657,7 +658,7 @@ fun ProfileScreen(
                                                     // Info izquierda
                                                     Column(modifier = Modifier.weight(1f)) {
                                                         Text(
-                                                            text = ev.challengeId, // Puedes cambiar por el título real si lo tienes
+                                                            text = ev.descripcion ?: "Evidencia completada",
                                                             color = Color.White,
                                                             style = MaterialTheme.typography.titleLarge,
                                                             fontWeight = FontWeight.Bold
