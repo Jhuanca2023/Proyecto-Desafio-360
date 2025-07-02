@@ -180,7 +180,8 @@ fun NavigationGraph(
                 onNavigateToProfile = { navController.navigate(NavigationItem.Profile.route) },
                 onNavigateToChallengeDetail = { challengeId ->
                     navController.navigate("detalleDesafio/$challengeId")
-                }
+                },
+                navController = navController
             )
         }
         composable(NavigationItem.Explore.route) {

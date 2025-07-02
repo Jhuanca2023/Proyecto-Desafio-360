@@ -32,6 +32,9 @@ import androidx.compose.material.icons.automirrored.filled.Comment
 import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.BookmarkBorder
 import androidx.compose.material.icons.filled.FavoriteBorder
+import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material.icons.outlined.FavoriteBorder
+import androidx.compose.material.icons.outlined.InsertComment
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
@@ -69,13 +72,16 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.ui.draw.clip
 import androidx.compose.material.icons.filled.Favorite
-import androidx.compose.material.icons.outlined.FavoriteBorder
 import androidx.compose.material.icons.filled.Share
-import androidx.compose.material.icons.filled.Comment
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FieldValue
 import android.content.Intent
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.navigation.NavController
+import androidx.compose.ui.res.painterResource
+import com.example.redsocial.R
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
@@ -84,7 +90,8 @@ fun HomeScreen(
     onNavigateToCreate: () -> Unit,
     onNavigateToNotifications: () -> Unit,
     onNavigateToProfile: () -> Unit,
-    onNavigateToChallengeDetail: (String) -> Unit
+    onNavigateToChallengeDetail: (String) -> Unit,
+    navController: NavController
 ) {
     var selectedTab by remember { mutableStateOf(0) }
     var selectedTipo by remember { mutableStateOf("video") }
@@ -213,7 +220,8 @@ fun HomeScreen(
                             onNavigateToChallengeDetail = onNavigateToChallengeDetail,
                             onCategoryClick = {
                                 showBottomSheet = true
-                            }
+                            },
+                            navController = navController
                         )
                     }
                 }
@@ -264,7 +272,8 @@ fun HomeScreen(
 fun EvidenciaPage(
     evidencia: Evidencia,
     onNavigateToChallengeDetail: (String) -> Unit,
-    onCategoryClick: () -> Unit
+    onCategoryClick: () -> Unit,
+    navController: NavController
 ) {
     var challenge by remember { mutableStateOf<Challenge?>(null) }
     var showOptionsBottomSheet by remember { mutableStateOf(false) }
@@ -332,23 +341,36 @@ fun EvidenciaPage(
                     Text(
                         text = "By @${evidencia.userName}",
                         color = Color.White,
-                        style = MaterialTheme.typography.bodyMedium
+                        style = MaterialTheme.typography.bodyMedium,
+                        modifier = Modifier.clickable {
+                            navController.navigate("userProfile/${evidencia.userId}")
+                        }
                     )
                 }
                 Spacer(modifier = Modifier.height(16.dp))
                 Row {
-                    Button(onClick = { onNavigateToChallengeDetail(evidencia.challengeId) }) {
-                        Text("Participate")
+                    Button(
+                        onClick = { onNavigateToChallengeDetail(evidencia.challengeId) },
+                        modifier = Modifier
+                            .border(2.dp, Color.White, shape = RoundedCornerShape(50)),
+                        colors = ButtonDefaults.buttonColors(containerColor = Color.Transparent)
+                    ) {
+                        Text("Participar", color = Color.White)
                     }
                     Spacer(Modifier.width(8.dp))
-                    Button(onClick = onCategoryClick) {
-                        Text("Category")
+                    Button(
+                        onClick = onCategoryClick,
+                        modifier = Modifier
+                            .border(2.dp, Color.White, shape = RoundedCornerShape(50)),
+                        colors = ButtonDefaults.buttonColors(containerColor = Color.Transparent)
+                    ) {
+                        Text("Categoría", color = Color.White)
                     }
                 }
             }
 
             // Right side: Social Actions (reemplazo la columna temporal por la lógica real)
-            EvidenciaSocialActions(evidencia = evidencia)
+            EvidenciaSocialActions(evidencia = evidencia, navController = navController)
         }
     }
 
@@ -525,6 +547,15 @@ fun ComentariosDialog(
     val currentUser = FirebaseAuth.getInstance().currentUser
     var comentarios by remember { mutableStateOf(listOf<Comentario>()) }
     var nuevoComentario by remember { mutableStateOf("") }
+    var currentUserName by remember { mutableStateOf("") }
+
+    // Obtener el nombre del usuario actual
+    LaunchedEffect(currentUser?.uid) {
+        if (currentUser != null) {
+            val userDoc = db.collection("usuarios").document(currentUser.uid).get().await()
+            currentUserName = userDoc.getString("nombreUsuario") ?: currentUser.displayName ?: "Usuario"
+        }
+    }
 
     // Escuchar comentarios en tiempo real
     LaunchedEffect(evidenciaId) {
@@ -546,21 +577,84 @@ fun ComentariosDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Comentarios") },
+        title = { Text("Comentarios", color = Color.White) },
         text = {
-            Column {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(max = 400.dp)
+            ) {
                 if (comentarios.isEmpty()) {
-                    Text("Aún no hay comentarios.", color = Color.Gray)
+                    Text("Aún no hay comentarios.", color = Color.Gray, modifier = Modifier.padding(vertical = 16.dp))
                 } else {
-                    comentarios.forEach { comentario ->
-                        Text("@${comentario.userName}: ${comentario.texto}", color = Color.White)
+                    LazyColumn(
+                        modifier = Modifier
+                            .weight(1f)
+                            .fillMaxWidth()
+                    ) {
+                        items(comentarios) { comentario ->
+                            Card(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(vertical = 4.dp),
+                                colors = CardDefaults.cardColors(containerColor = Color(0xFF2A1B3D)),
+                                shape = RoundedCornerShape(8.dp)
+                            ) {
+                                Column(
+                                    modifier = Modifier.padding(12.dp)
+                                ) {
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Text(
+                                            text = "@${comentario.userName}",
+                                            color = Color(0xFFA259FF),
+                                            fontWeight = FontWeight.Bold,
+                                            fontSize = 14.sp
+                                        )
+                                        Spacer(modifier = Modifier.width(8.dp))
+                                        Text(
+                                            text = formatTimestamp(comentario.timestamp),
+                                            color = Color.Gray,
+                                            fontSize = 12.sp
+                                        )
+                                    }
+                                    Spacer(modifier = Modifier.height(4.dp))
+                                    Text(
+                                        text = comentario.texto,
+                                        color = Color.White,
+                                        fontSize = 14.sp
+                                    )
+                                }
+                            }
+                        }
                     }
+                }
+                Spacer(modifier = Modifier.height(8.dp))
+                Row(
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "Comentando como: @$currentUserName",
+                        color = Color(0xFFA259FF),
+                        fontSize = 12.sp,
+                        modifier = Modifier.weight(1f)
+                    )
                 }
                 OutlinedTextField(
                     value = nuevoComentario,
                     onValueChange = { nuevoComentario = it },
-                    label = { Text("Escribe un comentario...") },
-                    modifier = Modifier.fillMaxWidth()
+                    label = { Text("Escribe un comentario...", color = Color.Gray) },
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedTextColor = Color.White,
+                        unfocusedTextColor = Color.White,
+                        focusedBorderColor = Color(0xFFA259FF),
+                        unfocusedBorderColor = Color.Gray,
+                        focusedLabelColor = Color(0xFFA259FF),
+                        unfocusedLabelColor = Color.Gray
+                    ),
+                    maxLines = 3
                 )
             }
         },
@@ -573,23 +667,38 @@ fun ComentariosDialog(
                             .add(
                                 mapOf(
                                     "userId" to currentUser.uid,
-                                    "userName" to (currentUser.displayName ?: "Usuario"),
+                                    "userName" to currentUserName,
                                     "texto" to nuevoComentario,
                                     "timestamp" to System.currentTimeMillis()
                                 )
                             )
                         nuevoComentario = ""
                     }
-                }
+                },
+                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFA259FF))
             ) {
-                Text("Enviar")
+                Text("Enviar", color = Color.White)
             }
         },
         dismissButton = {
-            Button(onClick = onDismiss) { Text("Cerrar") }
+            TextButton(onClick = onDismiss) { 
+                Text("Cerrar", color = Color(0xFFA259FF)) 
+            }
         },
         containerColor = Color(0xFF1A1F2E)
     )
+}
+
+private fun formatTimestamp(timestamp: Long): String {
+    val now = System.currentTimeMillis()
+    val diff = now - timestamp
+    
+    return when {
+        diff < 60000 -> "Ahora"
+        diff < 3600000 -> "${diff / 60000}m"
+        diff < 86400000 -> "${diff / 3600000}h"
+        else -> "${diff / 86400000}d"
+    }
 }
 
 @Composable
@@ -624,44 +733,54 @@ fun EvidenciaCard(evidencia: Evidencia) {
             // ... Mostrar contenido de la evidencia (imagen, video, texto, audio) ...
             Row(verticalAlignment = Alignment.CenterVertically) {
                 // Botón Like
-                IconButton(onClick = {
-                    val likesRef = db.collection("evidencias").document(evidencia.id).collection("likes")
-                    val userLikeRef = likesRef.document(currentUser!!.uid)
-                    if (isLiked) {
-                        userLikeRef.delete()
-                        db.collection("evidencias").document(evidencia.id).update("likes", FieldValue.increment(-1))
-                        db.collection("usuarios").document(evidencia.userId).update("totalLikes", FieldValue.increment(-1))
-                    } else {
-                        userLikeRef.set(mapOf("userId" to currentUser.uid, "timestamp" to System.currentTimeMillis()))
-                        db.collection("evidencias").document(evidencia.id).update("likes", FieldValue.increment(1))
-                        db.collection("usuarios").document(evidencia.userId).update("totalLikes", FieldValue.increment(1))
-                    }
-                }) {
+                IconButton(
+                    onClick = {
+                        val likesRef = db.collection("evidencias").document(evidencia.id).collection("likes")
+                        val userLikeRef = likesRef.document(currentUser!!.uid)
+                        if (isLiked) {
+                            userLikeRef.delete()
+                            db.collection("evidencias").document(evidencia.id).update("likes", FieldValue.increment(-1))
+                            db.collection("usuarios").document(evidencia.userId).update("totalLikes", FieldValue.increment(-1))
+                        } else {
+                            userLikeRef.set(mapOf("userId" to currentUser.uid, "timestamp" to System.currentTimeMillis()))
+                            db.collection("evidencias").document(evidencia.id).update("likes", FieldValue.increment(1))
+                            db.collection("usuarios").document(evidencia.userId).update("totalLikes", FieldValue.increment(1))
+                        }
+                    },
+                    modifier = Modifier.size(32.dp)
+                ) {
                     Icon(
                         if (isLiked) Icons.Filled.Favorite else Icons.Outlined.FavoriteBorder,
                         contentDescription = "Like",
-                        tint = if (isLiked) Color(0xFFFF4081) else Color.Gray
+                        tint = Color.White,
+                        modifier = Modifier.size(32.dp)
                     )
                 }
                 Text("$likesCount", color = Color.White)
                 Spacer(Modifier.width(16.dp))
                 // Botón Comentar
-                IconButton(onClick = { showComentarios = true }) {
-                    Icon(Icons.Filled.Comment, contentDescription = "Comentar", tint = Color(0xFFA259FF))
+                IconButton(
+                    onClick = { showComentarios = true },
+                    modifier = Modifier.size(32.dp)
+                ) {
+                    Icon(painterResource(id = R.drawable.ic_comment_outline), contentDescription = "Comentar", tint = Color.White, modifier = Modifier.size(32.dp))
                 }
                 Text("$commentsCount", color = Color.White)
                 Spacer(Modifier.width(16.dp))
                 // Botón Compartir
-                IconButton(onClick = {
-                    val sendIntent = Intent().apply {
-                        action = Intent.ACTION_SEND
-                        putExtra(Intent.EXTRA_TEXT, evidencia.url ?: evidencia.texto ?: "Evidencia de FLUXI")
-                        type = "text/plain"
-                    }
-                    val shareIntent = Intent.createChooser(sendIntent, null)
-                    context.startActivity(shareIntent)
-                }) {
-                    Icon(Icons.Filled.Share, contentDescription = "Compartir", tint = Color(0xFF3B82F6))
+                IconButton(
+                    onClick = {
+                        val sendIntent = Intent().apply {
+                            action = Intent.ACTION_SEND
+                            putExtra(Intent.EXTRA_TEXT, evidencia.url ?: evidencia.texto ?: "Evidencia de FLUXI")
+                            type = "text/plain"
+                        }
+                        val shareIntent = Intent.createChooser(sendIntent, null)
+                        context.startActivity(shareIntent)
+                    },
+                    modifier = Modifier.size(32.dp)
+                ) {
+                    Icon(Icons.Filled.Share, contentDescription = "Compartir", tint = Color.White, modifier = Modifier.size(32.dp))
                 }
             }
             if (showComentarios) {
@@ -856,7 +975,7 @@ fun AudioPlayer(url: String, onLongPress: () -> Unit) {
 }
 
 @Composable
-fun EvidenciaSocialActions(evidencia: Evidencia) {
+fun EvidenciaSocialActions(evidencia: Evidencia, navController: NavController) {
     val currentUser = FirebaseAuth.getInstance().currentUser
     val db = FirebaseFirestore.getInstance()
     val context = LocalContext.current
@@ -864,7 +983,9 @@ fun EvidenciaSocialActions(evidencia: Evidencia) {
     var isLiked by remember { mutableStateOf(false) }
     var commentsCount by remember { mutableStateOf(0) }
     var showComentarios by remember { mutableStateOf(false) }
-    // Escuchar likes y comentarios en tiempo real
+    var commentsRestricted by remember { mutableStateOf(false) }
+    var showRestrictDialog by remember { mutableStateOf(false) }
+    // Escuchar likes, comentarios y restricción en tiempo real
     LaunchedEffect(evidencia.id) {
         val likesRef = db.collection("evidencias").document(evidencia.id).collection("likes")
         likesRef.addSnapshotListener { snapshot, _ ->
@@ -875,58 +996,93 @@ fun EvidenciaSocialActions(evidencia: Evidencia) {
         commentsRef.addSnapshotListener { snapshot, _ ->
             commentsCount = snapshot?.size() ?: 0
         }
+        db.collection("evidencias").document(evidencia.id)
+            .addSnapshotListener { snapshot, _ ->
+                commentsRestricted = snapshot?.getBoolean("commentsRestricted") ?: false
+            }
     }
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
         // Botón Like
-        IconButton(onClick = {
-            val likesRef = db.collection("evidencias").document(evidencia.id).collection("likes")
-            val userLikeRef = likesRef.document(currentUser!!.uid)
-            if (isLiked) {
-                userLikeRef.delete()
-                db.collection("evidencias").document(evidencia.id).update("likes", FieldValue.increment(-1))
-                db.collection("usuarios").document(evidencia.userId).update("totalLikes", FieldValue.increment(-1))
-            } else {
-                userLikeRef.set(mapOf("userId" to currentUser.uid, "timestamp" to System.currentTimeMillis()))
-                db.collection("evidencias").document(evidencia.id).update("likes", FieldValue.increment(1))
-                db.collection("usuarios").document(evidencia.userId).update("totalLikes", FieldValue.increment(1))
-            }
-        }) {
+        IconButton(
+            onClick = {
+                val likesRef = db.collection("evidencias").document(evidencia.id).collection("likes")
+                val userLikeRef = likesRef.document(currentUser!!.uid)
+                if (isLiked) {
+                    userLikeRef.delete()
+                    db.collection("evidencias").document(evidencia.id).update("likes", FieldValue.increment(-1))
+                    db.collection("usuarios").document(evidencia.userId).update("totalLikes", FieldValue.increment(-1))
+                } else {
+                    userLikeRef.set(mapOf("userId" to currentUser.uid, "timestamp" to System.currentTimeMillis()))
+                    db.collection("evidencias").document(evidencia.id).update("likes", FieldValue.increment(1))
+                    db.collection("usuarios").document(evidencia.userId).update("totalLikes", FieldValue.increment(1))
+                }
+            },
+            modifier = Modifier.size(32.dp)
+        ) {
             Icon(
                 if (isLiked) Icons.Filled.Favorite else Icons.Outlined.FavoriteBorder,
                 contentDescription = "Like",
-                tint = if (isLiked) Color(0xFFFF4081) else Color.Gray,
+                tint = Color.White,
                 modifier = Modifier.size(32.dp)
             )
         }
         Text("$likesCount", color = Color.White)
         Spacer(Modifier.height(24.dp))
         // Botón Comentar
-        IconButton(onClick = { showComentarios = true }) {
-            Icon(Icons.Filled.Comment, contentDescription = "Comentar", tint = Color(0xFFA259FF), modifier = Modifier.size(32.dp))
+        val puedeComentar = !commentsRestricted || (currentUser != null && evidencia.userId == currentUser.uid)
+        IconButton(
+            onClick = {
+                if (puedeComentar) {
+                    showComentarios = true
+                } else {
+                    showRestrictDialog = true
+                }
+            },
+            modifier = Modifier.size(32.dp)
+        ) {
+            Icon(painterResource(id = R.drawable.ic_comment_outline), contentDescription = "Comentar", tint = Color.White, modifier = Modifier.size(32.dp))
         }
         Text("$commentsCount", color = Color.White)
         Spacer(Modifier.height(24.dp))
         // Botón Compartir
-        IconButton(onClick = {
-            val sendIntent = Intent().apply {
-                action = Intent.ACTION_SEND
-                putExtra(Intent.EXTRA_TEXT, evidencia.url ?: evidencia.texto ?: "Evidencia de FLUXI")
-                type = "text/plain"
-            }
-            val shareIntent = Intent.createChooser(sendIntent, null)
-            context.startActivity(shareIntent)
-        }) {
-            Icon(Icons.Filled.Share, contentDescription = "Compartir", tint = Color(0xFF3B82F6), modifier = Modifier.size(32.dp))
+        IconButton(
+            onClick = {
+                val sendIntent = Intent().apply {
+                    action = Intent.ACTION_SEND
+                    putExtra(Intent.EXTRA_TEXT, evidencia.url ?: evidencia.texto ?: "Evidencia de FLUXI")
+                    type = "text/plain"
+                }
+                val shareIntent = Intent.createChooser(sendIntent, null)
+                context.startActivity(shareIntent)
+            },
+            modifier = Modifier.size(32.dp)
+        ) {
+            Icon(Icons.Filled.Share, contentDescription = "Compartir", tint = Color.White, modifier = Modifier.size(32.dp))
         }
-        Text("", color = Color.White) // Puedes mostrar un contador si lo deseas
+        Text("", color = Color.White)
         Spacer(Modifier.height(24.dp))
-        // Botón Guardar (opcional, puedes dejarlo sin funcionalidad real)
-        IconButton(onClick = { /* TODO: lógica de guardado si la implementas */ }) {
+        // Botón Guardar (opcional)
+        IconButton(
+            onClick = { /* TODO: lógica de guardado si la implementas */ },
+            modifier = Modifier.size(32.dp)
+        ) {
             Icon(Icons.Default.BookmarkBorder, contentDescription = "Save", tint = Color.White, modifier = Modifier.size(32.dp))
         }
         Text("", color = Color.White)
     }
-    if (showComentarios) {
+    if (showComentarios && (!commentsRestricted || (currentUser != null && evidencia.userId == currentUser.uid))) {
         ComentariosDialog(evidenciaId = evidencia.id, onDismiss = { showComentarios = false })
+    }
+    if (showRestrictDialog) {
+        AlertDialog(
+            onDismissRequest = { showRestrictDialog = false },
+            title = { Text("Comentarios restringidos") },
+            text = { Text("El propietario de esta evidencia ha restringido los comentarios.") },
+            confirmButton = {
+                TextButton(onClick = { showRestrictDialog = false }) {
+                    Text("Aceptar")
+                }
+            }
+        )
     }
 } 
