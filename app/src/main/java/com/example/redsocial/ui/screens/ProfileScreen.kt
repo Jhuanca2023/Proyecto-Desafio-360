@@ -89,6 +89,7 @@ import androidx.compose.material.icons.outlined.FavoriteBorder
 import androidx.compose.material.icons.filled.Comment
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.MoreVert
+import com.example.redsocial.R
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
@@ -796,23 +797,26 @@ fun EvidenciaSocialActionsPerfilModal(evidencia: Evidencia) {
     }
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
         // Botón Like
-        IconButton(onClick = {
-            val likesRef = db.collection("evidencias").document(evidencia.id).collection("likes")
-            val userLikeRef = likesRef.document(currentUser!!.uid)
-            if (isLiked) {
-                userLikeRef.delete()
-                db.collection("evidencias").document(evidencia.id).update("likes", com.google.firebase.firestore.FieldValue.increment(-1))
-                db.collection("usuarios").document(evidencia.userId).update("totalLikes", com.google.firebase.firestore.FieldValue.increment(-1))
-            } else {
-                userLikeRef.set(mapOf("userId" to currentUser.uid, "timestamp" to System.currentTimeMillis()))
-                db.collection("evidencias").document(evidencia.id).update("likes", com.google.firebase.firestore.FieldValue.increment(1))
-                db.collection("usuarios").document(evidencia.userId).update("totalLikes", com.google.firebase.firestore.FieldValue.increment(1))
-            }
-        }) {
+        IconButton(
+            onClick = {
+                val likesRef = db.collection("evidencias").document(evidencia.id).collection("likes")
+                val userLikeRef = likesRef.document(currentUser!!.uid)
+                if (isLiked) {
+                    userLikeRef.delete()
+                    db.collection("evidencias").document(evidencia.id).update("likes", com.google.firebase.firestore.FieldValue.increment(-1))
+                    db.collection("usuarios").document(evidencia.userId).update("totalLikes", com.google.firebase.firestore.FieldValue.increment(-1))
+                } else {
+                    userLikeRef.set(mapOf("userId" to currentUser.uid, "timestamp" to System.currentTimeMillis()))
+                    db.collection("evidencias").document(evidencia.id).update("likes", com.google.firebase.firestore.FieldValue.increment(1))
+                    db.collection("usuarios").document(evidencia.userId).update("totalLikes", com.google.firebase.firestore.FieldValue.increment(1))
+                }
+            },
+            modifier = Modifier.size(32.dp)
+        ) {
             Icon(
                 if (isLiked) Icons.Filled.Favorite else Icons.Outlined.FavoriteBorder,
                 contentDescription = "Like",
-                tint = if (isLiked) Color(0xFFFF4081) else Color.Gray,
+                tint = Color.White,
                 modifier = Modifier.size(32.dp)
             )
         }
@@ -821,8 +825,11 @@ fun EvidenciaSocialActionsPerfilModal(evidencia: Evidencia) {
         // Botón Comentar (solo si no está restringido o si es el dueño)
         val puedeComentar = !commentsRestricted || (currentUser != null && evidencia.userId == currentUser.uid)
         if (puedeComentar) {
-            IconButton(onClick = { showComentarios = true }) {
-                Icon(Icons.Filled.Comment, contentDescription = "Comentar", tint = Color(0xFFA259FF), modifier = Modifier.size(32.dp))
+            IconButton(
+                onClick = { showComentarios = true },
+                modifier = Modifier.size(32.dp)
+            ) {
+                Icon(painterResource(id = R.drawable.ic_comment_outline), contentDescription = "Comentar", tint = Color.White, modifier = Modifier.size(32.dp))
             }
             Text("$commentsCount", color = Color.White)
         } else {
@@ -831,16 +838,19 @@ fun EvidenciaSocialActionsPerfilModal(evidencia: Evidencia) {
         }
         Spacer(Modifier.height(24.dp))
         // Botón Compartir
-        IconButton(onClick = {
-            val sendIntent = android.content.Intent().apply {
-                action = android.content.Intent.ACTION_SEND
-                putExtra(android.content.Intent.EXTRA_TEXT, evidencia.url ?: evidencia.texto ?: "Evidencia de FLUXI")
-                type = "text/plain"
-            }
-            val shareIntent = android.content.Intent.createChooser(sendIntent, null)
-            context.startActivity(shareIntent)
-        }) {
-            Icon(Icons.Filled.Share, contentDescription = "Compartir", tint = Color(0xFF3B82F6), modifier = Modifier.size(32.dp))
+        IconButton(
+            onClick = {
+                val sendIntent = android.content.Intent().apply {
+                    action = android.content.Intent.ACTION_SEND
+                    putExtra(android.content.Intent.EXTRA_TEXT, evidencia.url ?: evidencia.texto ?: "Evidencia de FLUXI")
+                    type = "text/plain"
+                }
+                val shareIntent = android.content.Intent.createChooser(sendIntent, null)
+                context.startActivity(shareIntent)
+            },
+            modifier = Modifier.size(32.dp)
+        ) {
+            Icon(Icons.Filled.Share, contentDescription = "Compartir", tint = Color.White, modifier = Modifier.size(32.dp))
         }
         Text("", color = Color.White)
         Spacer(Modifier.height(24.dp))
