@@ -133,7 +133,10 @@ fun HomeScreen(
                     tipo = data["tipo"] as? String ?: "",
                     url = data["url"] as? String,
                     texto = data["texto"] as? String,
-                    timestamp = data["timestamp"] as? Long ?: 0L
+                    descripcion = data["descripcion"] as? String,
+                    timestamp = data["timestamp"] as? Long ?: 0L,
+                    views = (data["views"] as? Long)?.toInt() ?: 0,
+                    downloadsAllowed = data["downloadsAllowed"] as? Boolean ?: true
                 )
             }.sortedByDescending { it.timestamp }
         } catch (e: Exception) {
@@ -386,6 +389,7 @@ fun EvidenciaPage(
     }
 
     if (showOptionsBottomSheet) {
+        val currentUser = FirebaseAuth.getInstance().currentUser
         ModalBottomSheet(
             onDismissRequest = { showOptionsBottomSheet = false },
             containerColor = Color.Black.copy(alpha = 0.85f)
@@ -414,22 +418,24 @@ fun EvidenciaPage(
                     Spacer(Modifier.height(8.dp))
                     Text("Copiar enlace", color = Color.White)
                 }
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    IconButton(
-                        onClick = {
-                            evidencia.url?.let {
-                                downloadVideo(context, it)
-                            }
-                            showOptionsBottomSheet = false
-                        },
-                        modifier = Modifier
-                            .size(64.dp)
-                            .background(Color(0xFF444444), shape = CircleShape)
-                    ) {
-                        Icon(Icons.Filled.Download, contentDescription = "Descargar", tint = Color.White, modifier = Modifier.size(32.dp))
+                if (evidencia.downloadsAllowed || currentUser?.uid == evidencia.userId) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        IconButton(
+                            onClick = {
+                                evidencia.url?.let {
+                                    downloadVideo(context, it)
+                                }
+                                showOptionsBottomSheet = false
+                            },
+                            modifier = Modifier
+                                .size(64.dp)
+                                .background(Color(0xFF444444), shape = CircleShape)
+                        ) {
+                            Icon(Icons.Filled.Download, contentDescription = "Descargar", tint = Color.White, modifier = Modifier.size(32.dp))
+                        }
+                        Spacer(Modifier.height(8.dp))
+                        Text("Descargar", color = Color.White)
                     }
-                    Spacer(Modifier.height(8.dp))
-                    Text("Descargar", color = Color.White)
                 }
             }
         }
