@@ -87,6 +87,12 @@ import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Download
 import com.example.redsocial.ui.theme.BackgroundDark
 import com.example.redsocial.ui.theme.ButtonPrimary
+import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.ui.text.input.TextFieldValue
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
@@ -567,6 +573,11 @@ fun ComentariosDialog(
     var comentarios by remember { mutableStateOf(listOf<Comentario>()) }
     var nuevoComentario by remember { mutableStateOf("") }
     var currentUserName by remember { mutableStateOf("") }
+    var showEditDialog by remember { mutableStateOf(false) }
+    var comentarioAEditar by remember { mutableStateOf<Comentario?>(null) }
+    var textoEditado by remember { mutableStateOf(TextFieldValue("")) }
+    var showDeleteDialog by remember { mutableStateOf(false) }
+    var comentarioAEliminar by remember { mutableStateOf<Comentario?>(null) }
 
     // Obtener el nombre del usuario actual
     LaunchedEffect(currentUser?.uid) {
@@ -629,7 +640,8 @@ fun ComentariosDialog(
                                             text = "@${comentario.userName}",
                                             color = ButtonPrimary,
                                             fontWeight = FontWeight.Bold,
-                                            fontSize = 14.sp
+                                            fontSize = 14.sp,
+                                            modifier = Modifier.clickable { /* podrías navegar al perfil si quieres */ }
                                         )
                                         Spacer(modifier = Modifier.width(8.dp))
                                         Text(
@@ -637,6 +649,40 @@ fun ComentariosDialog(
                                             color = Color.Gray,
                                             fontSize = 12.sp
                                         )
+                                        Spacer(modifier = Modifier.weight(1f))
+                                        if (comentario.userId == currentUser?.uid) {
+                                            var showMenu by remember { mutableStateOf(false) }
+                                            Box {
+                                                IconButton(onClick = { showMenu = true }) {
+                                                    Icon(Icons.Default.MoreVert, contentDescription = "Más opciones", tint = ButtonPrimary)
+                                                }
+                                                DropdownMenu(
+                                                    expanded = showMenu,
+                                                    onDismissRequest = { showMenu = false },
+                                                    modifier = Modifier.background(BackgroundDark)
+                                                ) {
+                                                    DropdownMenuItem(
+                                                        text = { Text("Editar", color = Color.White) },
+                                                        leadingIcon = { Icon(Icons.Default.Edit, contentDescription = null, tint = ButtonPrimary) },
+                                                        onClick = {
+                                                            comentarioAEditar = comentario
+                                                            textoEditado = TextFieldValue(comentario.texto)
+                                                            showEditDialog = true
+                                                            showMenu = false
+                                                        }
+                                                    )
+                                                    DropdownMenuItem(
+                                                        text = { Text("Eliminar", color = Color.White) },
+                                                        leadingIcon = { Icon(Icons.Default.Delete, contentDescription = null, tint = Color(0xFFFF6B6B)) },
+                                                        onClick = {
+                                                            comentarioAEliminar = comentario
+                                                            showDeleteDialog = true
+                                                            showMenu = false
+                                                        }
+                                                    )
+                                                }
+                                            }
+                                        }
                                     }
                                     Spacer(modifier = Modifier.height(4.dp))
                                     Text(
@@ -704,8 +750,107 @@ fun ComentariosDialog(
                 Text("Cerrar", color = ButtonPrimary) 
             }
         },
-        containerColor = Color.Black.copy(alpha = 0.85f)
+        containerColor = BackgroundDark.copy(alpha = 0.95f)
     )
+
+    // Modal de edición de comentario
+    if (showEditDialog && comentarioAEditar != null) {
+        AlertDialog(
+            onDismissRequest = {
+                showEditDialog = false
+                comentarioAEditar = null
+                textoEditado = TextFieldValue("")
+            },
+            title = { Text("Editar comentario", color = Color.White) },
+            containerColor = BackgroundDark.copy(alpha = 0.95f),
+            text = {
+                OutlinedTextField(
+                    value = textoEditado,
+                    onValueChange = { textoEditado = it },
+                    modifier = Modifier.fillMaxWidth(),
+                    placeholder = { Text("Escribe tu comentario...", color = Color.White) },
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedTextColor = Color.White,
+                        unfocusedTextColor = Color.White,
+                        focusedBorderColor = ButtonPrimary,
+                        unfocusedBorderColor = Color.Gray,
+                        focusedLabelColor = ButtonPrimary,
+                        unfocusedLabelColor = Color.Gray
+                    )
+                )
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        val comentario = comentarioAEditar
+                        if (comentario != null && textoEditado.text.isNotBlank()) {
+                            db.collection("evidencias").document(evidenciaId)
+                                .collection("comentarios").document(comentario.id)
+                                .update("texto", textoEditado.text)
+                            showEditDialog = false
+                            comentarioAEditar = null
+                            textoEditado = TextFieldValue("")
+                        }
+                    },
+                    colors = ButtonDefaults.textButtonColors(contentColor = ButtonPrimary)
+                ) {
+                    Text("Guardar", color = Color.White)
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = {
+                        showEditDialog = false
+                        comentarioAEditar = null
+                        textoEditado = TextFieldValue("")
+                    },
+                    colors = ButtonDefaults.textButtonColors(contentColor = Color.Gray)
+                ) {
+                    Text("Cancelar", color = Color.Gray)
+                }
+            }
+        )
+    }
+    // Modal de confirmación de eliminación
+    if (showDeleteDialog && comentarioAEliminar != null) {
+        AlertDialog(
+            onDismissRequest = {
+                showDeleteDialog = false
+                comentarioAEliminar = null
+            },
+            title = { Text("Eliminar comentario", color = Color.White) },
+            text = { Text("¿Estás seguro de que quieres eliminar este comentario? Esta acción no se puede deshacer.", color = Color(0xFFCBD5E1)) },
+            containerColor = BackgroundDark.copy(alpha = 0.95f),
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        val comentario = comentarioAEliminar
+                        if (comentario != null) {
+                            db.collection("evidencias").document(evidenciaId)
+                                .collection("comentarios").document(comentario.id)
+                                .delete()
+                            showDeleteDialog = false
+                            comentarioAEliminar = null
+                        }
+                    },
+                    colors = ButtonDefaults.textButtonColors(contentColor = Color(0xFFFF6B6B))
+                ) {
+                    Text("Eliminar", color = Color(0xFFFF6B6B))
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = {
+                        showDeleteDialog = false
+                        comentarioAEliminar = null
+                    },
+                    colors = ButtonDefaults.textButtonColors(contentColor = Color.Gray)
+                ) {
+                    Text("Cancelar", color = Color.Gray)
+                }
+            }
+        )
+    }
 }
 
 private fun formatTimestamp(timestamp: Long): String {
