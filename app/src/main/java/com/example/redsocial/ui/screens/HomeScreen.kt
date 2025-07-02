@@ -85,6 +85,8 @@ import com.example.redsocial.R
 import com.example.redsocial.ui.theme.DarkBlue
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Download
+import com.example.redsocial.ui.theme.BackgroundDark
+import com.example.redsocial.ui.theme.ButtonPrimary
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
@@ -235,7 +237,7 @@ fun HomeScreen(
                             showBottomSheet = false
                         },
                         sheetState = sheetState,
-                        containerColor = Color(0xFF1A1F2E)
+                        containerColor = Color.Black.copy(alpha = 0.85f)
                     ) {
                         Column(Modifier.padding(16.dp)) {
                             Text(
@@ -614,7 +616,7 @@ fun ComentariosDialog(
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .padding(vertical = 4.dp),
-                                colors = CardDefaults.cardColors(containerColor = Color(0xFF2A1B3D)),
+                                colors = CardDefaults.cardColors(containerColor = BackgroundDark),
                                 shape = RoundedCornerShape(8.dp)
                             ) {
                                 Column(
@@ -692,17 +694,17 @@ fun ComentariosDialog(
                         nuevoComentario = ""
                     }
                 },
-                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFA259FF))
+                colors = ButtonDefaults.buttonColors(containerColor = ButtonPrimary)
             ) {
                 Text("Enviar", color = Color.White)
             }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) { 
-                Text("Cerrar", color = Color(0xFFA259FF)) 
+                Text("Cerrar", color = ButtonPrimary) 
             }
         },
-        containerColor = Color(0xFF1A1F2E)
+        containerColor = Color.Black.copy(alpha = 0.85f)
     )
 }
 
@@ -1093,13 +1095,14 @@ fun EvidenciaSocialActions(evidencia: Evidencia, navController: NavController) {
     if (showRestrictDialog) {
         AlertDialog(
             onDismissRequest = { showRestrictDialog = false },
-            title = { Text("Comentarios restringidos") },
-            text = { Text("El propietario de esta evidencia ha restringido los comentarios.") },
+            title = { Text("Comentarios restringidos", color = Color.White) },
+            text = { Text("El propietario de esta evidencia ha restringido los comentarios.", color = Color.White) },
             confirmButton = {
                 TextButton(onClick = { showRestrictDialog = false }) {
-                    Text("Aceptar")
+                    Text("Aceptar", color = Color(0xFFA259FF))
                 }
-            }
+            },
+            containerColor = Color.Black.copy(alpha = 0.85f)
         )
     }
 } 
