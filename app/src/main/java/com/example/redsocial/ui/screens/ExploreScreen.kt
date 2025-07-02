@@ -43,6 +43,8 @@ import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.material.icons.filled.People
 import com.google.firebase.firestore.FieldValue
+import com.example.redsocial.R
+import androidx.compose.ui.res.painterResource
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
@@ -359,12 +361,14 @@ fun ChallengePreviewCardFirestore(
                 ) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         IconButton(
-                            onClick = { handleLike() }
+                            onClick = { handleLike() },
+                            modifier = Modifier.size(32.dp)
                         ) {
                             Icon(
                                 if (isLiked) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
                                 contentDescription = "Likes",
-                                tint = if (isLiked) Color(0xFFFF4081) else Color(0xFF60A5FA)
+                                tint = Color.White,
+                                modifier = Modifier.size(32.dp)
                             )
                         }
                         Spacer(Modifier.width(4.dp))
@@ -372,13 +376,10 @@ fun ChallengePreviewCardFirestore(
                     }
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         IconButton(
-                            onClick = { showComments = true }
+                            onClick = { showComments = true },
+                            modifier = Modifier.size(32.dp)
                         ) {
-                            Icon(
-                                Icons.Default.Comment,
-                                contentDescription = "Comentarios",
-                                tint = Color(0xFF60A5FA)
-                            )
+                            Icon(painterResource(id = R.drawable.ic_comment_outline), contentDescription = "Comentarios", tint = Color.White, modifier = Modifier.size(32.dp))
                         }
                         Spacer(Modifier.width(4.dp))
                         Text("$currentComments", color = Color.White)
