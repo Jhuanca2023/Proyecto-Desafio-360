@@ -627,7 +627,7 @@ fun ComentariosDialog(
                                     ) {
                                         Text(
                                             text = "@${comentario.userName}",
-                                            color = Color(0xFFA259FF),
+                                            color = ButtonPrimary,
                                             fontWeight = FontWeight.Bold,
                                             fontSize = 14.sp
                                         )
@@ -655,7 +655,7 @@ fun ComentariosDialog(
                 ) {
                     Text(
                         text = "Comentando como: @$currentUserName",
-                        color = Color(0xFFA259FF),
+                        color = ButtonPrimary,
                         fontSize = 12.sp,
                         modifier = Modifier.weight(1f)
                     )
@@ -663,14 +663,14 @@ fun ComentariosDialog(
                 OutlinedTextField(
                     value = nuevoComentario,
                     onValueChange = { nuevoComentario = it },
-                    label = { Text("Escribe un comentario...", color = Color.Gray) },
+                    label = { Text("Escribe un comentario...", color = ButtonPrimary) },
                     modifier = Modifier.fillMaxWidth(),
                     colors = OutlinedTextFieldDefaults.colors(
                         focusedTextColor = Color.White,
                         unfocusedTextColor = Color.White,
-                        focusedBorderColor = Color(0xFFA259FF),
+                        focusedBorderColor = ButtonPrimary,
                         unfocusedBorderColor = Color.Gray,
-                        focusedLabelColor = Color(0xFFA259FF),
+                        focusedLabelColor = ButtonPrimary,
                         unfocusedLabelColor = Color.Gray
                     ),
                     maxLines = 3
