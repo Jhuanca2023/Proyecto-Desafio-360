@@ -42,6 +42,7 @@ import androidx.compose.ui.graphics.Color
 import java.io.File
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
+import kotlinx.coroutines.tasks.await
 
 @Composable
 fun SendEvidenceScreen(
@@ -53,6 +54,17 @@ fun SendEvidenceScreen(
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val clientId = "e88c7011ed88321" // Imgur
+    val user = FirebaseAuth.getInstance().currentUser
+    var currentUserName by remember { mutableStateOf("") }
+
+    // Obtener el nombre de usuario real desde Firestore
+    LaunchedEffect(user?.uid) {
+        if (user != null) {
+            val db = FirebaseFirestore.getInstance()
+            val userDoc = db.collection("usuarios").document(user.uid).get().await()
+            currentUserName = userDoc.getString("nombreUsuario") ?: user.displayName ?: "Usuario"
+        }
+    }
 
     var tipo by remember { mutableStateOf("imagen") }
     var imageUri by remember { mutableStateOf<Uri?>(null) }
@@ -314,7 +326,7 @@ fun SendEvidenceScreen(
                                                         saveEvidenceToFirestore(
                                                             challengeId,
                                                             user?.uid ?: "",
-                                                            user?.displayName ?: "",
+                                                            currentUserName,
                                                             tipo,
                                                             url,
                                                             null,
@@ -347,7 +359,7 @@ fun SendEvidenceScreen(
                                                             saveEvidenceToFirestore(
                                                                 challengeId,
                                                                 user?.uid ?: "",
-                                                                user?.displayName ?: "",
+                                                                currentUserName,
                                                                 tipo,
                                                                 url,
                                                                 null,
@@ -388,7 +400,7 @@ fun SendEvidenceScreen(
                                                         saveEvidenceToFirestore(
                                                             challengeId,
                                                             user?.uid ?: "",
-                                                            user?.displayName ?: "",
+                                                            currentUserName,
                                                             tipo,
                                                             url,
                                                             null,
@@ -417,7 +429,7 @@ fun SendEvidenceScreen(
                                             saveEvidenceToFirestore(
                                                 challengeId,
                                                 user?.uid ?: "",
-                                                user?.displayName ?: "",
+                                                currentUserName,
                                                 tipo,
                                                 null,
                                                 texto,
