@@ -1,3 +1,5 @@
+@file:OptIn(androidx.media3.common.util.UnstableApi::class)
+
 package com.example.redsocial.ui.screens
 
 import androidx.compose.foundation.layout.*
@@ -20,6 +22,7 @@ import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.tasks.await
 import coil.compose.AsyncImage
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.viewinterop.AndroidView
 import android.widget.VideoView
 import androidx.compose.foundation.ExperimentalFoundationApi
@@ -29,6 +32,9 @@ import androidx.compose.material.icons.automirrored.filled.Comment
 import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.BookmarkBorder
 import androidx.compose.material.icons.filled.FavoriteBorder
+import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material.icons.outlined.FavoriteBorder
+import androidx.compose.material.icons.outlined.InsertComment
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
@@ -65,6 +71,17 @@ import androidx.media3.common.util.UnstableApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.ui.draw.clip
+import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material.icons.filled.Share
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.firestore.FieldValue
+import android.content.Intent
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.navigation.NavController
+import androidx.compose.ui.res.painterResource
+import com.example.redsocial.R
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
@@ -73,7 +90,8 @@ fun HomeScreen(
     onNavigateToCreate: () -> Unit,
     onNavigateToNotifications: () -> Unit,
     onNavigateToProfile: () -> Unit,
-    onNavigateToChallengeDetail: (String) -> Unit
+    onNavigateToChallengeDetail: (String) -> Unit,
+    navController: NavController
 ) {
     var selectedTab by remember { mutableStateOf(0) }
     var selectedTipo by remember { mutableStateOf("video") }
@@ -114,97 +132,132 @@ fun HomeScreen(
         isLoading = false
     }
 
-    Scaffold(
-        bottomBar = {
-            NavigationBar {
-                NavigationBarItem(
-                    icon = { Icon(Icons.Default.Home, contentDescription = "Home") },
-                    label = { Text("Home") },
-                    selected = true,
-                    onClick = { /* Already on Home */ }
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(
+                Brush.verticalGradient(
+                    colors = listOf(
+                        Color(0xFF0A0F1C), // Celeste muy oscuro (noche)
+                        Color(0xFF1A1F2E), // Celeste oscuro
+                        Color(0xFF2A2F3E)  // Celeste medio oscuro
+                    )
                 )
-                NavigationBarItem(
-                    icon = { Icon(Icons.Default.Search, contentDescription = "Explorar") },
-                    label = { Text("Explorar") },
-                    selected = false,
-                    onClick = onNavigateToExplore
-                )
-                NavigationBarItem(
-                    icon = { Icon(Icons.Default.Add, contentDescription = "Crear") },
-                    label = { Text("Crear") },
-                    selected = false,
-                    onClick = onNavigateToCreate
-                )
-                NavigationBarItem(
-                    icon = { Icon(Icons.Default.Notifications, contentDescription = "Avisos") },
-                    label = { Text("Avisos") },
-                    selected = false,
-                    onClick = onNavigateToNotifications
-                )
-                NavigationBarItem(
-                    icon = { Icon(Icons.Default.Person, contentDescription = "Perfil") },
-                    label = { Text("Perfil") },
-                    selected = false,
-                    onClick = onNavigateToProfile
-                )
-            }
-        }
-    ) { paddingValues ->
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(paddingValues)
-        ) {
-            if (isLoading) {
-                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    CircularProgressIndicator()
-                }
-            } else if (errorMsg != null) {
-                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    Text(errorMsg ?: "Error desconocido", color = MaterialTheme.colorScheme.error)
-                }
-            } else if (evidencias.isEmpty()) {
-                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    Text("No hay contenido disponible.", style = MaterialTheme.typography.titleMedium)
-                }
-            } else {
-                val pagerState = rememberPagerState(pageCount = { evidencias.size })
-                VerticalPager(
-                    state = pagerState,
-                    modifier = Modifier.fillMaxSize()
-                ) { page ->
-                    EvidenciaPage(
-                        evidencia = evidencias[page],
-                        onNavigateToChallengeDetail = onNavigateToChallengeDetail,
-                        onCategoryClick = {
-                            showBottomSheet = true
-                        }
+            )
+    ) {
+        Scaffold(
+            bottomBar = {
+                NavigationBar(
+                    containerColor = Color(0xFF1A1F2E),
+                    contentColor = Color.White
+                ) {
+                    NavigationBarItem(
+                        icon = { Icon(Icons.Default.Home, contentDescription = "Home", tint = Color(0xFF3B82F6)) },
+                        label = { Text("Home", color = Color(0xFF3B82F6)) },
+                        selected = true,
+                        onClick = { /* Already on Home */ }
+                    )
+                    NavigationBarItem(
+                        icon = { Icon(Icons.Default.Search, contentDescription = "Explorar", tint = Color(0xFFCBD5E1)) },
+                        label = { Text("Explorar", color = Color(0xFFCBD5E1)) },
+                        selected = false,
+                        onClick = onNavigateToExplore
+                    )
+                    NavigationBarItem(
+                        icon = { Icon(Icons.Default.Add, contentDescription = "Crear", tint = Color(0xFFCBD5E1)) },
+                        label = { Text("Crear", color = Color(0xFFCBD5E1)) },
+                        selected = false,
+                        onClick = onNavigateToCreate
+                    )
+                    NavigationBarItem(
+                        icon = { Icon(Icons.Default.Notifications, contentDescription = "Avisos", tint = Color(0xFFCBD5E1)) },
+                        label = { Text("Avisos", color = Color(0xFFCBD5E1)) },
+                        selected = false,
+                        onClick = onNavigateToNotifications
+                    )
+                    NavigationBarItem(
+                        icon = { Icon(Icons.Default.Person, contentDescription = "Perfil", tint = Color(0xFFCBD5E1)) },
+                        label = { Text("Perfil", color = Color(0xFFCBD5E1)) },
+                        selected = false,
+                        onClick = onNavigateToProfile
                     )
                 }
             }
+        ) { paddingValues ->
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(paddingValues)
+            ) {
+                if (isLoading) {
+                    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                        CircularProgressIndicator(color = Color(0xFF3B82F6))
+                    }
+                } else if (errorMsg != null) {
+                    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                        Text(
+                            errorMsg ?: "Error desconocido", 
+                            color = Color(0xFFFF6B6B),
+                            style = MaterialTheme.typography.bodyLarge
+                        )
+                    }
+                } else if (evidencias.isEmpty()) {
+                    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                        Text(
+                            "No hay contenido disponible.", 
+                            style = MaterialTheme.typography.titleMedium,
+                            color = Color.White
+                        )
+                    }
+                } else {
+                    val pagerState = rememberPagerState(pageCount = { evidencias.size })
+                    VerticalPager(
+                        state = pagerState,
+                        modifier = Modifier.fillMaxSize()
+                    ) { page ->
+                        EvidenciaPage(
+                            evidencia = evidencias[page],
+                            onNavigateToChallengeDetail = onNavigateToChallengeDetail,
+                            onCategoryClick = {
+                                showBottomSheet = true
+                            },
+                            navController = navController
+                        )
+                    }
+                }
 
-            if (showBottomSheet) {
-                ModalBottomSheet(
-                    onDismissRequest = {
-                        showBottomSheet = false
-                    },
-                    sheetState = sheetState
-                ) {
-                    Column(Modifier.padding(16.dp)) {
-                        Text("Categorías", style = MaterialTheme.typography.titleLarge, modifier = Modifier.padding(bottom = 16.dp))
-                        listOf("video", "imagen", "texto", "audio").forEach { tipo ->
-                            TextButton(
-                                onClick = {
-                                    selectedTipo = tipo
-                                    scope.launch { sheetState.hide() }.invokeOnCompletion {
-                                        if (!sheetState.isVisible) {
-                                            showBottomSheet = false
+                if (showBottomSheet) {
+                    ModalBottomSheet(
+                        onDismissRequest = {
+                            showBottomSheet = false
+                        },
+                        sheetState = sheetState,
+                        containerColor = Color(0xFF1A1F2E)
+                    ) {
+                        Column(Modifier.padding(16.dp)) {
+                            Text(
+                                "Categorías", 
+                                style = MaterialTheme.typography.titleLarge, 
+                                modifier = Modifier.padding(bottom = 16.dp),
+                                color = Color.White
+                            )
+                            listOf("video", "imagen", "texto", "audio").forEach { tipo ->
+                                TextButton(
+                                    onClick = {
+                                        selectedTipo = tipo
+                                        scope.launch { sheetState.hide() }.invokeOnCompletion {
+                                            if (!sheetState.isVisible) {
+                                                showBottomSheet = false
+                                            }
                                         }
-                                    }
-                                },
-                                modifier = Modifier.fillMaxWidth()
-                            ) {
-                                Text(tipo.replaceFirstChar { it.uppercase() })
+                                    },
+                                    modifier = Modifier.fillMaxWidth()
+                                ) {
+                                    Text(
+                                        tipo.replaceFirstChar { it.uppercase() },
+                                        color = Color.White
+                                    )
+                                }
                             }
                         }
                     }
@@ -219,7 +272,8 @@ fun HomeScreen(
 fun EvidenciaPage(
     evidencia: Evidencia,
     onNavigateToChallengeDetail: (String) -> Unit,
-    onCategoryClick: () -> Unit
+    onCategoryClick: () -> Unit,
+    navController: NavController
 ) {
     var challenge by remember { mutableStateOf<Challenge?>(null) }
     var showOptionsBottomSheet by remember { mutableStateOf(false) }
@@ -287,46 +341,36 @@ fun EvidenciaPage(
                     Text(
                         text = "By @${evidencia.userName}",
                         color = Color.White,
-                        style = MaterialTheme.typography.bodyMedium
+                        style = MaterialTheme.typography.bodyMedium,
+                        modifier = Modifier.clickable {
+                            navController.navigate("userProfile/${evidencia.userId}")
+                        }
                     )
                 }
                 Spacer(modifier = Modifier.height(16.dp))
                 Row {
-                    Button(onClick = { onNavigateToChallengeDetail(evidencia.challengeId) }) {
-                        Text("Participate")
+                    Button(
+                        onClick = { onNavigateToChallengeDetail(evidencia.challengeId) },
+                        modifier = Modifier
+                            .border(2.dp, Color.White, shape = RoundedCornerShape(50)),
+                        colors = ButtonDefaults.buttonColors(containerColor = Color.Transparent)
+                    ) {
+                        Text("Participar", color = Color.White)
                     }
                     Spacer(Modifier.width(8.dp))
-                    Button(onClick = onCategoryClick) {
-                        Text("Category")
+                    Button(
+                        onClick = onCategoryClick,
+                        modifier = Modifier
+                            .border(2.dp, Color.White, shape = RoundedCornerShape(50)),
+                        colors = ButtonDefaults.buttonColors(containerColor = Color.Transparent)
+                    ) {
+                        Text("Categoría", color = Color.White)
                     }
                 }
             }
 
-            // Right side: Social Actions
-            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                IconButton(onClick = { /* TODO */ }) {
-                    Icon(Icons.Default.FavoriteBorder, contentDescription = "Like", tint = Color.White, modifier = Modifier.size(32.dp))
-                }
-                Text("2.3k", color = Color.White)
-                Spacer(Modifier.height(24.dp))
-
-                IconButton(onClick = { /* TODO */ }) {
-                    Icon(Icons.AutoMirrored.Filled.Comment, contentDescription = "Comment", tint = Color.White, modifier = Modifier.size(32.dp))
-                }
-                Text("1.2k", color = Color.White)
-                Spacer(Modifier.height(24.dp))
-
-                IconButton(onClick = { /* TODO */ }) {
-                    Icon(Icons.AutoMirrored.Filled.Send, contentDescription = "Send", tint = Color.White, modifier = Modifier.size(32.dp))
-                }
-                Text("500", color = Color.White)
-                Spacer(Modifier.height(24.dp))
-
-                IconButton(onClick = { /* TODO */ }) {
-                    Icon(Icons.Default.BookmarkBorder, contentDescription = "Save", tint = Color.White, modifier = Modifier.size(32.dp))
-                }
-                 Text("100", color = Color.White)
-            }
+            // Right side: Social Actions (reemplazo la columna temporal por la lógica real)
+            EvidenciaSocialActions(evidencia = evidencia, navController = navController)
         }
     }
 
@@ -347,7 +391,7 @@ fun EvidenciaPage(
                         .fillMaxWidth()
                         .padding(horizontal = 16.dp)
                 ) {
-                    Text("Copiar link")
+                    Text("Copiar link", color = Color.White)
                 }
                 TextButton(
                     onClick = {
@@ -360,7 +404,7 @@ fun EvidenciaPage(
                         .fillMaxWidth()
                         .padding(horizontal = 16.dp)
                 ) {
-                    Text("Descargar")
+                    Text("Descargar", color = Color.White)
                 }
             }
         }
@@ -471,7 +515,11 @@ fun EvidenciasFeed(evidencias: List<Evidencia>) {
             modifier = Modifier.fillMaxSize(),
             contentAlignment = Alignment.Center
         ) {
-            Text("Aún no hay evidencias, ¡sé el primero en participar!", style = MaterialTheme.typography.titleMedium)
+            Text(
+                "Aún no hay evidencias, ¡sé el primero en participar!", 
+                style = MaterialTheme.typography.titleMedium,
+                color = Color.White
+            )
         }
     } else {
         LazyColumn {
@@ -482,96 +530,261 @@ fun EvidenciasFeed(evidencias: List<Evidencia>) {
     }
 }
 
-@Composable
-fun EvidenciaCard(evidencia: Evidencia) {
-    var challengeTitle by remember { mutableStateOf("") }
-    var challengeDescription by remember { mutableStateOf("") }
+data class Comentario(
+    val id: String = "",
+    val userId: String = "",
+    val userName: String = "",
+    val texto: String = "",
+    val timestamp: Long = System.currentTimeMillis()
+)
 
-    // Obtener información del desafío
-    LaunchedEffect(evidencia.challengeId) {
-        val db = FirebaseFirestore.getInstance()
-        val challengeDoc = db.collection("desafios").document(evidencia.challengeId).get().await()
-        challengeTitle = challengeDoc.getString("title") ?: ""
-        challengeDescription = challengeDoc.getString("description") ?: ""
+@Composable
+fun ComentariosDialog(
+    evidenciaId: String,
+    onDismiss: () -> Unit
+) {
+    val db = FirebaseFirestore.getInstance()
+    val currentUser = FirebaseAuth.getInstance().currentUser
+    var comentarios by remember { mutableStateOf(listOf<Comentario>()) }
+    var nuevoComentario by remember { mutableStateOf("") }
+    var currentUserName by remember { mutableStateOf("") }
+
+    // Obtener el nombre del usuario actual
+    LaunchedEffect(currentUser?.uid) {
+        if (currentUser != null) {
+            val userDoc = db.collection("usuarios").document(currentUser.uid).get().await()
+            currentUserName = userDoc.getString("nombreUsuario") ?: currentUser.displayName ?: "Usuario"
+        }
     }
 
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(8.dp)
-    ) {
-        Column(Modifier.padding(16.dp)) {
-            Text(
-                text = challengeTitle,
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold
-            )
-            Spacer(Modifier.height(4.dp))
-            Text(
-                text = "Por: @${evidencia.userName}",
-                style = MaterialTheme.typography.bodyMedium
-            )
-            Spacer(Modifier.height(8.dp))
-            evidencia.url?.let { url ->
-                if (evidencia.tipo == "imagen") {
-                    AsyncImage(
-                        model = url,
-                        contentDescription = "Imagen de evidencia",
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(200.dp)
+    // Escuchar comentarios en tiempo real
+    LaunchedEffect(evidenciaId) {
+        db.collection("evidencias").document(evidenciaId)
+            .collection("comentarios")
+            .orderBy("timestamp")
+            .addSnapshotListener { snapshot, _ ->
+                comentarios = snapshot?.documents?.map { doc ->
+                    Comentario(
+                        id = doc.id,
+                        userId = doc.getString("userId") ?: "",
+                        userName = doc.getString("userName") ?: "",
+                        texto = doc.getString("texto") ?: "",
+                        timestamp = doc.getLong("timestamp") ?: 0L
                     )
-                } else if (evidencia.tipo == "video") {
-                    // Mostrar video usando AndroidView y VideoView
-                    androidx.compose.ui.viewinterop.AndroidView(
-                        factory = { context ->
-                            android.widget.VideoView(context).apply {
-                                setVideoPath(url)
-                                setOnPreparedListener { mp ->
-                                    mp.isLooping = true
-                                    start()
+                } ?: emptyList()
+            }
+    }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Comentarios", color = Color.White) },
+        text = {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(max = 400.dp)
+            ) {
+                if (comentarios.isEmpty()) {
+                    Text("Aún no hay comentarios.", color = Color.Gray, modifier = Modifier.padding(vertical = 16.dp))
+                } else {
+                    LazyColumn(
+                        modifier = Modifier
+                            .weight(1f)
+                            .fillMaxWidth()
+                    ) {
+                        items(comentarios) { comentario ->
+                            Card(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(vertical = 4.dp),
+                                colors = CardDefaults.cardColors(containerColor = Color(0xFF2A1B3D)),
+                                shape = RoundedCornerShape(8.dp)
+                            ) {
+                                Column(
+                                    modifier = Modifier.padding(12.dp)
+                                ) {
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Text(
+                                            text = "@${comentario.userName}",
+                                            color = Color(0xFFA259FF),
+                                            fontWeight = FontWeight.Bold,
+                                            fontSize = 14.sp
+                                        )
+                                        Spacer(modifier = Modifier.width(8.dp))
+                                        Text(
+                                            text = formatTimestamp(comentario.timestamp),
+                                            color = Color.Gray,
+                                            fontSize = 12.sp
+                                        )
+                                    }
+                                    Spacer(modifier = Modifier.height(4.dp))
+                                    Text(
+                                        text = comentario.texto,
+                                        color = Color.White,
+                                        fontSize = 14.sp
+                                    )
                                 }
                             }
-                        },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(200.dp)
-                    )
-                } else if (evidencia.tipo == "audio") {
-                    // Mostrar audio con icono y controles
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(100.dp)
-                            .background(Color(0xFF1A1333)),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(16.dp)
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Mic,
-                                contentDescription = "Audio",
-                                tint = Color.White,
-                                modifier = Modifier.size(32.dp)
-                            )
-                            Text(
-                                text = "🎵 Audio Evidence",
-                                color = Color.White,
-                                style = MaterialTheme.typography.bodyMedium
-                            )
                         }
                     }
                 }
-            }
-            Spacer(Modifier.height(8.dp))
-            if (evidencia.texto != null) {
-                Text(
-                    text = evidencia.texto,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = Color.Gray
+                Spacer(modifier = Modifier.height(8.dp))
+                Row(
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "Comentando como: @$currentUserName",
+                        color = Color(0xFFA259FF),
+                        fontSize = 12.sp,
+                        modifier = Modifier.weight(1f)
+                    )
+                }
+                OutlinedTextField(
+                    value = nuevoComentario,
+                    onValueChange = { nuevoComentario = it },
+                    label = { Text("Escribe un comentario...", color = Color.Gray) },
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedTextColor = Color.White,
+                        unfocusedTextColor = Color.White,
+                        focusedBorderColor = Color(0xFFA259FF),
+                        unfocusedBorderColor = Color.Gray,
+                        focusedLabelColor = Color(0xFFA259FF),
+                        unfocusedLabelColor = Color.Gray
+                    ),
+                    maxLines = 3
                 )
+            }
+        },
+        confirmButton = {
+            Button(
+                onClick = {
+                    if (nuevoComentario.isNotBlank() && currentUser != null) {
+                        db.collection("evidencias").document(evidenciaId)
+                            .collection("comentarios")
+                            .add(
+                                mapOf(
+                                    "userId" to currentUser.uid,
+                                    "userName" to currentUserName,
+                                    "texto" to nuevoComentario,
+                                    "timestamp" to System.currentTimeMillis()
+                                )
+                            )
+                        nuevoComentario = ""
+                    }
+                },
+                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFA259FF))
+            ) {
+                Text("Enviar", color = Color.White)
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) { 
+                Text("Cerrar", color = Color(0xFFA259FF)) 
+            }
+        },
+        containerColor = Color(0xFF1A1F2E)
+    )
+}
+
+private fun formatTimestamp(timestamp: Long): String {
+    val now = System.currentTimeMillis()
+    val diff = now - timestamp
+    
+    return when {
+        diff < 60000 -> "Ahora"
+        diff < 3600000 -> "${diff / 60000}m"
+        diff < 86400000 -> "${diff / 3600000}h"
+        else -> "${diff / 86400000}d"
+    }
+}
+
+@Composable
+fun EvidenciaCard(evidencia: Evidencia) {
+    val currentUser = FirebaseAuth.getInstance().currentUser
+    val db = FirebaseFirestore.getInstance()
+    val context = LocalContext.current
+    var likesCount by remember { mutableStateOf(0) }
+    var isLiked by remember { mutableStateOf(false) }
+    var commentsCount by remember { mutableStateOf(0) }
+    var showComentarios by remember { mutableStateOf(false) }
+    // Escuchar likes en tiempo real
+    LaunchedEffect(evidencia.id) {
+        val likesRef = db.collection("evidencias").document(evidencia.id).collection("likes")
+        likesRef.addSnapshotListener { snapshot, _ ->
+            likesCount = snapshot?.size() ?: 0
+            isLiked = snapshot?.documents?.any { it.id == currentUser?.uid } == true
+        }
+        val commentsRef = db.collection("evidencias").document(evidencia.id).collection("comentarios")
+        commentsRef.addSnapshotListener { snapshot, _ ->
+            commentsCount = snapshot?.size() ?: 0
+        }
+    }
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 8.dp),
+        colors = CardDefaults.cardColors(containerColor = Color(0xFF2A1B3D)),
+        shape = RoundedCornerShape(12.dp)
+    ) {
+        Column(modifier = Modifier.padding(12.dp)) {
+            // ... Mostrar contenido de la evidencia (imagen, video, texto, audio) ...
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                // Botón Like
+                IconButton(
+                    onClick = {
+                        val likesRef = db.collection("evidencias").document(evidencia.id).collection("likes")
+                        val userLikeRef = likesRef.document(currentUser!!.uid)
+                        if (isLiked) {
+                            userLikeRef.delete()
+                            db.collection("evidencias").document(evidencia.id).update("likes", FieldValue.increment(-1))
+                            db.collection("usuarios").document(evidencia.userId).update("totalLikes", FieldValue.increment(-1))
+                        } else {
+                            userLikeRef.set(mapOf("userId" to currentUser.uid, "timestamp" to System.currentTimeMillis()))
+                            db.collection("evidencias").document(evidencia.id).update("likes", FieldValue.increment(1))
+                            db.collection("usuarios").document(evidencia.userId).update("totalLikes", FieldValue.increment(1))
+                        }
+                    },
+                    modifier = Modifier.size(32.dp)
+                ) {
+                    Icon(
+                        if (isLiked) Icons.Filled.Favorite else Icons.Outlined.FavoriteBorder,
+                        contentDescription = "Like",
+                        tint = Color.White,
+                        modifier = Modifier.size(32.dp)
+                    )
+                }
+                Text("$likesCount", color = Color.White)
+                Spacer(Modifier.width(16.dp))
+                // Botón Comentar
+                IconButton(
+                    onClick = { showComentarios = true },
+                    modifier = Modifier.size(32.dp)
+                ) {
+                    Icon(painterResource(id = R.drawable.ic_comment_outline), contentDescription = "Comentar", tint = Color.White, modifier = Modifier.size(32.dp))
+                }
+                Text("$commentsCount", color = Color.White)
+                Spacer(Modifier.width(16.dp))
+                // Botón Compartir
+                IconButton(
+                    onClick = {
+                        val sendIntent = Intent().apply {
+                            action = Intent.ACTION_SEND
+                            putExtra(Intent.EXTRA_TEXT, evidencia.url ?: evidencia.texto ?: "Evidencia de FLUXI")
+                            type = "text/plain"
+                        }
+                        val shareIntent = Intent.createChooser(sendIntent, null)
+                        context.startActivity(shareIntent)
+                    },
+                    modifier = Modifier.size(32.dp)
+                ) {
+                    Icon(Icons.Filled.Share, contentDescription = "Compartir", tint = Color.White, modifier = Modifier.size(32.dp))
+                }
+            }
+            if (showComentarios) {
+                ComentariosDialog(evidenciaId = evidencia.id, onDismiss = { showComentarios = false })
             }
         }
     }
@@ -604,12 +817,12 @@ fun ChallengeCard(challenge: ChallengePreview) {
                 text = challenge.title,
                 fontSize = 20.sp,
                 fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onSurface
+                color = Color.White
             )
             Text(
                 text = challenge.description,
                 fontSize = 16.sp,
-                color = MaterialTheme.colorScheme.onSurface
+                color = Color(0xFFCBD5E1)
             )
             Row(
                 modifier = Modifier
@@ -617,11 +830,17 @@ fun ChallengeCard(challenge: ChallengePreview) {
                     .padding(top = 16.dp),
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                Button(onClick = { /* Participar */ }) {
-                    Text("Participar")
+                Button(
+                    onClick = { /* Participar */ },
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF3B82F6))
+                ) {
+                    Text("Participar", color = Color.White)
                 }
-                Button(onClick = { /* Ver categoría */ }) {
-                    Text("Categoría")
+                Button(
+                    onClick = { /* Ver categoría */ },
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF64748B))
+                ) {
+                    Text("Categoría", color = Color.White)
                 }
             }
         }
@@ -752,5 +971,118 @@ fun AudioPlayer(url: String, onLongPress: () -> Unit) {
                 showControls = false
             }
         }
+    }
+}
+
+@Composable
+fun EvidenciaSocialActions(evidencia: Evidencia, navController: NavController) {
+    val currentUser = FirebaseAuth.getInstance().currentUser
+    val db = FirebaseFirestore.getInstance()
+    val context = LocalContext.current
+    var likesCount by remember { mutableStateOf(0) }
+    var isLiked by remember { mutableStateOf(false) }
+    var commentsCount by remember { mutableStateOf(0) }
+    var showComentarios by remember { mutableStateOf(false) }
+    var commentsRestricted by remember { mutableStateOf(false) }
+    var showRestrictDialog by remember { mutableStateOf(false) }
+    // Escuchar likes, comentarios y restricción en tiempo real
+    LaunchedEffect(evidencia.id) {
+        val likesRef = db.collection("evidencias").document(evidencia.id).collection("likes")
+        likesRef.addSnapshotListener { snapshot, _ ->
+            likesCount = snapshot?.size() ?: 0
+            isLiked = snapshot?.documents?.any { it.id == currentUser?.uid } == true
+        }
+        val commentsRef = db.collection("evidencias").document(evidencia.id).collection("comentarios")
+        commentsRef.addSnapshotListener { snapshot, _ ->
+            commentsCount = snapshot?.size() ?: 0
+        }
+        db.collection("evidencias").document(evidencia.id)
+            .addSnapshotListener { snapshot, _ ->
+                commentsRestricted = snapshot?.getBoolean("commentsRestricted") ?: false
+            }
+    }
+    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        // Botón Like
+        IconButton(
+            onClick = {
+                val likesRef = db.collection("evidencias").document(evidencia.id).collection("likes")
+                val userLikeRef = likesRef.document(currentUser!!.uid)
+                if (isLiked) {
+                    userLikeRef.delete()
+                    db.collection("evidencias").document(evidencia.id).update("likes", FieldValue.increment(-1))
+                    db.collection("usuarios").document(evidencia.userId).update("totalLikes", FieldValue.increment(-1))
+                } else {
+                    userLikeRef.set(mapOf("userId" to currentUser.uid, "timestamp" to System.currentTimeMillis()))
+                    db.collection("evidencias").document(evidencia.id).update("likes", FieldValue.increment(1))
+                    db.collection("usuarios").document(evidencia.userId).update("totalLikes", FieldValue.increment(1))
+                }
+            },
+            modifier = Modifier.size(32.dp)
+        ) {
+            Icon(
+                if (isLiked) Icons.Filled.Favorite else Icons.Outlined.FavoriteBorder,
+                contentDescription = "Like",
+                tint = Color.White,
+                modifier = Modifier.size(32.dp)
+            )
+        }
+        Text("$likesCount", color = Color.White)
+        Spacer(Modifier.height(24.dp))
+        // Botón Comentar
+        val puedeComentar = !commentsRestricted || (currentUser != null && evidencia.userId == currentUser.uid)
+        IconButton(
+            onClick = {
+                if (puedeComentar) {
+                    showComentarios = true
+                } else {
+                    showRestrictDialog = true
+                }
+            },
+            modifier = Modifier.size(32.dp)
+        ) {
+            Icon(painterResource(id = R.drawable.ic_comment_outline), contentDescription = "Comentar", tint = Color.White, modifier = Modifier.size(32.dp))
+        }
+        Text("$commentsCount", color = Color.White)
+        Spacer(Modifier.height(24.dp))
+        // Botón Compartir
+        IconButton(
+            onClick = {
+                val sendIntent = Intent().apply {
+                    action = Intent.ACTION_SEND
+                    putExtra(Intent.EXTRA_TEXT, evidencia.url ?: evidencia.texto ?: "Evidencia de FLUXI")
+                    type = "text/plain"
+                }
+                val shareIntent = Intent.createChooser(sendIntent, null)
+                context.startActivity(shareIntent)
+            },
+            modifier = Modifier.size(32.dp)
+        ) {
+            Icon(Icons.Filled.Share, contentDescription = "Compartir", tint = Color.White, modifier = Modifier.size(32.dp))
+        }
+        Text("", color = Color.White)
+        Spacer(Modifier.height(24.dp))
+        // Botón Guardar (opcional)
+        IconButton(
+            onClick = { /* TODO: lógica de guardado si la implementas */ },
+            modifier = Modifier.size(32.dp)
+        ) {
+            Icon(Icons.Default.BookmarkBorder, contentDescription = "Save", tint = Color.White, modifier = Modifier.size(32.dp))
+        }
+        Text("", color = Color.White)
+    }
+    if (showComentarios && (!commentsRestricted || (currentUser != null && evidencia.userId == currentUser.uid))) {
+        ComentariosDialog(evidenciaId = evidencia.id, onDismiss = { showComentarios = false })
+    }
+    if (showRestrictDialog) {
+        AlertDialog(
+            onDismissRequest = { showRestrictDialog = false },
+            title = { Text("Comentarios restringidos") },
+            text = { Text("El propietario de esta evidencia ha restringido los comentarios.") },
+            confirmButton = {
+                TextButton(onClick = { showRestrictDialog = false }) {
+                    Text("Aceptar")
+                }
+            }
+        )
     }
 } 

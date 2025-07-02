@@ -33,6 +33,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import com.example.redsocial.viewmodel.AuthViewModel
+import androidx.compose.material.icons.filled.Delete
 
 @Composable
 fun UserProfileScreen(
@@ -50,59 +51,52 @@ fun UserProfileScreen(
     var siguiendo by remember { mutableStateOf(0) }
     var isFollowing by remember { mutableStateOf<Boolean?>(null) }
     var isFollowLoading by remember { mutableStateOf(false) }
+    var commentsRestricted by remember { mutableStateOf(false) }
+    var downloadsAllowed by remember { mutableStateOf(true) }
     val currentUser = FirebaseAuth.getInstance().currentUser
     val db = FirebaseFirestore.getInstance()
 
     LaunchedEffect(userId) {
-        try {
-            isLoading = true
-            
-            // Obtener datos del usuario
-            val userDoc = db.collection("usuarios").document(userId).get().await()
-            userData = userDoc.data
-            
-            // Obtener desafíos creados por el usuario
-            val challengesSnapshot = db.collection("desafios")
-                .whereEqualTo("authorId", userId)
-                .get()
-                .await()
-            
-            createdChallenges = challengesSnapshot.documents.mapNotNull { doc ->
-                doc.data?.toMutableMap()?.apply { put("id", doc.id) }
-            }
-            
-            // Calcular total de likes de los desafíos creados
-            totalLikes = createdChallenges.sumOf { (it["likes"] as? Long ?: 0L).toInt() }
-            
-            // Obtener evidencias completadas por el usuario
-            val evidencesSnapshot = db.collection("evidencias")
-                .whereEqualTo("userId", userId)
-                .get()
-                .await()
-            
-            completedEvidences = evidencesSnapshot.documents.mapNotNull { doc ->
-                val data = doc.data ?: return@mapNotNull null
-                Evidencia(
-                    id = doc.id,
-                    challengeId = data["challengeId"] as? String ?: "",
-                    userId = data["userId"] as? String ?: "",
-                    userName = data["userName"] as? String ?: "",
-                    tipo = data["tipo"] as? String ?: "",
-                    url = data["url"] as? String,
-                    texto = data["texto"] as? String,
-                    timestamp = data["timestamp"] as? Long ?: 0L
-                )
-            }
-            
-            // Obtener estadísticas de seguidores/siguiendo
-            val userStats = userDoc.data
-            seguidores = (userStats?.get("seguidores") as? Long ?: 0L).toInt()
-            siguiendo = (userStats?.get("siguiendo") as? Long ?: 0L).toInt()
-            
-            isLoading = false
-        } catch (e: Exception) {
-            isLoading = false
+        isLoading = true
+        // Obtener datos del usuario
+        val userDoc = db.collection("usuarios").document(userId).get().await()
+        userData = userDoc.data
+        // Obtener desafíos creados por el usuario
+        val challengesSnapshot = db.collection("desafios")
+            .whereEqualTo("authorId", userId)
+            .get()
+            .await()
+        createdChallenges = challengesSnapshot.documents.mapNotNull { doc ->
+            doc.data?.toMutableMap()?.apply { put("id", doc.id) }
         }
+        // Calcular total de likes de los desafíos creados
+        val totalLikesDesafios = createdChallenges.sumOf { (it["likes"] as? Long ?: 0L).toInt() }
+        // Obtener likes de evidencias
+        val totalLikesEvidencias = (userDoc.get("totalLikes") as? Long ?: 0L).toInt()
+        totalLikes = totalLikesDesafios + totalLikesEvidencias
+        // Obtener evidencias completadas por el usuario
+        val evidencesSnapshot = db.collection("evidencias")
+            .whereEqualTo("userId", userId)
+            .get()
+            .await()
+        completedEvidences = evidencesSnapshot.documents.mapNotNull { doc ->
+            val data = doc.data ?: return@mapNotNull null
+            Evidencia(
+                id = doc.id,
+                challengeId = data["challengeId"] as? String ?: "",
+                userId = data["userId"] as? String ?: "",
+                userName = data["userName"] as? String ?: "",
+                tipo = data["tipo"] as? String ?: "",
+                url = data["url"] as? String,
+                texto = data["texto"] as? String,
+                timestamp = data["timestamp"] as? Long ?: 0L
+            )
+        }
+        // Obtener estadísticas de seguidores/siguiendo
+        val userStats = userDoc.data
+        seguidores = (userStats?.get("seguidores") as? Long ?: 0L).toInt()
+        siguiendo = (userStats?.get("siguiendo") as? Long ?: 0L).toInt()
+        isLoading = false
     }
 
     // Verificar si el usuario actual ya sigue a este usuario
@@ -110,6 +104,19 @@ fun UserProfileScreen(
         if (currentUser != null && userId != currentUser.uid) {
             authViewModel.isFollowing(userId) { result ->
                 isFollowing = result
+            }
+        }
+    }
+
+    LaunchedEffect(completedEvidences) {
+        completedEvidences.forEach { evidencia ->
+            evidencia.let {
+                val db = FirebaseFirestore.getInstance()
+                db.collection("evidencias").document(it.id)
+                    .addSnapshotListener { snapshot, _ ->
+                        commentsRestricted = snapshot?.getBoolean("commentsRestricted") ?: false
+                        downloadsAllowed = snapshot?.getBoolean("downloadsAllowed") ?: true
+                    }
             }
         }
     }
@@ -352,7 +359,9 @@ fun UserProfileScreen(
                                         evidencia = evidencia,
                                         onEvidenceClick = { challengeId ->
                                             navController.navigate("detalleDesafio/$challengeId")
-                                        }
+                                        },
+                                        commentsRestricted = commentsRestricted,
+                                        downloadsAllowed = downloadsAllowed
                                     )
                                     Spacer(modifier = Modifier.height(8.dp))
                                 }
@@ -478,8 +487,12 @@ fun CreatedChallengeCard(
 @Composable
 fun EvidenceCard(
     evidencia: Evidencia,
-    onEvidenceClick: (String) -> Unit
+    onEvidenceClick: (String) -> Unit,
+    commentsRestricted: Boolean,
+    downloadsAllowed: Boolean
 ) {
+    val currentUser = FirebaseAuth.getInstance().currentUser
+    var showDialog by remember { mutableStateOf(false) }
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -503,9 +516,7 @@ fun EvidenceCard(
                 tint = Color(0xFFA259FF),
                 modifier = Modifier.size(40.dp)
             )
-            
             Spacer(modifier = Modifier.width(12.dp))
-            
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = "Completó un desafío",
@@ -513,9 +524,7 @@ fun EvidenceCard(
                     color = Color.White,
                     fontWeight = FontWeight.Bold
                 )
-                
                 Spacer(modifier = Modifier.height(4.dp))
-                
                 if ((evidencia.texto)?.isNotBlank() == true) {
                     Text(
                         text = evidencia.texto,
@@ -524,13 +533,38 @@ fun EvidenceCard(
                         maxLines = 2
                     )
                 }
-                
                 Text(
                     text = "Tipo: ${evidencia.tipo.replaceFirstChar { it.uppercase() }}",
                     style = MaterialTheme.typography.bodySmall,
                     color = Color(0xFFA259FF)
                 )
             }
+            // Icono de papelera solo si es del usuario actual
+            if (currentUser != null && evidencia.userId == currentUser.uid) {
+                IconButton(onClick = { showDialog = true }) {
+                    Icon(Icons.Default.Delete, contentDescription = "Eliminar", tint = Color.Red)
+                }
+            }
         }
+    }
+    if (showDialog) {
+        AlertDialog(
+            onDismissRequest = { showDialog = false },
+            title = { Text("Eliminar evidencia") },
+            text = { Text("¿Estás seguro de que deseas eliminar esta evidencia? Esta acción no se puede deshacer.") },
+            confirmButton = {
+                TextButton(onClick = {
+                    showDialog = false
+                    // Aquí irá la lógica para eliminar la evidencia
+                }) {
+                    Text("Eliminar", color = Color.Red)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDialog = false }) {
+                    Text("Cancelar")
+                }
+            }
+        )
     }
 } 

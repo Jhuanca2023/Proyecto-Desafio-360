@@ -31,7 +31,18 @@ import androidx.compose.material.icons.filled.Mic
 import androidx.compose.material.icons.filled.Stop
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Pause
+import androidx.compose.foundation.background
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.filled.Image
+import androidx.compose.material.icons.filled.Videocam
+import androidx.compose.material.icons.filled.TextFields
+import androidx.compose.material.icons.filled.Audiotrack
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Color
 import java.io.File
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.clickable
+import kotlinx.coroutines.tasks.await
 
 @Composable
 fun SendEvidenceScreen(
@@ -43,6 +54,17 @@ fun SendEvidenceScreen(
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val clientId = "e88c7011ed88321" // Imgur
+    val user = FirebaseAuth.getInstance().currentUser
+    var currentUserName by remember { mutableStateOf("") }
+
+    // Obtener el nombre de usuario real desde Firestore
+    LaunchedEffect(user?.uid) {
+        if (user != null) {
+            val db = FirebaseFirestore.getInstance()
+            val userDoc = db.collection("usuarios").document(user.uid).get().await()
+            currentUserName = userDoc.getString("nombreUsuario") ?: user.displayName ?: "Usuario"
+        }
+    }
 
     var tipo by remember { mutableStateOf("imagen") }
     var imageUri by remember { mutableStateOf<Uri?>(null) }
@@ -82,266 +104,368 @@ fun SendEvidenceScreen(
             .padding(16.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Text("Enviar Evidencia", style = MaterialTheme.typography.headlineMedium)
-        Spacer(Modifier.height(8.dp))
-        Text("Para el desafío: $challengeTitle", style = MaterialTheme.typography.bodyMedium)
-        Spacer(Modifier.height(16.dp))
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .shadow(12.dp, RoundedCornerShape(24.dp))
+                .background(MaterialTheme.colorScheme.surface, RoundedCornerShape(24.dp))
+                .padding(24.dp)
+        ) {
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Text("Enviar Evidencia", style = MaterialTheme.typography.headlineMedium)
+                Spacer(Modifier.height(8.dp))
+                Text("Para el desafío: $challengeTitle", style = MaterialTheme.typography.bodyMedium)
+                Spacer(Modifier.height(20.dp))
 
-        Text("Tipo de Evidencia", style = MaterialTheme.typography.bodyMedium)
-        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
-            tipos.forEach { t ->
-                val seleccionado = tipo == t
-                Button(
-                    onClick = { tipo = t },
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = if (seleccionado) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant,
-                        contentColor = if (seleccionado) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface
-                    ),
-                    modifier = Modifier.weight(1f)
-                ) {
-                    Text(t.replaceFirstChar { it.uppercase() })
-                }
-            }
-        }
-        Spacer(Modifier.height(16.dp))
-
-        when (tipo) {
-            "imagen" -> {
-                Button(onClick = { imageLauncher.launch("image/*") }) {
-                    Text("Selecciona tu archivo (imagen)")
-                }
-                imageBitmap?.let {
-                    Spacer(Modifier.height(8.dp))
-                    Image(bitmap = it.asImageBitmap(), contentDescription = "Imagen seleccionada", modifier = Modifier.size(120.dp))
-                }
-            }
-            "video" -> {
-                Button(onClick = { videoLauncher.launch("video/*") }) {
-                    Text("Selecciona tu archivo (video)")
-                }
-                videoFileName?.let {
-                    Spacer(Modifier.height(8.dp))
-                    Text("Video seleccionado: $it")
-                }
-            }
-            "texto" -> {
-                OutlinedTextField(
-                    value = texto,
-                    onValueChange = { texto = it },
-                    label = { Text("Escribe tu evidencia") },
-                    modifier = Modifier.fillMaxWidth().height(120.dp)
+                Text("Tipo de Evidencia", style = MaterialTheme.typography.bodyMedium)
+                Spacer(Modifier.height(8.dp))
+                // Cuadrícula 2x2 para tipos de evidencia
+                val evidenciaItems = listOf(
+                    Triple("video", Icons.Default.Videocam, "Video"),
+                    Triple("imagen", Icons.Default.Image, "Imagen"),
+                    Triple("texto", Icons.Default.TextFields, "Texto"),
+                    Triple("audio", Icons.Default.Audiotrack, "Audio")
                 )
-            }
-            "audio" -> {
-                Column(
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    if (!isRecording && audioFile == null) {
-                        Button(
-                            onClick = {
-                                val success = AudioUtils.startRecording(context) { error ->
-                                    errorMessage = error
+                Column(Modifier.fillMaxWidth()) {
+                    for (row in 0..1) {
+                        Row(
+                            Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceEvenly
+                        ) {
+                            for (col in 0..1) {
+                                val idx = row * 2 + col
+                                val (t, icon, label) = evidenciaItems[idx]
+                                val seleccionado = tipo == t
+                                Surface(
+                                    shape = RoundedCornerShape(16.dp),
+                                    border = if (seleccionado) BorderStroke(2.dp, MaterialTheme.colorScheme.primary) else BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
+                                    color = if (seleccionado) MaterialTheme.colorScheme.primary.copy(alpha = 0.25f) else MaterialTheme.colorScheme.surfaceVariant,
+                                    modifier = Modifier
+                                        .padding(6.dp)
+                                        .weight(1f)
+                                        .aspectRatio(1f)
+                                        .clickable { tipo = t }
+                                ) {
+                                    Column(
+                                        Modifier.fillMaxSize(),
+                                        verticalArrangement = Arrangement.Center,
+                                        horizontalAlignment = Alignment.CenterHorizontally
+                                    ) {
+                                        Icon(
+                                            icon,
+                                            contentDescription = label,
+                                            modifier = Modifier.size(38.dp),
+                                            tint = if (seleccionado) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
+                                        )
+                                        Spacer(Modifier.height(8.dp))
+                                        Text(
+                                            label,
+                                            style = MaterialTheme.typography.bodyLarge,
+                                            color = if (seleccionado) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
+                                        )
+                                    }
                                 }
-                                if (success) {
-                                    isRecording = true
-                                    errorMessage = null
-                                }
-                            },
-                            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
-                        ) {
-                            Icon(Icons.Default.Mic, contentDescription = "Grabar")
-                            Spacer(Modifier.width(8.dp))
-                            Text("Iniciar Grabación")
-                        }
-                    } else if (isRecording) {
-                        Button(
-                            onClick = {
-                                audioFile = AudioUtils.stopRecording()
-                                isRecording = false
-                                audioFileName = "audio_${System.currentTimeMillis()}.mp3"
-                            },
-                            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
-                        ) {
-                            Icon(Icons.Default.Stop, contentDescription = "Detener")
-                            Spacer(Modifier.width(8.dp))
-                            Text("Detener Grabación")
-                        }
-                        Text("🎤 Grabando...", style = MaterialTheme.typography.bodyMedium)
-                    } else if (audioFile != null) {
-                        Text("✅ Audio grabado", style = MaterialTheme.typography.bodyMedium)
-                        Button(
-                            onClick = {
-                                audioFile = null
-                                audioFileName = null
-                            },
-                            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.secondary)
-                        ) {
-                            Text("Regrabar")
+                            }
                         }
                     }
                 }
-            }
-        }
-        Spacer(Modifier.height(16.dp))
-        OutlinedTextField(
-            value = descripcion,
-            onValueChange = { descripcion = it },
-            label = { Text("Descripción Adicional (Opcional)") },
-            modifier = Modifier.fillMaxWidth().height(80.dp)
-        )
-        Spacer(Modifier.height(16.dp))
-        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
-            Button(onClick = onCancel, colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)) {
-                Text("Cancelar")
-            }
-            Button(
-                onClick = {
-                    isLoading = true
-                    errorMessage = null
-                    scope.launch(Dispatchers.IO) {
-                        try {
-                            val user = FirebaseAuth.getInstance().currentUser
-                            if (tipo == "imagen") {
-                                imageUri?.let { uri ->
-                                    val inputStream = context.contentResolver.openInputStream(uri)
-                                    val bytes = inputStream?.readBytes()
-                                    if (bytes != null) {
-                                        uploadImageToImgur(
-                                            imageBytes = bytes,
-                                            clientId = clientId,
-                                            onSuccess = { url: String ->
-                                                saveEvidenceToFirestore(
-                                                    challengeId,
-                                                    user?.uid ?: "",
-                                                    user?.displayName ?: "",
-                                                    tipo,
-                                                    url,
-                                                    null,
-                                                    descripcion
-                                                )
-                                                isLoading = false
-                                                onEvidenceSent()
-                                            },
-                                            onError = { error: String ->
-                                                errorMessage = error
-                                                isLoading = false
-                                            }
-                                        )
-                                    }
-                                } ?: run {
-                                    errorMessage = "Selecciona una imagen."
-                                    isLoading = false
+                Spacer(Modifier.height(16.dp))
+
+                when (tipo) {
+                    "imagen" -> {
+                        Card(
+                            shape = RoundedCornerShape(16.dp),
+                            modifier = Modifier.fillMaxWidth(),
+                            elevation = CardDefaults.cardElevation(4.dp)
+                        ) {
+                            Column(Modifier.padding(16.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                                Button(onClick = { imageLauncher.launch("image/*") }) {
+                                    Icon(Icons.Default.Image, contentDescription = null)
+                                    Spacer(Modifier.width(8.dp))
+                                    Text("Selecciona tu archivo (imagen)")
                                 }
-                            } else if (tipo == "video") {
-                                videoUri?.let { uri ->
-                                    val inputStream = context.contentResolver.openInputStream(uri)
-                                    val bytes = inputStream?.readBytes()
-                                    val fileName = videoFileName ?: "video_${System.currentTimeMillis()}.mp4"
-                                    if (bytes != null) {
-                                        com.example.redsocial.utils.uploadVideoToSupabase(
-                                            videoBytes = bytes,
-                                            fileName = fileName,
-                                            onSuccess = { url: String ->
+                                imageBitmap?.let {
+                                    Spacer(Modifier.height(8.dp))
+                                    Image(bitmap = it.asImageBitmap(), contentDescription = "Imagen seleccionada", modifier = Modifier.size(140.dp).shadow(4.dp, RoundedCornerShape(12.dp)))
+                                }
+                            }
+                        }
+                    }
+                    "video" -> {
+                        Card(
+                            shape = RoundedCornerShape(16.dp),
+                            modifier = Modifier.fillMaxWidth(),
+                            elevation = CardDefaults.cardElevation(4.dp)
+                        ) {
+                            Column(Modifier.padding(16.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                                Button(onClick = { videoLauncher.launch("video/*") }) {
+                                    Icon(Icons.Default.Videocam, contentDescription = null)
+                                    Spacer(Modifier.width(8.dp))
+                                    Text("Selecciona tu archivo (video)")
+                                }
+                                videoFileName?.let {
+                                    Spacer(Modifier.height(8.dp))
+                                    Text("Video seleccionado: $it")
+                                }
+                            }
+                        }
+                    }
+                    "texto" -> {
+                        Card(
+                            shape = RoundedCornerShape(16.dp),
+                            modifier = Modifier.fillMaxWidth(),
+                            elevation = CardDefaults.cardElevation(4.dp)
+                        ) {
+                            OutlinedTextField(
+                                value = texto,
+                                onValueChange = { texto = it },
+                                label = { Text("Escribe tu evidencia") },
+                                modifier = Modifier.fillMaxWidth().height(120.dp).padding(16.dp)
+                            )
+                        }
+                    }
+                    "audio" -> {
+                        Card(
+                            shape = RoundedCornerShape(16.dp),
+                            modifier = Modifier.fillMaxWidth(),
+                            elevation = CardDefaults.cardElevation(4.dp)
+                        ) {
+                            Column(
+                                Modifier.padding(16.dp),
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                verticalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                if (!isRecording && audioFile == null) {
+                                    Button(
+                                        onClick = {
+                                            val success = AudioUtils.startRecording(context) { error ->
+                                                errorMessage = error
+                                            }
+                                            if (success) {
+                                                isRecording = true
+                                                errorMessage = null
+                                            }
+                                        },
+                                        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
+                                    ) {
+                                        Icon(Icons.Default.Mic, contentDescription = "Grabar")
+                                        Spacer(Modifier.width(8.dp))
+                                        Text("Iniciar Grabación")
+                                    }
+                                } else if (isRecording) {
+                                    Button(
+                                        onClick = {
+                                            audioFile = AudioUtils.stopRecording()
+                                            isRecording = false
+                                            audioFileName = "audio_${System.currentTimeMillis()}.mp3"
+                                        },
+                                        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
+                                    ) {
+                                        Icon(Icons.Default.Stop, contentDescription = "Detener")
+                                        Spacer(Modifier.width(8.dp))
+                                        Text("Detener Grabación")
+                                    }
+                                    Text("🎤 Grabando...", style = MaterialTheme.typography.bodyMedium)
+                                } else if (audioFile != null) {
+                                    Text("✅ Audio grabado", style = MaterialTheme.typography.bodyMedium)
+                                    Button(
+                                        onClick = {
+                                            audioFile = null
+                                            audioFileName = null
+                                        },
+                                        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.secondary)
+                                    ) {
+                                        Text("Regrabar")
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+                Spacer(Modifier.height(16.dp))
+                Card(
+                    shape = RoundedCornerShape(16.dp),
+                    modifier = Modifier.fillMaxWidth(),
+                    elevation = CardDefaults.cardElevation(2.dp)
+                ) {
+                    OutlinedTextField(
+                        value = descripcion,
+                        onValueChange = { descripcion = it },
+                        label = { Text("Descripción Adicional (Opcional)") },
+                        modifier = Modifier.fillMaxWidth().height(80.dp).padding(16.dp)
+                    )
+                }
+                Spacer(Modifier.height(20.dp))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceEvenly
+                ) {
+                    Button(
+                        onClick = onCancel,
+                        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error),
+                        shape = RoundedCornerShape(50)
+                    ) {
+                        Text("Cancelar")
+                    }
+                    Button(
+                        onClick = {
+                            isLoading = true
+                            errorMessage = null
+                            scope.launch(Dispatchers.IO) {
+                                try {
+                                    val user = FirebaseAuth.getInstance().currentUser
+                                    if (tipo == "imagen") {
+                                        imageUri?.let { uri ->
+                                            val inputStream = context.contentResolver.openInputStream(uri)
+                                            val bytes = inputStream?.readBytes()
+                                            if (bytes != null) {
+                                                uploadImageToImgur(
+                                                    imageBytes = bytes,
+                                                    clientId = clientId,
+                                                    onSuccess = { url: String ->
+                                                        saveEvidenceToFirestore(
+                                                            challengeId,
+                                                            user?.uid ?: "",
+                                                            currentUserName,
+                                                            tipo,
+                                                            url,
+                                                            null,
+                                                            descripcion
+                                                        )
+                                                        isLoading = false
+                                                        onEvidenceSent()
+                                                    },
+                                                    onError = { error: String ->
+                                                        errorMessage = error
+                                                        isLoading = false
+                                                    }
+                                                )
+                                            }
+                                        } ?: run {
+                                            errorMessage = "Selecciona una imagen."
+                                            isLoading = false
+                                        }
+                                    } else if (tipo == "video") {
+                                        videoUri?.let { uri ->
+                                            val inputStream = context.contentResolver.openInputStream(uri)
+                                            val bytes = inputStream?.readBytes()
+                                            val fileName = videoFileName ?: "video_${System.currentTimeMillis()}.mp4"
+                                            if (bytes != null) {
+                                                com.example.redsocial.utils.uploadVideoToSupabase(
+                                                    videoBytes = bytes,
+                                                    fileName = fileName,
+                                                    onSuccess = { url: String ->
+                                                        scope.launch(Dispatchers.Main) {
+                                                            saveEvidenceToFirestore(
+                                                                challengeId,
+                                                                user?.uid ?: "",
+                                                                currentUserName,
+                                                                tipo,
+                                                                url,
+                                                                null,
+                                                                descripcion
+                                                            )
+                                                            isLoading = false
+                                                            onEvidenceSent()
+                                                        }
+                                                    },
+                                                    onError = { errorMsg ->
+                                                        scope.launch(Dispatchers.Main) {
+                                                            errorMessage = errorMsg
+                                                            isLoading = false
+                                                            Toast.makeText(context, errorMsg, Toast.LENGTH_LONG).show()
+                                                        }
+                                                    }
+                                                )
+                                            } else {
                                                 scope.launch(Dispatchers.Main) {
-                                                    saveEvidenceToFirestore(
-                                                        challengeId,
-                                                        user?.uid ?: "",
-                                                        user?.displayName ?: "",
-                                                        tipo,
-                                                        url,
-                                                        null,
-                                                        descripcion
-                                                    )
+                                                    errorMessage = "Selecciona un video."
                                                     isLoading = false
-                                                    onEvidenceSent()
-                                                }
-                                            },
-                                            onError = { errorMsg ->
-                                                scope.launch(Dispatchers.Main) {
-                                                    errorMessage = errorMsg
-                                                    isLoading = false
-                                                    Toast.makeText(context, errorMsg, Toast.LENGTH_LONG).show()
                                                 }
                                             }
-                                        )
-                                    } else {
-                                        scope.launch(Dispatchers.Main) {
-                                            errorMessage = "Selecciona un video."
+                                        } ?: run {
+                                            scope.launch(Dispatchers.Main) {
+                                                errorMessage = "Selecciona un video."
+                                                isLoading = false
+                                            }
+                                        }
+                                    } else if (tipo == "audio") {
+                                        audioFile?.let { file ->
+                                            val fileName = audioFileName ?: "audio_${System.currentTimeMillis()}.mp3"
+                                            AudioUtils.uploadAudioToSupabase(
+                                                audioFile = file,
+                                                fileName = fileName,
+                                                onSuccess = { url: String ->
+                                                    scope.launch(Dispatchers.Main) {
+                                                        saveEvidenceToFirestore(
+                                                            challengeId,
+                                                            user?.uid ?: "",
+                                                            currentUserName,
+                                                            tipo,
+                                                            url,
+                                                            null,
+                                                            descripcion
+                                                        )
+                                                        isLoading = false
+                                                        onEvidenceSent()
+                                                    }
+                                                },
+                                                onError = { errorMsg ->
+                                                    scope.launch(Dispatchers.Main) {
+                                                        errorMessage = errorMsg
+                                                        isLoading = false
+                                                        Toast.makeText(context, errorMsg, Toast.LENGTH_LONG).show()
+                                                    }
+                                                }
+                                            )
+                                        } ?: run {
+                                            scope.launch(Dispatchers.Main) {
+                                                errorMessage = "Graba un audio primero."
+                                                isLoading = false
+                                            }
+                                        }
+                                    } else if (tipo == "texto") {
+                                        if (texto.isNotBlank()) {
+                                            saveEvidenceToFirestore(
+                                                challengeId,
+                                                user?.uid ?: "",
+                                                currentUserName,
+                                                tipo,
+                                                null,
+                                                texto,
+                                                descripcion
+                                            )
+                                            isLoading = false
+                                            onEvidenceSent()
+                                        } else {
+                                            errorMessage = "El campo de texto no puede estar vacío."
                                             isLoading = false
                                         }
                                     }
-                                } ?: run {
-                                    scope.launch(Dispatchers.Main) {
-                                        errorMessage = "Selecciona un video."
-                                        isLoading = false
-                                    }
-                                }
-                            } else if (tipo == "audio") {
-                                audioFile?.let { file ->
-                                    val fileName = audioFileName ?: "audio_${System.currentTimeMillis()}.mp3"
-                                    AudioUtils.uploadAudioToSupabase(
-                                        audioFile = file,
-                                        fileName = fileName,
-                                        onSuccess = { url: String ->
-                                            scope.launch(Dispatchers.Main) {
-                                                saveEvidenceToFirestore(
-                                                    challengeId,
-                                                    user?.uid ?: "",
-                                                    user?.displayName ?: "",
-                                                    tipo,
-                                                    url,
-                                                    null,
-                                                    descripcion
-                                                )
-                                                isLoading = false
-                                                onEvidenceSent()
-                                            }
-                                        },
-                                        onError = { errorMsg ->
-                                            scope.launch(Dispatchers.Main) {
-                                                errorMessage = errorMsg
-                                                isLoading = false
-                                                Toast.makeText(context, errorMsg, Toast.LENGTH_LONG).show()
-                                            }
-                                        }
-                                    )
-                                } ?: run {
-                                    scope.launch(Dispatchers.Main) {
-                                        errorMessage = "Graba un audio primero."
-                                        isLoading = false
-                                    }
-                                }
-                            } else if (tipo == "texto") {
-                                if (texto.isNotBlank()) {
-                                    saveEvidenceToFirestore(
-                                        challengeId,
-                                        user?.uid ?: "",
-                                        user?.displayName ?: "",
-                                        tipo,
-                                        null,
-                                        texto,
-                                        descripcion
-                                    )
-                                    isLoading = false
-                                    onEvidenceSent()
-                                } else {
-                                    errorMessage = "El campo de texto no puede estar vacío."
+                                } catch (e: Exception) {
+                                    errorMessage = e.message
                                     isLoading = false
                                 }
                             }
-                        } catch (e: Exception) {
-                            errorMessage = e.message
-                            isLoading = false
-                        }
+                        },
+                        enabled = (!isLoading && ((tipo == "imagen" && imageUri != null) || (tipo == "video" && videoUri != null) || (tipo == "texto" && texto.isNotBlank()) || (tipo == "audio" && audioFile != null))),
+                        shape = RoundedCornerShape(50)
+                    ) {
+                        Text(if (isLoading) "Enviando..." else "Enviar Evidencia")
                     }
-                },
-                enabled = (!isLoading && ((tipo == "imagen" && imageUri != null) || (tipo == "video" && videoUri != null) || (tipo == "texto" && texto.isNotBlank()) || (tipo == "audio" && audioFile != null)))
-            ) {
-                Text(if (isLoading) "Enviando..." else "Enviar Evidencia")
+                }
+                errorMessage?.let {
+                    Spacer(Modifier.height(12.dp))
+                    Card(
+                        shape = RoundedCornerShape(12.dp),
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.errorContainer)
+                    ) {
+                        Text(it, color = MaterialTheme.colorScheme.onErrorContainer, modifier = Modifier.padding(12.dp))
+                    }
+                }
             }
         }
-        errorMessage?.let { Text(it, color = MaterialTheme.colorScheme.error) }
     }
 }
 
@@ -372,7 +496,7 @@ fun saveEvidenceToFirestore(
         .addOnSuccessListener { evidenciaDoc ->
             // Actualizamos el contador de participantes y contentTypes en el desafío
             val updates = hashMapOf<String, Any>(
-                "participants" to com.google.firebase.firestore.FieldValue.increment(-1)
+                "participants" to com.google.firebase.firestore.FieldValue.increment(1)
             )
             
             // Si es una imagen, video o audio, incrementamos el contador correspondiente
@@ -384,11 +508,11 @@ fun saveEvidenceToFirestore(
                 updates["audioCount"] = com.google.firebase.firestore.FieldValue.increment(1)
             }
             
-            db.collection("challenges").document(challengeId)
+            db.collection("desafios").document(challengeId)
                 .update(updates)
                 .addOnSuccessListener {
                     // Actualizamos el perfil del usuario para marcar el desafío como completado
-                    db.collection("users").document(userId)
+                    db.collection("usuarios").document(userId)
                         .collection("completedChallenges")
                         .document(challengeId)
                         .set(hashMapOf(
@@ -396,12 +520,32 @@ fun saveEvidenceToFirestore(
                             "evidenceId" to evidenciaDoc.id,
                             "contentType" to tipo
                         ))
+                    // Verificar si el desafío está completo para repartir puntos
+                    db.collection("desafios").document(challengeId).get().addOnSuccessListener { desafioDoc ->
+                        val participants = (desafioDoc.getLong("participants") ?: 0L).toInt()
+                        val maxParticipants = (desafioDoc.getLong("maxParticipants") ?: 1L).toInt()
+                        val puntosTotales = (desafioDoc.getLong("points") ?: 0L).toInt()
+                        if (participants >= maxParticipants && maxParticipants > 0 && puntosTotales > 0) {
+                            // Obtener todos los participantes (evidencias)
+                            db.collection("evidencias")
+                                .whereEqualTo("challengeId", challengeId)
+                                .get()
+                                .addOnSuccessListener { evidenciasSnapshot ->
+                                    val userIds = evidenciasSnapshot.documents.mapNotNull { it.getString("userId") }.distinct()
+                                    val puntosPorUsuario = puntosTotales / userIds.size
+                                    userIds.forEach { uid ->
+                                        val userRef = db.collection("usuarios").document(uid)
+                                        userRef.update("badges", com.google.firebase.firestore.FieldValue.increment(puntosPorUsuario.toLong()))
+                                    }
+                                }
+                        }
+                    }
                 }
             // Notificar al autor del desafío
-            db.collection("challenges").document(challengeId)
+            db.collection("desafios").document(challengeId)
                 .get()
                 .addOnSuccessListener { challengeDoc ->
-                    val autorId = challengeDoc.getString("creatorId")
+                    val autorId = challengeDoc.getString("authorId")
                     if (autorId != null && autorId != userId) {
                         val mensaje = "$userName participó en tu desafío"
                         NetworkUtils.notificarEvento(

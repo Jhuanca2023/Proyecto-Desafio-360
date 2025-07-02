@@ -28,6 +28,8 @@ import androidx.compose.ui.text.withStyle
 import androidx.compose.foundation.clickable
 import com.example.redsocial.models.Evidencia
 import com.google.firebase.auth.FirebaseAuth
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.foundation.background
 
 import androidx.compose.ui.window.Dialog
 import androidx.compose.material.icons.filled.FavoriteBorder
@@ -41,6 +43,13 @@ import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.material.icons.filled.People
+import androidx.compose.material.icons.outlined.FavoriteBorder
+import androidx.compose.material.icons.filled.Share
+import androidx.compose.material.icons.filled.Comment
+import com.google.firebase.firestore.FieldValue
+import android.content.Intent
+import androidx.compose.ui.platform.LocalContext
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
@@ -104,14 +113,12 @@ fun DetalleDesafioScreen(challengeId: String, navController: NavController) {
     // Función para manejar like/unlike
     fun handleLike() {
         if (currentUser == null) return
-        
         Log.d("DetalleDesafioScreen", "handleLike - isLiked: $isLiked, challengeId: $challengeId")
-        
         val likeRef = db.collection("desafios")
             .document(challengeId)
             .collection("likes")
             .document(currentUser.uid)
-        
+        val authorId = challenge?.get("authorId") as? String
         if (isLiked) {
             // Quitar like
             likeRef.delete().addOnSuccessListener {
@@ -120,17 +127,15 @@ fun DetalleDesafioScreen(challengeId: String, navController: NavController) {
                     .update("likes", currentLikes - 1)
                 isLiked = false
                 currentLikes--
-                
                 // Eliminar notificación de like
-                challenge?.let { data ->
-                    val authorId = data["authorId"] as? String
-                    Log.d("DetalleDesafioScreen", "Eliminando like - authorId: $authorId")
-                    if (authorId != null) {
-                        NotificationUtils.removeLikeNotification(
-                            challengeAuthorId = authorId,
-                            challengeId = challengeId
-                        )
-                    }
+                if (authorId != null) {
+                    NotificationUtils.removeLikeNotification(
+                        challengeAuthorId = authorId,
+                        challengeId = challengeId
+                    )
+                    // Quitar like al total del autor
+                    db.collection("usuarios").document(authorId)
+                        .update("totalLikes", FieldValue.increment(-1))
                 }
             }
         } else {
@@ -144,197 +149,241 @@ fun DetalleDesafioScreen(challengeId: String, navController: NavController) {
                     .update("likes", currentLikes + 1)
                 isLiked = true
                 currentLikes++
-                
-                // Enviar notificación de like
-                challenge?.let { data ->
-                    val authorId = data["authorId"] as? String
-                    val title = data["title"] as? String ?: "Desafío"
-                    Log.d("DetalleDesafioScreen", "Enviando notificación de like - authorId: $authorId, title: $title")
-                    if (authorId != null) {
-                        NotificationUtils.sendLikeNotification(
-                            challengeAuthorId = authorId,
-                            challengeId = challengeId,
-                            challengeTitle = title
-                        )
-                    } else {
-                        Log.e("DetalleDesafioScreen", "authorId es null - data: $data")
-                    }
+                if (authorId != null) {
+                    NotificationUtils.sendLikeNotification(
+                        challengeAuthorId = authorId,
+                        challengeId = challengeId,
+                        challengeTitle = challenge?.get("title") as? String ?: "Desafío"
+                    )
+                    // Sumar like al total del autor
+                    db.collection("usuarios").document(authorId)
+                        .update("totalLikes", FieldValue.increment(1))
                 }
             }
         }
     }
 
-    if (isLoading) {
-        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-            CircularProgressIndicator()
-        }
-    } else {
-        challenge?.let { data ->
-            val scrollState = rememberScrollState()
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .verticalScroll(scrollState)
-                    .padding(16.dp)
-            ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    IconButton(onClick = { navController.popBackStack() }) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Volver")
-                    }
-                    Text("Detalle del Desafío", style = MaterialTheme.typography.titleLarge)
-                }
-                Spacer(Modifier.height(8.dp))
-                AsyncImage(
-                    model = data["coverImageUrl"] as? String,
-                    contentDescription = "Imagen de portada",
-                    modifier = Modifier.fillMaxWidth().height(180.dp)
-                )
-                Spacer(Modifier.height(8.dp))
-                Text(data["title"] as? String ?: "", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
-                Text(
-                    text = "Creado por @${data["authorName"] as? String ?: "Usuario"}",
-                    color = Color.Gray,
-                    modifier = Modifier.clickable { navController.navigate("userProfile/${data["authorId"] as? String ?: ""}") }
-                )
-                Spacer(Modifier.height(8.dp))
-                // Etiquetas principales (puntos, categoría, duración)
-                FlowRow {
-                    ChipPreview("${(data["points"] as? Long ?: 0)} pts")
-                    (data["category"] as? String)?.let { ChipPreview(it) }
-                    (data["duration"] as? String)?.let { ChipPreview(it) }
-                }
-                
-                // Content types
-                (data["contentTypes"] as? List<*>)?.let { contentTypes ->
-                    if (contentTypes.isNotEmpty()) {
-                        Spacer(Modifier.height(8.dp))
-                        FlowRow {
-                            contentTypes.forEach { contentType ->
-                                ChipPreview(contentType.toString())
-                            }
-                        }
-                    }
-                }
-                HorizontalDivider(Modifier.padding(vertical = 8.dp))
-                Text("Descripción del Desafío", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-                Text(data["description"] as? String ?: "")
-                Spacer(Modifier.height(8.dp))
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    IconButton(
-                        onClick = { handleLike() }
-                    ) {
-                        Icon(
-                            if (isLiked) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
-                            contentDescription = "Likes",
-                            tint = if (isLiked) Color(0xFFFF4081) else Color(0xFFA259FF)
-                        )
-                    }
-                    Text("$currentLikes")
-                    Spacer(Modifier.width(16.dp))
-                    IconButton(
-                        onClick = { showComments = true }
-                    ) {
-                        Icon(
-                            Icons.AutoMirrored.Filled.Comment,
-                            contentDescription = "Comentarios",
-                            tint = Color(0xFFA259FF)
-                        )
-                    }
-                    Text("$currentComments")
-                }
-                Spacer(Modifier.height(8.dp))
-                Text("Reglas", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-                (data["rules"] as? List<*>)?.forEach {
-                    Text("• $it")
-                }
-                Spacer(Modifier.height(8.dp))
-                Text("Etiquetas", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-                (data["tags"] as? List<*>)?.let { tags ->
-                    if (tags.isNotEmpty()) {
-                        FlowRow {
-                            tags.forEach { tag ->
-                                ChipPreview(tag.toString())
-                            }
-                        }
-                    }
-                }
-                Spacer(Modifier.height(16.dp))
-                Button(
-                    onClick = { showEnviarEvidencia = true },
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(8.dp)
-                ) {
-                    Text("Participar en el Desafío")
-                }
-                Spacer(Modifier.height(16.dp))
-                Text("Participaciones Recientes", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-                
-                if (participaciones.isEmpty()) {
-                    Text(
-                        "Aún no hay participaciones",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = Color.Gray,
-                        modifier = Modifier.padding(vertical = 8.dp)
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(
+                Brush.verticalGradient(
+                    colors = listOf(
+                        Color(0xFF0A0F1C), // Celeste muy oscuro (noche)
+                        Color(0xFF1A1F2E), // Celeste oscuro
+                        Color(0xFF2A2F3E)  // Celeste medio oscuro
                     )
-                } else {
-                    participaciones.forEach { evidencia ->
-                        Card(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(vertical = 4.dp),
-                            colors = CardDefaults.cardColors(
-                                containerColor = MaterialTheme.colorScheme.surfaceVariant
-                            )
+                )
+            )
+    ) {
+        if (isLoading) {
+            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                CircularProgressIndicator(color = Color(0xFF3B82F6))
+            }
+        } else {
+            challenge?.let { data ->
+                val scrollState = rememberScrollState()
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .verticalScroll(scrollState)
+                        .padding(16.dp)
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        IconButton(onClick = { navController.popBackStack() }) {
+                            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Volver", tint = Color.White)
+                        }
+                        Text("Detalle del Desafío", style = MaterialTheme.typography.titleLarge, color = Color.White)
+                    }
+                    Spacer(Modifier.height(8.dp))
+                    AsyncImage(
+                        model = data["coverImageUrl"] as? String,
+                        contentDescription = "Imagen de portada",
+                        modifier = Modifier.fillMaxWidth().height(180.dp)
+                    )
+                    Spacer(Modifier.height(8.dp))
+                    Text(
+                        data["title"] as? String ?: "", 
+                        style = MaterialTheme.typography.titleLarge, 
+                        fontWeight = FontWeight.Bold,
+                        color = Color.White
+                    )
+                    Text(
+                        text = "Creado por @${data["authorName"] as? String ?: "Usuario"}",
+                        color = Color(0xFF60A5FA),
+                        modifier = Modifier.clickable { navController.navigate("userProfile/${data["authorId"] as? String ?: ""}") }
+                    )
+                    Spacer(Modifier.height(8.dp))
+                    // Etiquetas principales (puntos, categoría, duración)
+                    FlowRow {
+                        ChipPreview("${(data["points"] as? Long ?: 0)} pts")
+                        (data["category"] as? String)?.let { ChipPreview(it) }
+                        (data["duration"] as? String)?.let { ChipPreview(it) }
+                    }
+                    
+                    // Contador de participantes
+                    val participantes = (data["participants"] as? Long)?.toInt() ?: 0
+                    val maxParticipantes = (data["maxParticipants"] as? Long)?.toInt() ?: 1
+                    val activo = participantes < maxParticipantes
+                    
+                    Spacer(Modifier.height(8.dp))
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(Icons.Filled.People, contentDescription = "Participantes", tint = Color(0xFF60A5FA))
+                        Spacer(Modifier.width(8.dp))
+                        Text(
+                            "Participantes: $participantes/$maxParticipantes",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = Color.White
+                        )
+                        Spacer(Modifier.width(16.dp))
+                        Text(
+                            if (activo) "Activo" else "Completado",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = if (activo) Color(0xFF00C853) else Color(0xFFFF6B6B),
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                    
+                    // Content types
+                    (data["contentTypes"] as? List<*>)?.let { contentTypes ->
+                        if (contentTypes.isNotEmpty()) {
+                            Spacer(Modifier.height(8.dp))
+                            FlowRow {
+                                contentTypes.forEach { contentType ->
+                                    ChipPreview(contentType.toString())
+                                }
+                            }
+                        }
+                    }
+                    HorizontalDivider(Modifier.padding(vertical = 8.dp), color = Color(0xFF3B82F6))
+                    Text("Descripción del Desafío", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = Color.White)
+                    Text(data["description"] as? String ?: "", color = Color(0xFFCBD5E1))
+                    Spacer(Modifier.height(8.dp))
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        IconButton(
+                            onClick = { handleLike() }
                         ) {
-                            Column(modifier = Modifier.padding(8.dp)) {
-                                Text(
-                                    text = "Participó en el desafío: @${evidencia.userName}",
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    fontWeight = FontWeight.Bold
-                                )
-                                if (evidencia.texto != null) {
+                            Icon(
+                                if (isLiked) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
+                                contentDescription = "Likes",
+                                tint = if (isLiked) Color(0xFFFF4081) else Color(0xFFA259FF)
+                            )
+                        }
+                        Text("$currentLikes", color = Color.White)
+                        Spacer(Modifier.width(16.dp))
+                        IconButton(
+                            onClick = { showComments = true }
+                        ) {
+                            Icon(
+                                Icons.AutoMirrored.Filled.Comment,
+                                contentDescription = "Comentarios",
+                                tint = Color(0xFFA259FF)
+                            )
+                        }
+                        Text("$currentComments", color = Color.White)
+                    }
+                    Spacer(Modifier.height(8.dp))
+                    Text("Reglas", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = Color.White)
+                    (data["rules"] as? List<*>)?.forEach {
+                        Text("• $it", color = Color(0xFFCBD5E1))
+                    }
+                    Spacer(Modifier.height(8.dp))
+                    Text("Etiquetas", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = Color.White)
+                    (data["tags"] as? List<*>)?.let { tags ->
+                        if (tags.isNotEmpty()) {
+                            FlowRow {
+                                tags.forEach { tag ->
+                                    ChipPreview(tag.toString())
+                                }
+                            }
+                        }
+                    }
+                    Spacer(Modifier.height(16.dp))
+                    Button(
+                        onClick = { showEnviarEvidencia = true },
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(8.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = if (activo) Color(0xFF3B82F6) else Color(0xFF64748B)
+                        ),
+                        enabled = activo
+                    ) {
+                        Text(
+                            if (activo) "Participar en el Desafío" else "Desafío Completado", 
+                            color = Color.White
+                        )
+                    }
+                    Spacer(Modifier.height(16.dp))
+                    Text("Participaciones Recientes", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = Color.White)
+                    
+                    if (participaciones.isEmpty()) {
+                        Text(
+                            "Aún no hay participaciones",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = Color(0xFFCBD5E1),
+                            modifier = Modifier.padding(vertical = 8.dp)
+                        )
+                    } else {
+                        participaciones.forEach { evidencia ->
+                            Card(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(vertical = 4.dp),
+                                colors = CardDefaults.cardColors(containerColor = Color(0xFF1A1F2E)),
+                                shape = RoundedCornerShape(12.dp)
+                            ) {
+                                Column(modifier = Modifier.padding(12.dp)) {
                                     Text(
-                                        text = evidencia.texto,
-                                        style = MaterialTheme.typography.bodySmall,
-                                        color = Color.Gray
+                                        text = "Participó en el desafío: @${evidencia.userName}",
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        fontWeight = FontWeight.Bold,
+                                        color = Color.White
                                     )
+                                    if (evidencia.texto != null) {
+                                        Text(
+                                            text = evidencia.texto,
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = Color(0xFFCBD5E1)
+                                        )
+                                    }
                                 }
                             }
                         }
                     }
                 }
-            }
-            if (showEnviarEvidencia) {
-                Dialog(onDismissRequest = { showEnviarEvidencia = false }) {
-                    Surface(
-                        shape = RoundedCornerShape(24.dp),
-                        tonalElevation = 8.dp,
-                        modifier = Modifier
-                            .fillMaxWidth(0.95f)
-                            .wrapContentHeight()
-                    ) {
-                        SendEvidenceScreen(
-                            challengeId = challengeId,
-                            challengeTitle = data["title"] as? String ?: "",
-                            onEvidenceSent = {
-                                showEnviarEvidencia = false
-                                // Recargar challenge
-                                navController.popBackStack()
-                                navController.navigate("detalleDesafio/$challengeId")
-                            },
-                            onCancel = { showEnviarEvidencia = false }
-                        )
+                if (showEnviarEvidencia) {
+                    Dialog(onDismissRequest = { showEnviarEvidencia = false }) {
+                        Surface(
+                            shape = RoundedCornerShape(24.dp),
+                            tonalElevation = 8.dp,
+                            modifier = Modifier
+                                .fillMaxWidth(0.95f)
+                                .wrapContentHeight(),
+                            color = Color(0xFF1A1F2E)
+                        ) {
+                            SendEvidenceScreen(
+                                challengeId = challengeId,
+                                challengeTitle = data["title"] as? String ?: "",
+                                onEvidenceSent = {
+                                    showEnviarEvidencia = false
+                                    // Recargar challenge
+                                    navController.popBackStack()
+                                    navController.navigate("detalleDesafio/$challengeId")
+                                },
+                                onCancel = { showEnviarEvidencia = false }
+                            )
+                        }
                     }
                 }
-            }
-            if (showComments) {
-                CommentsDialog(
-                    challengeId = challengeId,
-                    onDismiss = { showComments = false },
-                    onUserProfileClick = { userId ->
-                        navController.navigate("userProfile/$userId")
-                    }
-                )
+                if (showComments) {
+                    CommentsDialog(
+                        challengeId = challengeId,
+                        onDismiss = { showComments = false },
+                        onUserProfileClick = { userId ->
+                            navController.navigate("userProfile/$userId")
+                        }
+                    )
+                }
             }
         }
     }

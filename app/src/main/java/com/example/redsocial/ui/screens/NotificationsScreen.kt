@@ -10,6 +10,7 @@ import androidx.compose.material.icons.filled.DoneAll
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.PersonAdd
 import androidx.compose.material.icons.filled.Comment
+import androidx.compose.material.icons.filled.EmojiEvents
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -85,64 +86,79 @@ fun NotificationsScreen(navController: NavController) {
         }
     }
 
-    Column(
+    Box(
         modifier = Modifier
             .fillMaxSize()
-            .padding(16.dp)
+            .background(
+                Brush.verticalGradient(
+                    colors = listOf(
+                        Color(0xFF0A0F1C), // Celeste muy oscuro (noche)
+                        Color(0xFF1A1F2E), // Celeste oscuro
+                        Color(0xFF2A2F3E)  // Celeste medio oscuro
+                    )
+                )
+            )
     ) {
-        Text(
-            text = "Notificaciones",
-            style = MaterialTheme.typography.headlineMedium,
-            modifier = Modifier.padding(bottom = 16.dp)
-        )
-        if (isLoading) {
-            CircularProgressIndicator()
-        } else if (notificaciones.isEmpty()) {
-            Text("No tienes notificaciones.")
-        } else {
-            Button(
-                onClick = {
-                    // Marcar todas como leídas
-                    notificaciones.forEach { n ->
-                        db.collection("usuarios")
-                            .document(user!!.uid)
-                            .collection("notificaciones")
-                            .document(n.id)
-                            .update("leido", true)
-                    }
-                },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(bottom = 8.dp),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = Color(0xFF00CFFF),
-                    contentColor = Color.White
-                ),
-                shape = RoundedCornerShape(12.dp)
-            ) {
-                Icon(Icons.Default.DoneAll, contentDescription = null)
-                Spacer(Modifier.width(8.dp))
-                Text("Marcar todo como Leído")
-            }
-            Spacer(Modifier.height(8.dp))
-            // Agrupar por fecha (Hoy, Ayer, Anteriores)
-            val hoy = Calendar.getInstance()
-            val ayer = Calendar.getInstance().apply { add(Calendar.DAY_OF_YEAR, -1) }
-            val formato = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
-            val notisHoy = notificaciones.filter { formato.format(Date(it.fecha)) == formato.format(hoy.time) }
-            val notisAyer = notificaciones.filter { formato.format(Date(it.fecha)) == formato.format(ayer.time) }
-            val notisAnt = notificaciones.filter { it !in notisHoy && it !in notisAyer }
-            if (notisHoy.isNotEmpty()) {
-                Text("Hoy", fontWeight = FontWeight.Bold, fontSize = 18.sp, modifier = Modifier.padding(vertical = 8.dp))
-                notisHoy.forEach { NotiCard(it, user!!.uid, db, navController) }
-            }
-            if (notisAyer.isNotEmpty()) {
-                Text("Ayer", fontWeight = FontWeight.Bold, fontSize = 18.sp, modifier = Modifier.padding(vertical = 8.dp))
-                notisAyer.forEach { NotiCard(it, user!!.uid, db, navController) }
-            }
-            if (notisAnt.isNotEmpty()) {
-                Text("Anteriores", fontWeight = FontWeight.Bold, fontSize = 18.sp, modifier = Modifier.padding(vertical = 8.dp))
-                notisAnt.forEach { NotiCard(it, user!!.uid, db, navController) }
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(16.dp)
+        ) {
+            Text(
+                text = "Notificaciones",
+                style = MaterialTheme.typography.headlineMedium,
+                modifier = Modifier.padding(bottom = 16.dp),
+                color = Color.White
+            )
+            if (isLoading) {
+                CircularProgressIndicator(color = Color(0xFF3B82F6))
+            } else if (notificaciones.isEmpty()) {
+                Text("No tienes notificaciones.", color = Color(0xFFCBD5E1))
+            } else {
+                Button(
+                    onClick = {
+                        // Marcar todas como leídas
+                        notificaciones.forEach { n ->
+                            db.collection("usuarios")
+                                .document(user!!.uid)
+                                .collection("notificaciones")
+                                .document(n.id)
+                                .update("leido", true)
+                        }
+                    },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = 8.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = Color(0xFF00CFFF),
+                        contentColor = Color.White
+                    ),
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    Icon(Icons.Default.DoneAll, contentDescription = null, tint = Color.White)
+                    Spacer(Modifier.width(8.dp))
+                    Text("Marcar todo como Leído", color = Color.White)
+                }
+                Spacer(Modifier.height(8.dp))
+                // Agrupar por fecha (Hoy, Ayer, Anteriores)
+                val hoy = Calendar.getInstance()
+                val ayer = Calendar.getInstance().apply { add(Calendar.DAY_OF_YEAR, -1) }
+                val formato = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
+                val notisHoy = notificaciones.filter { formato.format(Date(it.fecha)) == formato.format(hoy.time) }
+                val notisAyer = notificaciones.filter { formato.format(Date(it.fecha)) == formato.format(ayer.time) }
+                val notisAnt = notificaciones.filter { it !in notisHoy && it !in notisAyer }
+                if (notisHoy.isNotEmpty()) {
+                    Text("Hoy", fontWeight = FontWeight.Bold, fontSize = 18.sp, modifier = Modifier.padding(vertical = 8.dp), color = Color.White)
+                    notisHoy.forEach { NotiCard(it, user!!.uid, db, navController) }
+                }
+                if (notisAyer.isNotEmpty()) {
+                    Text("Ayer", fontWeight = FontWeight.Bold, fontSize = 18.sp, modifier = Modifier.padding(vertical = 8.dp), color = Color.White)
+                    notisAyer.forEach { NotiCard(it, user!!.uid, db, navController) }
+                }
+                if (notisAnt.isNotEmpty()) {
+                    Text("Anteriores", fontWeight = FontWeight.Bold, fontSize = 18.sp, modifier = Modifier.padding(vertical = 8.dp), color = Color.White)
+                    notisAnt.forEach { NotiCard(it, user!!.uid, db, navController) }
+                }
             }
         }
     }
@@ -163,42 +179,52 @@ fun NotiCard(noti: Notificacion, userId: String, db: FirebaseFirestore, navContr
             modifier = Modifier.padding(12.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // Foto de perfil circular con borde y sombra
-            val actorPhotoUrl = noti.actorPhotoUrl
-            if (actorPhotoUrl != null) {
-                AsyncImage(
-                    model = actorPhotoUrl,
-                    contentDescription = "Foto de usuario",
-                    modifier = Modifier
-                        .size(48.dp)
-                        .clip(CircleShape)
-                        .border(2.dp, MaterialTheme.colorScheme.primary, CircleShape)
-                        .shadow(4.dp, CircleShape)
-                        .clickable {
-                            noti.actorId?.let { actorId ->
-                                navController.navigate("userProfile/$actorId")
-                            }
-                        }
+            // Icono especial para participacion
+            if (noti.tipo == "participacion") {
+                Icon(
+                    Icons.Filled.EmojiEvents,
+                    contentDescription = "Participación",
+                    tint = Color(0xFFFFC107), // Amarillo trofeo
+                    modifier = Modifier.size(40.dp)
                 )
+                Spacer(modifier = Modifier.width(12.dp))
             } else {
-                // Placeholder circular si no hay foto
-                Box(
-                    modifier = Modifier
-                        .size(48.dp)
-                        .clip(CircleShape)
-                        .background(Color.Gray)
-                        .border(2.dp, MaterialTheme.colorScheme.primary, CircleShape)
-                        .shadow(4.dp, CircleShape)
-                        .clickable {
-                            noti.actorId?.let { actorId ->
-                                navController.navigate("userProfile/$actorId")
+                // Foto de perfil circular con borde y sombra
+                val actorPhotoUrl = noti.actorPhotoUrl
+                if (actorPhotoUrl != null) {
+                    AsyncImage(
+                        model = actorPhotoUrl,
+                        contentDescription = "Foto de usuario",
+                        modifier = Modifier
+                            .size(48.dp)
+                            .clip(CircleShape)
+                            .border(2.dp, Color(0xFF3B82F6), CircleShape)
+                            .shadow(4.dp, CircleShape)
+                            .clickable {
+                                noti.actorId?.let { actorId ->
+                                    navController.navigate("userProfile/$actorId")
+                                }
                             }
-                        }
-                )
+                    )
+                } else {
+                    // Placeholder circular si no hay foto
+                    Box(
+                        modifier = Modifier
+                            .size(48.dp)
+                            .clip(CircleShape)
+                            .background(Color(0xFF64748B))
+                            .border(2.dp, Color(0xFF3B82F6), CircleShape)
+                            .shadow(4.dp, CircleShape)
+                            .clickable {
+                                noti.actorId?.let { actorId ->
+                                    navController.navigate("userProfile/$actorId")
+                                }
+                            }
+                    )
+                }
+                Spacer(modifier = Modifier.width(12.dp))
             }
-            Spacer(modifier = Modifier.width(12.dp))
             Column(modifier = Modifier.weight(1f)) {
-                // Resaltar el texto entre comillas con color celeste y hacer clickeable el nombre
                 val mensaje = noti.mensaje
                 val regex = Regex("\"(.*?)\"")
                 val partes = regex.findAll(mensaje).toList()
@@ -220,7 +246,7 @@ fun NotiCard(noti: Notificacion, userId: String, db: FirebaseFirestore, navContr
                     }
                     Text(
                         text = annotated,
-                        color = Color.White,
+                        color = if (noti.tipo == "participacion") Color(0xFFFFC107) else Color.White,
                         style = MaterialTheme.typography.bodyLarge,
                         fontWeight = FontWeight.Bold,
                         modifier = Modifier.clickable {
@@ -232,7 +258,7 @@ fun NotiCard(noti: Notificacion, userId: String, db: FirebaseFirestore, navContr
                 } else {
                     Text(
                         text = mensaje,
-                        color = Color.White,
+                        color = if (noti.tipo == "participacion") Color(0xFFFFC107) else Color.White,
                         style = MaterialTheme.typography.bodyLarge,
                         fontWeight = FontWeight.Bold,
                         modifier = Modifier.clickable {
@@ -243,7 +269,6 @@ fun NotiCard(noti: Notificacion, userId: String, db: FirebaseFirestore, navContr
                     )
                 }
                 Spacer(modifier = Modifier.height(2.dp))
-                // Fecha/hora relativa
                 val fechaRelativa = remember(noti.fecha) { getRelativeTime(noti.fecha) }
                 Text(
                     text = fechaRelativa,
@@ -251,7 +276,6 @@ fun NotiCard(noti: Notificacion, userId: String, db: FirebaseFirestore, navContr
                     style = MaterialTheme.typography.bodySmall
                 )
             }
-            // Botón eliminar
             IconButton(onClick = {
                 db.collection("usuarios").document(userId).collection("notificaciones").document(noti.id).delete()
             }) {

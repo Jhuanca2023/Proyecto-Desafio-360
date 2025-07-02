@@ -13,7 +13,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.graphics.Color
 import com.example.redsocial.ui.components.ChipPreview
+import androidx.compose.foundation.border
+import androidx.compose.foundation.shape.RoundedCornerShape
 
 data class ChallengePreview(
     val id: String = "",
@@ -32,22 +35,34 @@ fun ChallengePreviewCard(
 ) {
     Card(
         modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+        colors = CardDefaults.cardColors(containerColor = Color(0xFF1A1F2E))
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
             challenge.coverImageUrl?.let { url ->
                 //cargar la imagen desde la URL
                 // Image(painter = rememberImagePainter(url), contentDescription = "Imagen de portada", modifier = Modifier.fillMaxWidth().height(120.dp))
             }
-            Text(challenge.title, style = MaterialTheme.typography.titleLarge)
-            Text(challenge.description, style = MaterialTheme.typography.bodyMedium)
+            Text(
+                challenge.title, 
+                style = MaterialTheme.typography.titleLarge,
+                color = Color.White
+            )
+            Text(
+                challenge.description, 
+                style = MaterialTheme.typography.bodyMedium,
+                color = Color(0xFFCBD5E1)
+            )
             Row(modifier = Modifier.padding(vertical = 8.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 if (challenge.category.isNotBlank()) ChipPreview(challenge.category)
                 if (challenge.duration.isNotBlank()) ChipPreview(challenge.duration)
                 if (challenge.points > 0) ChipPreview("${challenge.points} pts")
             }
             Spacer(Modifier.height(4.dp))
-            Text("Contenido aceptado:", style = MaterialTheme.typography.bodySmall)
+            Text(
+                "Contenido aceptado:", 
+                style = MaterialTheme.typography.bodySmall,
+                color = Color(0xFFCBD5E1)
+            )
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 challenge.contentTypes.forEach { tipo ->
                     ChipPreview(tipo.replaceFirstChar { it.uppercase() })
@@ -86,12 +101,12 @@ private fun FullChallengeCard(challenge: ChallengePreview) {
                 text = challenge.title,
                 fontSize = 20.sp,
                 fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onSurface
+                color = Color.White
             )
             Text(
                 text = challenge.description,
                 fontSize = 16.sp,
-                color = MaterialTheme.colorScheme.onSurface
+                color = Color(0xFFCBD5E1)
             )
             Row(
                 modifier = Modifier
@@ -99,11 +114,21 @@ private fun FullChallengeCard(challenge: ChallengePreview) {
                     .padding(top = 16.dp),
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                Button(onClick = { /* Participar */ }) {
-                    Text("Participar")
+                Button(
+                    onClick = { /* Participar */ },
+                    modifier = Modifier
+                        .border(2.dp, Color.White, shape = RoundedCornerShape(50)),
+                    colors = ButtonDefaults.buttonColors(containerColor = Color.Transparent)
+                ) {
+                    Text("Participar", color = Color.White)
                 }
-                Button(onClick = { /* Ver categoría */ }) {
-                    Text("Categoría")
+                Button(
+                    onClick = { /* Ver categoría */ },
+                    modifier = Modifier
+                        .border(2.dp, Color.White, shape = RoundedCornerShape(50)),
+                    colors = ButtonDefaults.buttonColors(containerColor = Color.Transparent)
+                ) {
+                    Text("Categoría", color = Color.White)
                 }
             }
         }
@@ -116,7 +141,8 @@ private fun CompactChallengeCard(challenge: ChallengePreview) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = 8.dp)
+            .padding(vertical = 8.dp),
+        colors = CardDefaults.cardColors(containerColor = Color(0xFF1A1F2E))
     ) {
         Column(
             modifier = Modifier
@@ -125,20 +151,23 @@ private fun CompactChallengeCard(challenge: ChallengePreview) {
         ) {
             Text(
                 text = challenge.title,
-                style = MaterialTheme.typography.titleLarge
+                style = MaterialTheme.typography.titleLarge,
+                color = Color.White
             )
             Text(
                 text = challenge.description,
-                style = MaterialTheme.typography.bodyMedium
+                style = MaterialTheme.typography.bodyMedium,
+                color = Color(0xFFCBD5E1)
             )
             // No mostrar likes ni comentarios
             Button(
                 onClick = { /* Ver desafío */ },
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(top = 8.dp)
+                    .padding(top = 8.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF3B82F6))
             ) {
-                Text("Ver Desafío →")
+                Text("Ver Desafío →", color = Color.White)
             }
         }
     }

@@ -10,6 +10,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -73,11 +74,20 @@ fun InteresesScreen(navController: NavController, authViewModel: AuthViewModel =
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .background(Color(0xFF1E1E1E))
-                .padding(16.dp)
+                .background(
+                    Brush.verticalGradient(
+                        colors = listOf(
+                            Color(0xFF0F172A), // Celeste muy oscuro
+                            Color(0xFF1E3A8A), // Celeste oscuro
+                            Color(0xFF3B82F6)  // Celeste medio
+                        )
+                    )
+                )
         ) {
             Column(
-                modifier = Modifier.fillMaxSize(),
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(24.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 Text(
@@ -90,15 +100,15 @@ fun InteresesScreen(navController: NavController, authViewModel: AuthViewModel =
 
                 Text(
                     text = "Selecciona al menos 3 intereses para personalizar tu experiencia",
-                    color = Color.Gray,
+                    color = Color(0xFFCBD5E1),
                     fontSize = 16.sp,
                     modifier = Modifier.padding(bottom = 32.dp)
                 )
 
                 LazyVerticalGrid(
                     columns = GridCells.Fixed(2),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp),
                     modifier = Modifier.weight(1f)
                 ) {
                     items(intereses) { interes ->
@@ -115,14 +125,15 @@ fun InteresesScreen(navController: NavController, authViewModel: AuthViewModel =
                                 .fillMaxWidth()
                                 .height(56.dp),
                             colors = ButtonDefaults.buttonColors(
-                                containerColor = if (isSelected) Color(0xFFA259FF) else Color(0xFF2E2E2E)
+                                containerColor = if (isSelected) Color(0xFF3B82F6) else Color(0xFF1E293B)
                             ),
-                            shape = RoundedCornerShape(12.dp)
+                            shape = RoundedCornerShape(16.dp)
                         ) {
                             Text(
                                 text = interes,
                                 fontSize = 16.sp,
-                                fontWeight = FontWeight.Medium
+                                fontWeight = FontWeight.Medium,
+                                color = Color.White
                             )
                         }
                     }
@@ -152,11 +163,11 @@ fun InteresesScreen(navController: NavController, authViewModel: AuthViewModel =
                         .height(56.dp)
                         .padding(vertical = 8.dp),
                     colors = ButtonDefaults.buttonColors(
-                        containerColor = Color(0xFFA259FF),
-                        disabledContainerColor = Color.Gray
+                        containerColor = Color(0xFF3B82F6),
+                        disabledContainerColor = Color(0xFF64748B)
                     ),
                     enabled = !isLoading.value,
-                    shape = RoundedCornerShape(12.dp)
+                    shape = RoundedCornerShape(16.dp)
                 ) {
                     if (isLoading.value) {
                         CircularProgressIndicator(
@@ -167,7 +178,8 @@ fun InteresesScreen(navController: NavController, authViewModel: AuthViewModel =
                         Text(
                             text = "Continuar",
                             fontSize = 18.sp,
-                            fontWeight = FontWeight.Bold
+                            fontWeight = FontWeight.Bold,
+                            color = Color.White
                         )
                     }
                 }
@@ -185,9 +197,9 @@ private fun InteresButton(
     Button(
         onClick = { onSelect(!selected) },
         colors = ButtonDefaults.buttonColors(
-            containerColor = if (selected) Color(0xFFA259FF) else Color(0xFF2E2E2E)
+            containerColor = if (selected) Color(0xFF3B82F6) else Color(0xFF1E293B)
         ),
-        shape = RoundedCornerShape(12.dp),
+        shape = RoundedCornerShape(16.dp),
         modifier = Modifier
             .fillMaxWidth()
             .height(56.dp)
