@@ -82,6 +82,9 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.navigation.NavController
 import androidx.compose.ui.res.painterResource
 import com.example.redsocial.R
+import com.example.redsocial.ui.theme.DarkBlue
+import androidx.compose.material.icons.filled.ContentCopy
+import androidx.compose.material.icons.filled.Download
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
@@ -376,34 +379,48 @@ fun EvidenciaPage(
 
     if (showOptionsBottomSheet) {
         ModalBottomSheet(
-            onDismissRequest = { showOptionsBottomSheet = false }
+            onDismissRequest = { showOptionsBottomSheet = false },
+            containerColor = Color.Black.copy(alpha = 0.85f)
         ) {
-            Column(Modifier.padding(vertical = 16.dp)) {
-                TextButton(
-                    onClick = {
-                        evidencia.url?.let {
-                            clipboardManager.setText(AnnotatedString(it))
-                            Toast.makeText(context, "Link copiado", Toast.LENGTH_SHORT).show()
-                        }
-                        showOptionsBottomSheet = false
-                    },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp)
-                ) {
-                    Text("Copiar link", color = Color.White)
+            Row(
+                Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 24.dp),
+                horizontalArrangement = Arrangement.SpaceEvenly
+            ) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    IconButton(
+                        onClick = {
+                            evidencia.url?.let {
+                                clipboardManager.setText(AnnotatedString(it))
+                                Toast.makeText(context, "Link copiado", Toast.LENGTH_SHORT).show()
+                            }
+                            showOptionsBottomSheet = false
+                        },
+                        modifier = Modifier
+                            .size(64.dp)
+                            .background(Color(0xFF444444), shape = CircleShape)
+                    ) {
+                        Icon(Icons.Filled.ContentCopy, contentDescription = "Copiar link", tint = Color.White, modifier = Modifier.size(32.dp))
+                    }
+                    Spacer(Modifier.height(8.dp))
+                    Text("Copiar enlace", color = Color.White)
                 }
-                TextButton(
-                    onClick = {
-                        evidencia.url?.let {
-                            downloadVideo(context, it)
-                        }
-                        showOptionsBottomSheet = false
-                    },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp)
-                ) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    IconButton(
+                        onClick = {
+                            evidencia.url?.let {
+                                downloadVideo(context, it)
+                            }
+                            showOptionsBottomSheet = false
+                        },
+                        modifier = Modifier
+                            .size(64.dp)
+                            .background(Color(0xFF444444), shape = CircleShape)
+                    ) {
+                        Icon(Icons.Filled.Download, contentDescription = "Descargar", tint = Color.White, modifier = Modifier.size(32.dp))
+                    }
+                    Spacer(Modifier.height(8.dp))
                     Text("Descargar", color = Color.White)
                 }
             }
