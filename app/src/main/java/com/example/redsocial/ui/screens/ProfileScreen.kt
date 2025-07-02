@@ -90,6 +90,7 @@ import androidx.compose.material.icons.filled.Comment
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.MoreVert
 import com.example.redsocial.R
+import com.example.redsocial.ui.components.EvidenciaViewerDialog
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
@@ -112,6 +113,7 @@ fun ProfileScreen(
     var badges by remember { mutableStateOf(0) }
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
+    var showEvidenciaDialog by remember { mutableStateOf<Evidencia?>(null) }
 
     LaunchedEffect(user?.uid) {
         user?.uid?.let { uid ->
@@ -434,8 +436,6 @@ fun ProfileScreen(
                             val textos = evidencias.filter { it.tipo == "texto" }
                             val audios = evidencias.filter { it.tipo == "audio" }
 
-                            var showVideoDialog by remember { mutableStateOf<String?>(null) }
-
                             // Sección Videos
                             if (videos.isNotEmpty()) {
                                 Text("Videos", color = Color(0xFFA259FF), fontSize = 18.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(vertical = 8.dp))
@@ -464,7 +464,7 @@ fun ProfileScreen(
                                                 .aspectRatio(9f/16f)
                                                 .clip(RoundedCornerShape(12.dp))
                                                 .background(Color(0xFF1A1F2E))
-                                                .clickable { showVideoDialog = evidencia.url },
+                                                .clickable { showEvidenciaDialog = evidencia },
                                             contentAlignment = Alignment.Center
                                         ) {
                                             AndroidView(
@@ -579,125 +579,6 @@ fun ProfileScreen(
                                     }
                                 }
                             }
-
-                            // Modal de video pantalla completa
-                            if (showVideoDialog != null) {
-                                val evidencia = (videos + imagenes + textos + audios).find { it.url == showVideoDialog }
-                                // Incrementar vistas en Firestore solo una vez por apertura
-                                LaunchedEffect(showVideoDialog) {
-                                    evidencia?.let {
-                                        val db = FirebaseFirestore.getInstance()
-                                        db.collection("evidencias").document(it.id)
-                                            .update("views", com.google.firebase.firestore.FieldValue.increment(1))
-                                    }
-                                }
-                                Dialog(
-                                    onDismissRequest = { showVideoDialog = null },
-                                    properties = DialogProperties(usePlatformDefaultWidth = false)
-                                ) {
-                                    Box(
-                                        Modifier
-                                            .fillMaxSize()
-                                            .background(Color.Black.copy(alpha = 0.95f)),
-                                        contentAlignment = Alignment.Center
-                                    ) {
-                                        val context = LocalContext.current
-                                        val url = showVideoDialog!!
-                                        val exoPlayer = remember(url) {
-                                            ExoPlayer.Builder(context).build().apply {
-                                                setMediaItem(MediaItem.fromUri(url))
-                                                prepare()
-                                                playWhenReady = true
-                                                repeatMode = Player.REPEAT_MODE_ONE
-                                            }
-                                        }
-                                        var showControls by remember { mutableStateOf(false) }
-                                        val lifecycleOwner = LocalLifecycleOwner.current
-                                        DisposableEffect(exoPlayer, lifecycleOwner) {
-                                            val observer = LifecycleEventObserver { _, event ->
-                                                when (event) {
-                                                    Lifecycle.Event.ON_PAUSE -> exoPlayer.pause()
-                                                    Lifecycle.Event.ON_RESUME -> exoPlayer.play()
-                                                    else -> {}
-                                                }
-                                            }
-                                            lifecycleOwner.lifecycle.addObserver(observer)
-                                            onDispose {
-                                                lifecycleOwner.lifecycle.removeObserver(observer)
-                                                exoPlayer.release()
-                                            }
-                                        }
-                                        // Overlay igual que en el home
-                                        Box(modifier = Modifier.fillMaxSize()) {
-                                            AndroidView(
-                                                factory = {
-                                                    PlayerView(it).apply {
-                                                        player = exoPlayer
-                                                        useController = false
-                                                        resizeMode = AspectRatioFrameLayout.RESIZE_MODE_ZOOM
-                                                    }
-                                                },
-                                                modifier = Modifier
-                                                    .fillMaxSize()
-                                                    .pointerInput(Unit) {
-                                                        detectTapGestures(
-                                                            onTap = {
-                                                                exoPlayer.playWhenReady = !exoPlayer.playWhenReady
-                                                                showControls = true
-                                                            }
-                                                        )
-                                                    }
-                                            )
-                                            // Overlay de info y acciones sociales
-                                            evidencia?.let { ev ->
-                                                Row(
-                                                    modifier = Modifier
-                                                        .fillMaxSize()
-                                                        .padding(16.dp),
-                                                    verticalAlignment = Alignment.Bottom
-                                                ) {
-                                                    // Info izquierda
-                                                    Column(modifier = Modifier.weight(1f)) {
-                                                        Text(
-                                                            text = ev.descripcion ?: "Evidencia completada",
-                                                            color = Color.White,
-                                                            style = MaterialTheme.typography.titleLarge,
-                                                            fontWeight = FontWeight.Bold
-                                                        )
-                                                        Spacer(modifier = Modifier.height(4.dp))
-                                                        Text(
-                                                            text = "By @${ev.userName}",
-                                                            color = Color.White,
-                                                            style = MaterialTheme.typography.bodyMedium
-                                                        )
-                                                        Spacer(modifier = Modifier.height(16.dp))
-                                                    }
-                                                    // Acciones sociales
-                                                    EvidenciaSocialActionsPerfilModal(evidencia = ev)
-                                                }
-                                            }
-                                            androidx.compose.animation.AnimatedVisibility(
-                                                visible = showControls,
-                                                enter = fadeIn(),
-                                                exit = fadeOut()
-                                            ) {
-                                                Icon(
-                                                    imageVector = if (exoPlayer.isPlaying) Icons.Filled.Pause else Icons.Filled.PlayArrow,
-                                                    contentDescription = "Play/Pause",
-                                                    tint = Color.White.copy(alpha = 0.7f),
-                                                    modifier = Modifier.size(64.dp)
-                                                )
-                                            }
-                                            if (showControls) {
-                                                LaunchedEffect(Unit) {
-                                                    kotlinx.coroutines.delay(800)
-                                                    showControls = false
-                                                }
-                                            }
-                                        }
-                                    }
-                                }
-                            }
                         }
                     }
                 }
@@ -745,6 +626,13 @@ fun ProfileScreen(
             containerColor = Color(0xFF1A1F2E)
         )
     }
+
+    // Modal de evidencia pantalla completa
+    EvidenciaViewerDialog(
+        evidencia = showEvidenciaDialog,
+        visible = showEvidenciaDialog != null,
+        onDismiss = { showEvidenciaDialog = null }
+    )
 }
 
 @Composable
@@ -868,10 +756,6 @@ fun EvidenciaSocialActionsPerfilModal(evidencia: Evidencia) {
                     DropdownMenuItem(text = { Text(if (commentsRestricted) "Activar comentarios" else "Restringir comentarios") }, onClick = {
                         expanded = false
                         db.collection("evidencias").document(evidencia.id).update("commentsRestricted", !commentsRestricted)
-                    })
-                    DropdownMenuItem(text = { Text("No permitir descargas") }, onClick = {
-                        expanded = false
-                        db.collection("evidencias").document(evidencia.id).update("downloadsAllowed", false)
                     })
                 }
             }
