@@ -27,6 +27,8 @@ import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
+import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.RadioButtonUnchecked
 import kotlinx.coroutines.launch
 import android.app.Activity
 import android.content.Intent
@@ -43,6 +45,76 @@ import android.net.Uri
 import com.google.android.gms.auth.api.signin.GoogleSignInStatusCodes
 import com.example.redsocial.utils.NetworkUtils
 
+// --- Validación de contraseña SOLO para Login ---
+fun validatePassword(password: String): PasswordValidation {
+    val hasUpperCase = password.any { it.isUpperCase() }
+    val hasLowerCase = password.any { it.isLowerCase() }
+    val hasDigit = password.any { it.isDigit() }
+    val hasSpecialChar = password.any { !it.isLetterOrDigit() }
+    val hasMinLength = password.length >= 8
+    return PasswordValidation(
+        hasUpperCase = hasUpperCase,
+        hasLowerCase = hasLowerCase,
+        hasDigit = hasDigit,
+        hasSpecialChar = hasSpecialChar,
+        hasMinLength = hasMinLength
+    )
+}
+
+data class PasswordValidation(
+    val hasUpperCase: Boolean,
+    val hasLowerCase: Boolean,
+    val hasDigit: Boolean,
+    val hasSpecialChar: Boolean,
+    val hasMinLength: Boolean
+) {
+    val isValid: Boolean
+        get() = hasUpperCase && hasLowerCase && hasDigit && hasSpecialChar && hasMinLength
+}
+
+@Composable
+fun PasswordValidationText(validation: PasswordValidation) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(start = 16.dp, end = 16.dp, bottom = 8.dp)
+    ) {
+        Text(
+            text = "La contraseña debe contener:",
+            color = Color.White.copy(alpha = 0.8f),
+            fontSize = 12.sp,
+            modifier = Modifier.padding(bottom = 4.dp)
+        )
+        PasswordRequirement("Al menos 8 caracteres", validation.hasMinLength)
+        PasswordRequirement("Una letra mayúscula", validation.hasUpperCase)
+        PasswordRequirement("Una letra minúscula", validation.hasLowerCase)
+        PasswordRequirement("Un número", validation.hasDigit)
+        PasswordRequirement("Un carácter especial", validation.hasSpecialChar)
+    }
+}
+
+@Composable
+fun PasswordRequirement(text: String, isMet: Boolean) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier.padding(vertical = 1.dp)
+    ) {
+        Icon(
+            imageVector = if (isMet) Icons.Default.CheckCircle else Icons.Default.RadioButtonUnchecked,
+            contentDescription = if (isMet) "Requisito cumplido" else "Requisito pendiente",
+            tint = if (isMet) Color.Green else Color.White.copy(alpha = 0.6f),
+            modifier = Modifier.size(16.dp)
+        )
+        Spacer(modifier = Modifier.width(8.dp))
+        Text(
+            text = text,
+            color = if (isMet) Color.Green else Color.White.copy(alpha = 0.6f),
+            fontSize = 12.sp
+        )
+    }
+}
+// --- Fin validación contraseña ---
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun LoginScreen(navController: NavController, authViewModel: AuthViewModel = viewModel()) {
@@ -56,6 +128,9 @@ fun LoginScreen(navController: NavController, authViewModel: AuthViewModel = vie
     val mensaje by authViewModel.mensaje.collectAsState()
     var mostrarPassword by remember { mutableStateOf(false) }
     val context = LocalContext.current
+    
+    // Validación de contraseña
+    val passwordValidation = remember(password) { validatePassword(password) }
 
     // Config Google
     val googleSignInClient = remember {
@@ -299,7 +374,7 @@ fun LoginScreen(navController: NavController, authViewModel: AuthViewModel = vie
                     visualTransformation = if (mostrarPassword) VisualTransformation.None else PasswordVisualTransformation(),
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(bottom = 24.dp),
+                        .padding(bottom = 8.dp),
                     colors = OutlinedTextFieldDefaults.colors(
                         focusedTextColor = Color.White,
                         unfocusedTextColor = Color.White,
@@ -307,6 +382,11 @@ fun LoginScreen(navController: NavController, authViewModel: AuthViewModel = vie
                         unfocusedBorderColor = Color(0xFF64748B)
                     )
                 )
+                
+                // Texto de validación de contraseña
+                if (password.isNotEmpty()) {
+                    PasswordValidationText(passwordValidation)
+                }
 
                 Button(
                     onClick = {
@@ -320,7 +400,8 @@ fun LoginScreen(navController: NavController, authViewModel: AuthViewModel = vie
                     },
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(56.dp),
+                        .height(56.dp)
+                        .padding(top = 16.dp),
                     shape = RoundedCornerShape(16.dp),
                     colors = ButtonDefaults.buttonColors(
                         containerColor = Color(0xFF3B82F6),
