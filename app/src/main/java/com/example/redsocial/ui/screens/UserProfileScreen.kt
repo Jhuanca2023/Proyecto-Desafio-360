@@ -1,3 +1,4 @@
+@file:OptIn(androidx.media3.common.util.UnstableApi::class)
 package com.example.redsocial.ui.screens
 
 import androidx.compose.foundation.background

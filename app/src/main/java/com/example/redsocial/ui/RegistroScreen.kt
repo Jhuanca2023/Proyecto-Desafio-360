@@ -35,6 +35,7 @@ import androidx.compose.material.IconButton
 import androidx.compose.material.OutlinedTextField
 import androidx.compose.material.TextFieldDefaults
 import kotlinx.coroutines.delay
+import android.util.Log
 
 @Composable
 fun RegistroScreen(navController: NavController, authViewModel: AuthViewModel = viewModel()) {
@@ -234,11 +235,25 @@ fun RegistroScreen(navController: NavController, authViewModel: AuthViewModel = 
 
                 Button(
                     onClick = {
-                        if (password == confirmPassword) {
-                            authViewModel.registerWithEmail(nombre, nombreUsuario, email, password, fechaNacimiento, genero)
-                        } else {
-                            scope.launch {
-                                scaffoldState.snackbarHostState.showSnackbar("Las contraseñas no coinciden")
+                        Log.d("RegistroDebug", "Password en pantalla: '$password'")
+                        when {
+                            nombre.isBlank() || nombreUsuario.isBlank() || email.isBlank() || 
+                            password.isBlank() || confirmPassword.isBlank() || 
+                            fechaNacimiento.isBlank() || genero.isBlank() -> {
+                                scope.launch { scaffoldState.snackbarHostState.showSnackbar("Completa todos los campos") }
+                            }
+                            password != confirmPassword -> {
+                                scope.launch { scaffoldState.snackbarHostState.showSnackbar("Las contraseñas no coinciden") }
+                            }
+                            else -> {
+                                authViewModel.registerWithEmail(
+                                    email = email,
+                                    password = password,
+                                    nombreCompleto = nombre,
+                                    nombreUsuario = nombreUsuario,
+                                    fechaNacimiento = fechaNacimiento,
+                                    genero = genero
+                                )
                             }
                         }
                     },

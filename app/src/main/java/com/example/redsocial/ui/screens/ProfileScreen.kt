@@ -1,3 +1,4 @@
+@file:OptIn(androidx.media3.common.util.UnstableApi::class)
 package com.example.redsocial.ui.screens
 
 import androidx.compose.foundation.background
@@ -92,7 +93,7 @@ import androidx.compose.material.icons.filled.MoreVert
 import com.example.redsocial.R
 import com.example.redsocial.ui.components.EvidenciaViewerDialog
 
-@OptIn(ExperimentalFoundationApi::class)
+@OptIn(ExperimentalFoundationApi::class, androidx.media3.common.util.UnstableApi::class)
 @Composable
 fun ProfileScreen(
     navController: NavController,

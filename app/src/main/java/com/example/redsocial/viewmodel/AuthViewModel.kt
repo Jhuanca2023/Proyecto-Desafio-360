@@ -23,6 +23,7 @@ import kotlinx.coroutines.delay
 import com.google.firebase.firestore.FieldValue
 import com.example.redsocial.utils.NetworkUtils
 import com.example.redsocial.utils.NotificationUtils
+import android.util.Log
 
 sealed class AuthState {
     object Initial : AuthState()
@@ -181,6 +182,8 @@ class AuthViewModel(app: Application) : AndroidViewModel(app) {
         onSuccess: (() -> Unit)? = null,
         onError: ((String) -> Unit)? = null
     ) {
+        Log.d("RegistroDebug", "Contraseña recibida: '$password'")
+        Log.d("RegistroDebug", "Validación local: ${validatePassword(password)}")
         if (!validatePassword(password)) {
             _mensaje.value = "La contraseña debe tener al menos 8 caracteres, incluir mayúsculas, minúsculas, números y caracteres especiales"
             _authState.value = AuthState.Error("Contraseña inválida")
@@ -199,7 +202,6 @@ class AuthViewModel(app: Application) : AndroidViewModel(app) {
 
                 if (user != null) {
                     try {
-
                         _mensaje.value = "Verificando disponibilidad del nombre de usuario..."
                         val uniqueUsername = generateUniqueUsername(nombreUsuario)
                         
@@ -226,15 +228,14 @@ class AuthViewModel(app: Application) : AndroidViewModel(app) {
                         _authState.value = AuthState.RegistrationCompleted
                         onSuccess?.invoke()
                     } catch (e: Exception) {
-
                         try {
                             user.delete().await()
                         } catch (_: Exception) {}
-                        
                         throw e
                     }
                 }
             } catch (e: Exception) {
+                Log.e("RegistroDebug", "Error de Firebase: ${e.message}", e)
                 val errorMsg = when {
                     e.message?.contains("email-already-in-use") == true ->
                         "Este correo electrónico ya está registrado"
