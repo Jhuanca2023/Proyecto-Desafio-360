@@ -152,8 +152,8 @@ fun HomeScreen(
             .background(
                 Brush.verticalGradient(
                     colors = listOf(
-                        Color(0xFF0A0F1C), // Celeste muy oscuro (noche)
-                        Color(0xFF1A1F2E), // Celeste oscuro
+                        Color(0xFF0A2740), // Celeste oscuro
+                        Color(0xFF193B5A), // Celeste más claro
                         Color(0xFF2A2F3E)  // Celeste medio oscuro
                     )
                 )
@@ -229,14 +229,28 @@ fun HomeScreen(
                         state = pagerState,
                         modifier = Modifier.fillMaxSize()
                     ) { page ->
-                        EvidenciaPage(
-                            evidencia = evidencias[page],
-                            onNavigateToChallengeDetail = onNavigateToChallengeDetail,
-                            onCategoryClick = {
-                                showBottomSheet = true
-                            },
-                            navController = navController
-                        )
+                        val evidencia = evidencias[page]
+                        if (evidencia.tipo == "texto") {
+                            EvidenciaPage(
+                                evidencia = evidencia,
+                                onNavigateToChallengeDetail = onNavigateToChallengeDetail,
+                                onCategoryClick = {
+                                    showBottomSheet = true
+                                },
+                                navController = navController,
+                                mostrarAccionesLaterales = false
+                            )
+                        } else {
+                            EvidenciaPage(
+                                evidencia = evidencia,
+                                onNavigateToChallengeDetail = onNavigateToChallengeDetail,
+                                onCategoryClick = {
+                                    showBottomSheet = true
+                                },
+                                navController = navController,
+                                mostrarAccionesLaterales = true
+                            )
+                        }
                     }
                 }
 
@@ -287,7 +301,8 @@ fun EvidenciaPage(
     evidencia: Evidencia,
     onNavigateToChallengeDetail: (String) -> Unit,
     onCategoryClick: () -> Unit,
-    navController: NavController
+    navController: NavController,
+    mostrarAccionesLaterales: Boolean = true
 ) {
     var challenge by remember { mutableStateOf<Challenge?>(null) }
     var showOptionsBottomSheet by remember { mutableStateOf(false) }
@@ -328,63 +343,145 @@ fun EvidenciaPage(
                     modifier = Modifier
                         .fillMaxSize()
                         .padding(16.dp),
-                    contentAlignment = Alignment.Center
+                    contentAlignment = Alignment.TopCenter
                 ) {
-                    Text(evidencia.texto ?: "", style = MaterialTheme.typography.headlineMedium, color = Color.White)
+                    Card(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .wrapContentHeight(),
+                        colors = CardDefaults.cardColors(containerColor = Color(0xFF1A1F2E)),
+                        shape = RoundedCornerShape(16.dp),
+                        elevation = CardDefaults.cardElevation(8.dp)
+                    ) {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(20.dp)
+                        ) {
+                            Text(
+                                text = "@${evidencia.userName}",
+                                color = Color(0xFF60A5FA),
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 18.sp
+                            )
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Text(
+                                text = evidencia.texto ?: "",
+                                color = Color.White,
+                                fontSize = 17.sp,
+                                lineHeight = 22.sp
+                            )
+                            Spacer(modifier = Modifier.height(16.dp))
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(24.dp)
+                            ) {
+                                // Like
+                                val currentUser = FirebaseAuth.getInstance().currentUser
+                                val db = FirebaseFirestore.getInstance()
+                                var likesCount by remember { mutableStateOf(0) }
+                                var isLiked by remember { mutableStateOf(false) }
+                                var commentsCount by remember { mutableStateOf(0) }
+                                var showComentarios by remember { mutableStateOf(false) }
+                                // Likes listener
+                                LaunchedEffect(evidencia.id) {
+                                    val likesRef = db.collection("evidencias").document(evidencia.id).collection("likes")
+                                    likesRef.addSnapshotListener { snapshot, _ ->
+                                        likesCount = snapshot?.size() ?: 0
+                                        isLiked = snapshot?.documents?.any { it.id == currentUser?.uid } == true
+                                    }
+                                    val commentsRef = db.collection("evidencias").document(evidencia.id).collection("comentarios")
+                                    commentsRef.addSnapshotListener { snapshot, _ ->
+                                        commentsCount = snapshot?.size() ?: 0
+                                    }
+                                }
+                                IconButton(onClick = {
+                                    val likesRef = db.collection("evidencias").document(evidencia.id).collection("likes")
+                                    val userLikeRef = likesRef.document(currentUser!!.uid)
+                                    if (isLiked) {
+                                        userLikeRef.delete()
+                                        db.collection("evidencias").document(evidencia.id).update("likes", FieldValue.increment(-1))
+                                        db.collection("usuarios").document(evidencia.userId).update("totalLikes", FieldValue.increment(-1))
+                                    } else {
+                                        userLikeRef.set(mapOf("userId" to currentUser.uid, "timestamp" to System.currentTimeMillis()))
+                                        db.collection("evidencias").document(evidencia.id).update("likes", FieldValue.increment(1))
+                                        db.collection("usuarios").document(evidencia.userId).update("totalLikes", FieldValue.increment(1))
+                                    }
+                                }) {
+                                    Icon(
+                                        if (isLiked) Icons.Filled.Favorite else Icons.Outlined.FavoriteBorder,
+                                        contentDescription = "Like",
+                                        tint = Color(0xFFFF4081),
+                                        modifier = Modifier.size(24.dp)
+                                    )
+                                }
+                                Text("$likesCount", color = Color.White, fontSize = 15.sp)
+                                // Comentario
+                                IconButton(onClick = { showComentarios = true }) {
+                                    Icon(painterResource(id = R.drawable.ic_comment_outline), contentDescription = "Comentar", tint = Color(0xFF60A5FA), modifier = Modifier.size(24.dp))
+                                }
+                                Text("$commentsCount", color = Color.White, fontSize = 15.sp)
+                                if (showComentarios) {
+                                    ComentariosDialog(evidenciaId = evidencia.id, onDismiss = { showComentarios = false })
+                                }
+                            }
+                        }
+                    }
                 }
             }
         }
 
-        // UI Overlay
-        Row(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(16.dp),
-            verticalAlignment = Alignment.Bottom
-        ) {
-            // Left side: Challenge Info & Actions
-            Column(modifier = Modifier.weight(1f)) {
-                challenge?.let {
-                    Text(
-                        text = it.title,
-                        color = Color.White,
-                        style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.Bold
-                    )
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Text(
-                        text = "By @${evidencia.userName}",
-                        color = Color.White,
-                        style = MaterialTheme.typography.bodyMedium,
-                        modifier = Modifier.clickable {
-                            navController.navigate("userProfile/${evidencia.userId}")
+        // UI Overlay SOLO si mostrarAccionesLaterales es true
+        if (mostrarAccionesLaterales) {
+            Row(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(16.dp),
+                verticalAlignment = Alignment.Bottom
+            ) {
+                // Left side: Challenge Info & Actions
+                Column(modifier = Modifier.weight(1f)) {
+                    challenge?.let {
+                        Text(
+                            text = it.title,
+                            color = Color.White,
+                            style = MaterialTheme.typography.titleLarge,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(
+                            text = "By @${evidencia.userName}",
+                            color = Color.White,
+                            style = MaterialTheme.typography.bodyMedium,
+                            modifier = Modifier.clickable {
+                                navController.navigate("userProfile/${evidencia.userId}")
+                            }
+                        )
+                    }
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Row {
+                        Button(
+                            onClick = { onNavigateToChallengeDetail(evidencia.challengeId) },
+                            modifier = Modifier
+                                .border(2.dp, Color.White, shape = RoundedCornerShape(50)),
+                            colors = ButtonDefaults.buttonColors(containerColor = Color.Transparent)
+                        ) {
+                            Text("Participar", color = Color.White)
                         }
-                    )
-                }
-                Spacer(modifier = Modifier.height(16.dp))
-                Row {
-                    Button(
-                        onClick = { onNavigateToChallengeDetail(evidencia.challengeId) },
-                        modifier = Modifier
-                            .border(2.dp, Color.White, shape = RoundedCornerShape(50)),
-                        colors = ButtonDefaults.buttonColors(containerColor = Color.Transparent)
-                    ) {
-                        Text("Participar", color = Color.White)
-                    }
-                    Spacer(Modifier.width(8.dp))
-                    Button(
-                        onClick = onCategoryClick,
-                        modifier = Modifier
-                            .border(2.dp, Color.White, shape = RoundedCornerShape(50)),
-                        colors = ButtonDefaults.buttonColors(containerColor = Color.Transparent)
-                    ) {
-                        Text("Categoría", color = Color.White)
+                        Spacer(Modifier.width(8.dp))
+                        Button(
+                            onClick = onCategoryClick,
+                            modifier = Modifier
+                                .border(2.dp, Color.White, shape = RoundedCornerShape(50)),
+                            colors = ButtonDefaults.buttonColors(containerColor = Color.Transparent)
+                        ) {
+                            Text("Categoría", color = Color.White)
+                        }
                     }
                 }
+                // Right side: Social Actions SOLO si no es texto
+                EvidenciaSocialActions(evidencia = evidencia, navController = navController)
             }
-
-            // Right side: Social Actions (reemplazo la columna temporal por la lógica real)
-            EvidenciaSocialActions(evidencia = evidencia, navController = navController)
         }
     }
 
