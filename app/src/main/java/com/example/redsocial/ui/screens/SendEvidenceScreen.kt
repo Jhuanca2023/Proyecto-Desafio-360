@@ -37,12 +37,16 @@ import androidx.compose.material.icons.filled.Image
 import androidx.compose.material.icons.filled.Videocam
 import androidx.compose.material.icons.filled.TextFields
 import androidx.compose.material.icons.filled.Audiotrack
+import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import java.io.File
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
 import kotlinx.coroutines.tasks.await
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.sp
+import com.example.redsocial.ui.theme.BackgroundDark
 
 @Composable
 fun SendEvidenceScreen(
@@ -94,306 +98,405 @@ fun SendEvidenceScreen(
         videoFileName = uri?.lastPathSegment
     }
 
-    val tipos = listOf("imagen", "video", "texto", "audio") // ahora incluye audio
+    val tipos = listOf("imagen", "video", "texto", "audio")
     val scrollState = rememberScrollState()
 
-    Column(
+    // Pantalla completa con color de fondo de la app
+    Box(
         modifier = Modifier
             .fillMaxSize()
-            .verticalScroll(scrollState)
-            .padding(16.dp),
-        horizontalAlignment = Alignment.CenterHorizontally
+            .background(BackgroundDark)
     ) {
-        Box(
+        Column(
             modifier = Modifier
-                .fillMaxWidth()
-                .shadow(12.dp, RoundedCornerShape(24.dp))
-                .background(MaterialTheme.colorScheme.surface, RoundedCornerShape(24.dp))
+                .fillMaxSize()
+                .verticalScroll(scrollState)
                 .padding(24.dp)
         ) {
-            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                Text("Enviar Evidencia", style = MaterialTheme.typography.headlineMedium)
-                Spacer(Modifier.height(8.dp))
-                Text("Para el desafío: $challengeTitle", style = MaterialTheme.typography.bodyMedium)
-                Spacer(Modifier.height(20.dp))
-
-                Text("Tipo de Evidencia", style = MaterialTheme.typography.bodyMedium)
-                Spacer(Modifier.height(8.dp))
-                // Cuadrícula 2x2 para tipos de evidencia
-                val evidenciaItems = listOf(
-                    Triple("video", Icons.Default.Videocam, "Video"),
-                    Triple("imagen", Icons.Default.Image, "Imagen"),
-                    Triple("texto", Icons.Default.TextFields, "Texto"),
-                    Triple("audio", Icons.Default.Audiotrack, "Audio")
-                )
-                Column(Modifier.fillMaxWidth()) {
-                    for (row in 0..1) {
-                        Row(
-                            Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceEvenly
-                        ) {
-                            for (col in 0..1) {
-                                val idx = row * 2 + col
-                                val (t, icon, label) = evidenciaItems[idx]
-                                val seleccionado = tipo == t
-                                Surface(
-                                    shape = RoundedCornerShape(16.dp),
-                                    border = if (seleccionado) BorderStroke(2.dp, MaterialTheme.colorScheme.primary) else BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
-                                    color = if (seleccionado) MaterialTheme.colorScheme.primary.copy(alpha = 0.25f) else MaterialTheme.colorScheme.surfaceVariant,
-                                    modifier = Modifier
-                                        .padding(6.dp)
-                                        .weight(1f)
-                                        .aspectRatio(1f)
-                                        .clickable { tipo = t }
-                                ) {
-                                    Column(
-                                        Modifier.fillMaxSize(),
-                                        verticalArrangement = Arrangement.Center,
-                                        horizontalAlignment = Alignment.CenterHorizontally
-                                    ) {
-                                        Icon(
-                                            icon,
-                                            contentDescription = label,
-                                            modifier = Modifier.size(38.dp),
-                                            tint = if (seleccionado) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
-                                        )
-                                        Spacer(Modifier.height(8.dp))
-                                        Text(
-                                            label,
-                                            style = MaterialTheme.typography.bodyLarge,
-                                            color = if (seleccionado) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
-                                        )
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-                Spacer(Modifier.height(16.dp))
-
-                when (tipo) {
-                    "imagen" -> {
-                        Card(
-                            shape = RoundedCornerShape(16.dp),
-                            modifier = Modifier.fillMaxWidth(),
-                            elevation = CardDefaults.cardElevation(4.dp)
-                        ) {
-                            Column(Modifier.padding(16.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-                                Button(onClick = { imageLauncher.launch("image/*") }) {
-                                    Icon(Icons.Default.Image, contentDescription = null)
-                                    Spacer(Modifier.width(8.dp))
-                                    Text("Selecciona tu archivo (imagen)")
-                                }
-                                imageBitmap?.let {
-                                    Spacer(Modifier.height(8.dp))
-                                    Image(bitmap = it.asImageBitmap(), contentDescription = "Imagen seleccionada", modifier = Modifier.size(140.dp).shadow(4.dp, RoundedCornerShape(12.dp)))
-                                }
-                            }
-                        }
-                    }
-                    "video" -> {
-                        Card(
-                            shape = RoundedCornerShape(16.dp),
-                            modifier = Modifier.fillMaxWidth(),
-                            elevation = CardDefaults.cardElevation(4.dp)
-                        ) {
-                            Column(Modifier.padding(16.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-                                Button(onClick = { videoLauncher.launch("video/*") }) {
-                                    Icon(Icons.Default.Videocam, contentDescription = null)
-                                    Spacer(Modifier.width(8.dp))
-                                    Text("Selecciona tu archivo (video)")
-                                }
-                                videoFileName?.let {
-                                    Spacer(Modifier.height(8.dp))
-                                    Text("Video seleccionado: $it")
-                                }
-                            }
-                        }
-                    }
-                    "texto" -> {
-                        Card(
-                            shape = RoundedCornerShape(16.dp),
-                            modifier = Modifier.fillMaxWidth(),
-                            elevation = CardDefaults.cardElevation(4.dp)
-                        ) {
-                            OutlinedTextField(
-                                value = texto,
-                                onValueChange = { texto = it },
-                                label = { Text("Escribe tu evidencia") },
-                                modifier = Modifier.fillMaxWidth().height(120.dp).padding(16.dp)
-                            )
-                        }
-                    }
-                    "audio" -> {
-                        Card(
-                            shape = RoundedCornerShape(16.dp),
-                            modifier = Modifier.fillMaxWidth(),
-                            elevation = CardDefaults.cardElevation(4.dp)
-                        ) {
-                            Column(
-                                Modifier.padding(16.dp),
-                                horizontalAlignment = Alignment.CenterHorizontally,
-                                verticalArrangement = Arrangement.spacedBy(8.dp)
-                            ) {
-                                if (!isRecording && audioFile == null) {
-                                    Button(
-                                        onClick = {
-                                            val success = AudioUtils.startRecording(context) { error ->
-                                                errorMessage = error
-                                            }
-                                            if (success) {
-                                                isRecording = true
-                                                errorMessage = null
-                                            }
-                                        },
-                                        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
-                                    ) {
-                                        Icon(Icons.Default.Mic, contentDescription = "Grabar")
-                                        Spacer(Modifier.width(8.dp))
-                                        Text("Iniciar Grabación")
-                                    }
-                                } else if (isRecording) {
-                                    Button(
-                                        onClick = {
-                                            audioFile = AudioUtils.stopRecording()
-                                            isRecording = false
-                                            audioFileName = "audio_${System.currentTimeMillis()}.mp3"
-                                        },
-                                        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
-                                    ) {
-                                        Icon(Icons.Default.Stop, contentDescription = "Detener")
-                                        Spacer(Modifier.width(8.dp))
-                                        Text("Detener Grabación")
-                                    }
-                                    Text("🎤 Grabando...", style = MaterialTheme.typography.bodyMedium)
-                                } else if (audioFile != null) {
-                                    Text("✅ Audio grabado", style = MaterialTheme.typography.bodyMedium)
-                                    Button(
-                                        onClick = {
-                                            audioFile = null
-                                            audioFileName = null
-                                        },
-                                        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.secondary)
-                                    ) {
-                                        Text("Regrabar")
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-                Spacer(Modifier.height(16.dp))
-                Card(
-                    shape = RoundedCornerShape(16.dp),
-                    modifier = Modifier.fillMaxWidth(),
-                    elevation = CardDefaults.cardElevation(2.dp)
+            // Header con botón de regreso
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = 32.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                IconButton(
+                    onClick = onCancel,
+                    modifier = Modifier.size(48.dp)
                 ) {
+                    Icon(
+                        Icons.Default.ArrowBack,
+                        contentDescription = "Regresar",
+                        tint = Color.White,
+                        modifier = Modifier.size(28.dp)
+                    )
+                }
+                Spacer(modifier = Modifier.width(16.dp))
+                Column {
+                    Text(
+                        "📸 Enviar Evidencia", 
+                        style = MaterialTheme.typography.headlineMedium.copy(
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 28.sp
+                        ),
+                        color = Color.White
+                    )
+                    Text(
+                        "Desafío: $challengeTitle", 
+                        style = MaterialTheme.typography.bodyLarge.copy(
+                            fontSize = 18.sp,
+                            fontWeight = FontWeight.Medium
+                        ),
+                        color = Color.White.copy(alpha = 0.8f)
+                    )
+                }
+            }
+
+            // Tipo de evidencia
+            Text(
+                "Selecciona el tipo de evidencia", 
+                style = MaterialTheme.typography.titleLarge.copy(
+                    fontWeight = FontWeight.SemiBold,
+                    fontSize = 22.sp
+                ),
+                color = Color.White
+            )
+            Spacer(modifier = Modifier.height(24.dp))
+            
+            // Cuadrícula 2x2 para tipos de evidencia
+            val evidenciaItems = listOf(
+                Triple("video", Icons.Default.Videocam, "Video"),
+                Triple("imagen", Icons.Default.Image, "Imagen"),
+                Triple("texto", Icons.Default.TextFields, "Texto"),
+                Triple("audio", Icons.Default.Audiotrack, "Audio")
+            )
+            Column(Modifier.fillMaxWidth()) {
+                for (row in 0..1) {
+                    Row(
+                        Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(16.dp)
+                    ) {
+                        for (col in 0..1) {
+                            val idx = row * 2 + col
+                            val (t, icon, label) = evidenciaItems[idx]
+                            val seleccionado = tipo == t
+                            Surface(
+                                shape = RoundedCornerShape(24.dp),
+                                border = if (seleccionado) BorderStroke(3.dp, Color.White) else BorderStroke(1.dp, Color.White.copy(alpha = 0.3f)),
+                                color = if (seleccionado) Color.White.copy(alpha = 0.2f) else Color.White.copy(alpha = 0.1f),
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .aspectRatio(1f)
+                                    .clickable { tipo = t }
+                                    .shadow(
+                                        elevation = if (seleccionado) 12.dp else 4.dp,
+                                        shape = RoundedCornerShape(24.dp)
+                                    )
+                            ) {
+                                Column(
+                                    Modifier.fillMaxSize(),
+                                    verticalArrangement = Arrangement.Center,
+                                    horizontalAlignment = Alignment.CenterHorizontally
+                                ) {
+                                    Icon(
+                                        icon,
+                                        contentDescription = label,
+                                        modifier = Modifier.size(48.dp),
+                                        tint = Color.White
+                                    )
+                                    Spacer(Modifier.height(16.dp))
+                                    Text(
+                                        label,
+                                        style = MaterialTheme.typography.bodyLarge.copy(
+                                            fontWeight = if (seleccionado) FontWeight.Bold else FontWeight.Medium,
+                                            fontSize = 18.sp
+                                        ),
+                                        color = Color.White
+                                    )
+                                }
+                            }
+                        }
+                    }
+                    if (row == 0) Spacer(Modifier.height(16.dp))
+                }
+            }
+            Spacer(Modifier.height(40.dp))
+
+            // Contenido específico del tipo seleccionado
+            when (tipo) {
+                "imagen" -> {
+                    Card(
+                        shape = RoundedCornerShape(24.dp),
+                        modifier = Modifier.fillMaxWidth(),
+                        elevation = CardDefaults.cardElevation(12.dp),
+                        colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.1f))
+                    ) {
+                        Column(Modifier.padding(28.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                            Button(
+                                onClick = { imageLauncher.launch("image/*") },
+                                shape = RoundedCornerShape(20.dp),
+                                colors = ButtonDefaults.buttonColors(containerColor = Color.White),
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Icon(Icons.Default.Image, contentDescription = null, modifier = Modifier.size(28.dp), tint = BackgroundDark)
+                                Spacer(Modifier.width(16.dp))
+                                Text("Seleccionar Imagen", style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.SemiBold), color = BackgroundDark)
+                            }
+                            imageBitmap?.let {
+                                Spacer(Modifier.height(20.dp))
+                                Image(
+                                    bitmap = it.asImageBitmap(), 
+                                    contentDescription = "Imagen seleccionada", 
+                                    modifier = Modifier
+                                        .size(180.dp)
+                                        .shadow(12.dp, RoundedCornerShape(20.dp))
+                                )
+                            }
+                        }
+                    }
+                }
+                "video" -> {
+                    Card(
+                        shape = RoundedCornerShape(24.dp),
+                        modifier = Modifier.fillMaxWidth(),
+                        elevation = CardDefaults.cardElevation(12.dp),
+                        colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.1f))
+                    ) {
+                        Column(Modifier.padding(28.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                            Button(
+                                onClick = { videoLauncher.launch("video/*") },
+                                shape = RoundedCornerShape(20.dp),
+                                colors = ButtonDefaults.buttonColors(containerColor = Color.White),
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Icon(Icons.Default.Videocam, contentDescription = null, modifier = Modifier.size(28.dp), tint = BackgroundDark)
+                                Spacer(Modifier.width(16.dp))
+                                Text("Seleccionar Video", style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.SemiBold), color = BackgroundDark)
+                            }
+                            videoFileName?.let {
+                                Spacer(Modifier.height(20.dp))
+                                Text(
+                                    "Video seleccionado: $it", 
+                                    style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Medium),
+                                    color = Color.White
+                                )
+                            }
+                        }
+                    }
+                }
+                "texto" -> {
+                    Card(
+                        shape = RoundedCornerShape(24.dp),
+                        modifier = Modifier.fillMaxWidth(),
+                        elevation = CardDefaults.cardElevation(12.dp),
+                        colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.1f))
+                    ) {
+                        OutlinedTextField(
+                            value = texto,
+                            onValueChange = { texto = it },
+                            label = { Text("Escribe tu evidencia", style = MaterialTheme.typography.bodyLarge.copy(color = Color.White.copy(alpha = 0.8f))) },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(160.dp)
+                                .padding(28.dp),
+                            shape = RoundedCornerShape(20.dp),
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedTextColor = Color.White,
+                                unfocusedTextColor = Color.White,
+                                focusedBorderColor = Color.White,
+                                unfocusedBorderColor = Color.White.copy(alpha = 0.5f),
+                                focusedLabelColor = Color.White,
+                                unfocusedLabelColor = Color.White.copy(alpha = 0.7f),
+                                cursorColor = Color.White
+                            ),
+                            textStyle = MaterialTheme.typography.bodyLarge.copy(fontSize = 18.sp, color = Color.White)
+                        )
+                    }
+                }
+                "audio" -> {
+                    Card(
+                        shape = RoundedCornerShape(24.dp),
+                        modifier = Modifier.fillMaxWidth(),
+                        elevation = CardDefaults.cardElevation(12.dp),
+                        colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.1f))
+                    ) {
+                        Column(
+                            Modifier.padding(28.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.spacedBy(20.dp)
+                        ) {
+                            if (!isRecording && audioFile == null) {
+                                Button(
+                                    onClick = {
+                                        val success = AudioUtils.startRecording(context) { error ->
+                                            errorMessage = error
+                                        }
+                                        if (success) {
+                                            isRecording = true
+                                            errorMessage = null
+                                        }
+                                    },
+                                    colors = ButtonDefaults.buttonColors(containerColor = Color.White),
+                                    shape = RoundedCornerShape(20.dp),
+                                    modifier = Modifier.fillMaxWidth()
+                                ) {
+                                    Icon(Icons.Default.Mic, contentDescription = "Grabar", modifier = Modifier.size(28.dp), tint = BackgroundDark)
+                                    Spacer(Modifier.width(16.dp))
+                                    Text("Iniciar Grabación", style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.SemiBold), color = BackgroundDark)
+                                }
+                            } else if (isRecording) {
+                                Button(
+                                    onClick = {
+                                        audioFile = AudioUtils.stopRecording()
+                                        isRecording = false
+                                        audioFileName = "audio_${System.currentTimeMillis()}.mp3"
+                                    },
+                                    colors = ButtonDefaults.buttonColors(containerColor = Color.Red),
+                                    shape = RoundedCornerShape(20.dp),
+                                    modifier = Modifier.fillMaxWidth()
+                                ) {
+                                    Icon(Icons.Default.Stop, contentDescription = "Detener", modifier = Modifier.size(28.dp), tint = Color.White)
+                                    Spacer(Modifier.width(16.dp))
+                                    Text("Detener Grabación", style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.SemiBold), color = Color.White)
+                                }
+                                Text(
+                                    "🎤 Grabando...", 
+                                    style = MaterialTheme.typography.bodyLarge.copy(
+                                        fontWeight = FontWeight.Bold,
+                                        color = Color.Red
+                                    )
+                                )
+                            } else if (audioFile != null) {
+                                Text(
+                                    "✅ Audio grabado", 
+                                    style = MaterialTheme.typography.bodyLarge.copy(
+                                        fontWeight = FontWeight.Bold,
+                                        color = Color.Green
+                                    )
+                                )
+                                Button(
+                                    onClick = {
+                                        audioFile = null
+                                        audioFileName = null
+                                    },
+                                    colors = ButtonDefaults.buttonColors(containerColor = Color.White.copy(alpha = 0.3f)),
+                                    shape = RoundedCornerShape(20.dp)
+                                ) {
+                                    Text("Regrabar", style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.SemiBold), color = Color.White)
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            Spacer(Modifier.height(40.dp))
+            
+            // Campo de descripción mejorado
+            Card(
+                shape = RoundedCornerShape(24.dp),
+                modifier = Modifier.fillMaxWidth(),
+                elevation = CardDefaults.cardElevation(12.dp),
+                colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.1f))
+            ) {
+                Column(Modifier.padding(28.dp)) {
+                    Text(
+                        "Descripción Adicional", 
+                        style = MaterialTheme.typography.titleLarge.copy(
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 22.sp
+                        ),
+                        color = Color.White
+                    )
+                    Spacer(Modifier.height(12.dp))
+                    Text(
+                        "Cuéntanos más sobre tu evidencia (opcional)", 
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = Color.White.copy(alpha = 0.8f)
+                    )
+                    Spacer(Modifier.height(20.dp))
                     OutlinedTextField(
                         value = descripcion,
                         onValueChange = { descripcion = it },
-                        label = { Text("Descripción Adicional (Opcional)") },
-                        modifier = Modifier.fillMaxWidth().height(80.dp).padding(16.dp)
+                        label = { Text("Describe tu evidencia...", style = MaterialTheme.typography.bodyLarge.copy(color = Color.White.copy(alpha = 0.8f))) },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(140.dp),
+                        shape = RoundedCornerShape(20.dp),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedTextColor = Color.White,
+                            unfocusedTextColor = Color.White,
+                            focusedBorderColor = Color.White,
+                            unfocusedBorderColor = Color.White.copy(alpha = 0.5f),
+                            focusedLabelColor = Color.White,
+                            unfocusedLabelColor = Color.White.copy(alpha = 0.7f),
+                            cursorColor = Color.White
+                        ),
+                        textStyle = MaterialTheme.typography.bodyLarge.copy(fontSize = 18.sp, color = Color.White),
+                        maxLines = 6
                     )
                 }
-                Spacer(Modifier.height(20.dp))
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceEvenly
+            }
+            Spacer(Modifier.height(40.dp))
+            
+            // Botones de acción
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(20.dp)
+            ) {
+                Button(
+                    onClick = onCancel,
+                    colors = ButtonDefaults.buttonColors(containerColor = Color.White.copy(alpha = 0.2f)),
+                    shape = RoundedCornerShape(24.dp),
+                    modifier = Modifier.weight(1f)
                 ) {
-                    Button(
-                        onClick = onCancel,
-                        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error),
-                        shape = RoundedCornerShape(50)
-                    ) {
-                        Text("Cancelar")
-                    }
-                    Button(
-                        onClick = {
-                            isLoading = true
-                            errorMessage = null
-                            scope.launch(Dispatchers.IO) {
-                                try {
-                                    val user = FirebaseAuth.getInstance().currentUser
-                                    if (tipo == "imagen") {
-                                        imageUri?.let { uri ->
-                                            val inputStream = context.contentResolver.openInputStream(uri)
-                                            val bytes = inputStream?.readBytes()
-                                            if (bytes != null) {
-                                                uploadImageToImgur(
-                                                    imageBytes = bytes,
-                                                    clientId = clientId,
-                                                    onSuccess = { url: String ->
-                                                        saveEvidenceToFirestore(
-                                                            challengeId,
-                                                            user?.uid ?: "",
-                                                            currentUserName,
-                                                            tipo,
-                                                            url,
-                                                            null,
-                                                            descripcion
-                                                        )
-                                                        isLoading = false
-                                                        onEvidenceSent()
-                                                    },
-                                                    onError = { error: String ->
-                                                        errorMessage = error
-                                                        isLoading = false
-                                                    }
-                                                )
-                                            }
-                                        } ?: run {
-                                            errorMessage = "Selecciona una imagen."
-                                            isLoading = false
-                                        }
-                                    } else if (tipo == "video") {
-                                        videoUri?.let { uri ->
-                                            val inputStream = context.contentResolver.openInputStream(uri)
-                                            val bytes = inputStream?.readBytes()
-                                            val fileName = videoFileName ?: "video_${System.currentTimeMillis()}.mp4"
-                                            if (bytes != null) {
-                                                com.example.redsocial.utils.uploadVideoToSupabase(
-                                                    videoBytes = bytes,
-                                                    fileName = fileName,
-                                                    onSuccess = { url: String ->
-                                                        scope.launch(Dispatchers.Main) {
-                                                            saveEvidenceToFirestore(
-                                                                challengeId,
-                                                                user?.uid ?: "",
-                                                                currentUserName,
-                                                                tipo,
-                                                                url,
-                                                                null,
-                                                                descripcion
-                                                            )
-                                                            isLoading = false
-                                                            onEvidenceSent()
-                                                        }
-                                                    },
-                                                    onError = { errorMsg ->
-                                                        scope.launch(Dispatchers.Main) {
-                                                            errorMessage = errorMsg
-                                                            isLoading = false
-                                                            Toast.makeText(context, errorMsg, Toast.LENGTH_LONG).show()
-                                                        }
-                                                    }
-                                                )
-                                            } else {
-                                                scope.launch(Dispatchers.Main) {
-                                                    errorMessage = "Selecciona un video."
+                    Text("Cancelar", style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.SemiBold), color = Color.White)
+                }
+                Button(
+                    onClick = {
+                        isLoading = true
+                        errorMessage = null
+                        scope.launch(Dispatchers.IO) {
+                            try {
+                                val user = FirebaseAuth.getInstance().currentUser
+                                if (tipo == "imagen") {
+                                    imageUri?.let { uri ->
+                                        val inputStream = context.contentResolver.openInputStream(uri)
+                                        val bytes = inputStream?.readBytes()
+                                        if (bytes != null) {
+                                            uploadImageToImgur(
+                                                imageBytes = bytes,
+                                                clientId = clientId,
+                                                onSuccess = { url: String ->
+                                                    saveEvidenceToFirestore(
+                                                        challengeId,
+                                                        user?.uid ?: "",
+                                                        currentUserName,
+                                                        tipo,
+                                                        url,
+                                                        null,
+                                                        descripcion
+                                                    )
+                                                    isLoading = false
+                                                    onEvidenceSent()
+                                                },
+                                                onError = { error: String ->
+                                                    errorMessage = error
                                                     isLoading = false
                                                 }
-                                            }
-                                        } ?: run {
-                                            scope.launch(Dispatchers.Main) {
-                                                errorMessage = "Selecciona un video."
-                                                isLoading = false
-                                            }
+                                            )
                                         }
-                                    } else if (tipo == "audio") {
-                                        audioFile?.let { file ->
-                                            val fileName = audioFileName ?: "audio_${System.currentTimeMillis()}.mp3"
-                                            AudioUtils.uploadAudioToSupabase(
-                                                audioFile = file,
+                                    } ?: run {
+                                        errorMessage = "Selecciona una imagen."
+                                        isLoading = false
+                                    }
+                                } else if (tipo == "video") {
+                                    videoUri?.let { uri ->
+                                        val inputStream = context.contentResolver.openInputStream(uri)
+                                        val bytes = inputStream?.readBytes()
+                                        val fileName = videoFileName ?: "video_${System.currentTimeMillis()}.mp4"
+                                        if (bytes != null) {
+                                            com.example.redsocial.utils.uploadVideoToSupabase(
+                                                videoBytes = bytes,
                                                 fileName = fileName,
                                                 onSuccess = { url: String ->
                                                     scope.launch(Dispatchers.Main) {
@@ -418,53 +521,109 @@ fun SendEvidenceScreen(
                                                     }
                                                 }
                                             )
-                                        } ?: run {
+                                        } else {
                                             scope.launch(Dispatchers.Main) {
-                                                errorMessage = "Graba un audio primero."
+                                                errorMessage = "Selecciona un video."
                                                 isLoading = false
                                             }
                                         }
-                                    } else if (tipo == "texto") {
-                                        if (texto.isNotBlank()) {
-                                            saveEvidenceToFirestore(
-                                                challengeId,
-                                                user?.uid ?: "",
-                                                currentUserName,
-                                                tipo,
-                                                null,
-                                                texto,
-                                                descripcion
-                                            )
-                                            isLoading = false
-                                            onEvidenceSent()
-                                        } else {
-                                            errorMessage = "El campo de texto no puede estar vacío."
+                                    } ?: run {
+                                        scope.launch(Dispatchers.Main) {
+                                            errorMessage = "Selecciona un video."
                                             isLoading = false
                                         }
                                     }
-                                } catch (e: Exception) {
-                                    errorMessage = e.message
-                                    isLoading = false
+                                } else if (tipo == "audio") {
+                                    audioFile?.let { file ->
+                                        val fileName = audioFileName ?: "audio_${System.currentTimeMillis()}.mp3"
+                                        AudioUtils.uploadAudioToSupabase(
+                                            audioFile = file,
+                                            fileName = fileName,
+                                            onSuccess = { url: String ->
+                                                scope.launch(Dispatchers.Main) {
+                                                    saveEvidenceToFirestore(
+                                                        challengeId,
+                                                        user?.uid ?: "",
+                                                        currentUserName,
+                                                        tipo,
+                                                        url,
+                                                        null,
+                                                        descripcion
+                                                    )
+                                                    isLoading = false
+                                                    onEvidenceSent()
+                                                }
+                                            },
+                                            onError = { errorMsg ->
+                                                scope.launch(Dispatchers.Main) {
+                                                    errorMessage = errorMsg
+                                                    isLoading = false
+                                                    Toast.makeText(context, errorMsg, Toast.LENGTH_LONG).show()
+                                                }
+                                            }
+                                        )
+                                    } ?: run {
+                                        scope.launch(Dispatchers.Main) {
+                                            errorMessage = "Graba un audio primero."
+                                            isLoading = false
+                                        }
+                                    }
+                                } else if (tipo == "texto") {
+                                    if (texto.isNotBlank()) {
+                                        saveEvidenceToFirestore(
+                                            challengeId,
+                                            user?.uid ?: "",
+                                            currentUserName,
+                                            tipo,
+                                            null,
+                                            texto,
+                                            descripcion
+                                        )
+                                        isLoading = false
+                                        onEvidenceSent()
+                                    } else {
+                                        errorMessage = "El campo de texto no puede estar vacío."
+                                        isLoading = false
+                                    }
                                 }
+                            } catch (e: Exception) {
+                                errorMessage = e.message
+                                isLoading = false
                             }
-                        },
-                        enabled = (!isLoading && ((tipo == "imagen" && imageUri != null) || (tipo == "video" && videoUri != null) || (tipo == "texto" && texto.isNotBlank()) || (tipo == "audio" && audioFile != null))),
-                        shape = RoundedCornerShape(50)
-                    ) {
-                        Text(if (isLoading) "Enviando..." else "Enviar Evidencia")
-                    }
-                }
-                errorMessage?.let {
-                    Spacer(Modifier.height(12.dp))
-                    Card(
-                        shape = RoundedCornerShape(12.dp),
-                        modifier = Modifier.fillMaxWidth(),
-                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.errorContainer)
-                    ) {
-                        Text(it, color = MaterialTheme.colorScheme.onErrorContainer, modifier = Modifier.padding(12.dp))
-                    }
+                        }
+                    },
+                    enabled = (!isLoading && ((tipo == "imagen" && imageUri != null) || (tipo == "video" && videoUri != null) || (tipo == "texto" && texto.isNotBlank()) || (tipo == "audio" && audioFile != null))),
+                    shape = RoundedCornerShape(24.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = Color.White),
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Text(
+                        if (isLoading) "Enviando..." else "Enviar",
+                        style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.SemiBold),
+                        color = BackgroundDark
+                    )
                 }
             }
+            
+            // Mensaje de error
+            errorMessage?.let {
+                Spacer(Modifier.height(24.dp))
+                Card(
+                    shape = RoundedCornerShape(20.dp),
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = CardDefaults.cardColors(containerColor = Color.Red.copy(alpha = 0.2f))
+                ) {
+                    Text(
+                        it, 
+                        color = Color.White, 
+                        modifier = Modifier.padding(24.dp),
+                        style = MaterialTheme.typography.bodyLarge
+                    )
+                }
+            }
+            
+            // Espacio adicional al final para scroll
+            Spacer(Modifier.height(40.dp))
         }
     }
 }
