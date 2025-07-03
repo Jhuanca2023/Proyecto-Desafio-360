@@ -1,62 +1,45 @@
-# Desafio Score 📱
+# Red Social 📱
 
-Una aplicación social moderna que permite a los usuarios participar en desafíos, compartir sus logros y conectarse con otros participantes.
+Una aplicación social moderna que permite a los usuarios participar en desafíos, compartir evidencias y conectarse con otros participantes.
 
 ## 🚀 Características Principales
 
-- **Desafíos Interactivos**: Crea y participa en desafíos de diferentes categorías
-- **Evidencias Multimedia**: Comparte fotos, videos, textos y audios como evidencia de tus logros
-- **Sistema de Puntos**: Gana puntos por participar y completar desafíos
-- **Perfiles de Usuario**: Personaliza tu perfil y muestra tus logros
-- **Feed Social**: Explora las participaciones de otros usuarios
-- **Notificaciones**: Mantente al día con las actualizaciones de tus desafíos
+- **Desafíos Interactivos:** Crea y participa en desafíos de diferentes categorías.
+- **Evidencias Multimedia:** Comparte fotos, textos y audios como evidencia de tus logros.
+- **Perfiles de Usuario:** Personaliza tu perfil y muestra tus logros.
+- **Feed Social:** Explora las participaciones de otros usuarios.
+- **Notificaciones:** Recibe notificaciones relevantes en tiempo real.
 
 ## 🛠 Tecnologías Utilizadas
 
-### Frontend
-- **Kotlin**: Lenguaje principal de desarrollo
-- **Jetpack Compose**: Framework moderno para UI nativa de Android
-- **Material Design 3**: Sistema de diseño para una experiencia visual coherente
-- **Coil**: Biblioteca para carga eficiente de imágenes
-
-### Backend
-- **Firebase Authentication**: Sistema de autenticación seguro
-- **Cloud Firestore**: Base de datos NoSQL para almacenamiento de datos
-- **Imgur API**: Servicio para almacenamiento y gestión de imágenes
-- **Firebase Cloud Messaging**: Sistema de notificaciones push
-
-### Arquitectura
-- **MVVM**: Patrón de arquitectura Model-View-ViewModel
-- **Clean Architecture**: Separación clara de responsabilidades
-- **Repository Pattern**: Patrón para manejo de datos
-- **Coroutines**: Programación asíncrona en Kotlin
+- **Kotlin**: Lenguaje principal de desarrollo.
+- **Jetpack Compose**: Framework moderno para UI nativa de Android.
+- **Firebase**: Autenticación, base de datos (Firestore) y notificaciones.
+- **Supabase**: Integración para autenticación y/o almacenamiento.
+- **Imgur API**: Gestión y almacenamiento de imágenes.
+- **Lottie**: Animaciones modernas en la interfaz.
+- **MVVM**: Patrón de arquitectura para separar lógica y UI.
+- **Gradle**: Sistema de construcción y gestión de dependencias.
 
 ## 📱 Requisitos del Sistema
 
-- Android 6.0 (API level 23) o superior
-- Conexión a Internet
-- Cuenta de Google para autenticación
+- Android 6.0 (API level 23) o superior.
+- Conexión a Internet.
 
 ## 🚀 Instalación
 
 1. Clona el repositorio:
-```bash
-git clone https://github.com/Jhuanca2023/Proyecto-Desafio-360.git
-```
-
-2. Abre el proyecto en Android Studio
-
+   ```bash
+   git clone https://github.com/Jhuanca2023/Proyecto-Desafio-360.git
+   ```
+2. Abre el proyecto en Android Studio.
 3. Configura Firebase:
-   - Crea un proyecto en Firebase Console
-   - Descarga el archivo `google-services.json`
-   - Colócalo en la carpeta `app/`
-
-4. Configura Imgur:
-   - Crea una cuenta en Imgur
-   - Obtén tu Client ID
-   - Configura las credenciales en el proyecto
-
-5. Ejecuta la aplicación en tu dispositivo o emulador
+   - Crea un proyecto en Firebase Console.
+   - Descarga el archivo `google-services.json`.
+   - Colócalo en la carpeta `app/`.
+4. Configura Imgur y Supabase si es necesario:
+   - Añade las credenciales correspondientes en los archivos de utilidades.
+5. Ejecuta la aplicación en tu dispositivo o emulador.
 
 ## 📁 Estructura del Proyecto
 
@@ -65,42 +48,27 @@ app/
 ├── src/
 │   ├── main/
 │   │   ├── java/com/example/redsocial/
-│   │   │   ├── data/
-│   │   │   │   ├── models/           # Modelos de datos
-│   │   │   │   ├── repositories/     # Repositorios para acceso a datos
-│   │   │   │   └── services/         # Servicios (Firebase, Imgur)
-│   │   │   ├── ui/
-│   │   │   │   ├── components/       # Componentes reutilizables
-│   │   │   │   ├── screens/          # Pantallas principales
-│   │   │   │   ├── theme/            # Temas y estilos
-│   │   │   │   └── viewmodels/       # ViewModels
-│   │   │   └── utils/                # Utilidades y helpers
-│   │   └── res/                      # Recursos (imágenes, strings, etc.)
-│   └── test/                         # Tests unitarios
-├── build.gradle.kts                  # Configuración de Gradle
-└── google-services.json             # Configuración de Firebase
+│   │   │   ├── models/         # Modelos de datos
+│   │   │   ├── navigation/     # Navegación de la app
+│   │   │   ├── ui/             # Pantallas y componentes UI
+│   │   │   ├── utils/          # Utilidades (Firebase, Imgur, Supabase, etc.)
+│   │   │   ├── viewmodel/      # ViewModels (lógica y estado)
+│   │   │   └── RedSocialApp.kt # Inicialización de la app
+│   │   └── res/                # Recursos (imágenes, strings, animaciones, etc.)
+│   └── test/                   # Tests unitarios
+├── build.gradle.kts            # Configuración de Gradle
+└── google-services.json         # Configuración de Firebase
 ```
-
-### Descripción de Carpetas
-
-- **models/**: Contiene las clases de datos como `Challenge`, `Evidencia`, `User`
-- **repositories/**: Implementa el patrón Repository para acceso a datos
-- **services/**: Contiene la lógica de integración con servicios externos
-- **components/**: Componentes UI reutilizables como `ChallengeCard`, `EvidenciaCard`
-- **screens/**: Pantallas principales de la aplicación
-- **theme/**: Configuración de temas y estilos de Material Design
-- **viewmodels/**: ViewModels para manejo de estado y lógica de negocio
-- **utils/**: Funciones de utilidad y helpers
 
 ## 👨‍💻 Autor
 
-**Jose Huanca Otiniano**
+**Jose Huanca Otiniano**  
 - GitHub: [@Jhuanca2023](https://github.com/Jhuanca2023)
-- LinkedIn: [Jose Huanca Otiiano](https://www.linkedin.com/in/jose-huanca-061392274)
+- LinkedIn: [Jose Huanca Otiniano](https://www.linkedin.com/in/jose-huanca-061392274)
 
 ## 📄 Licencia
 
-Este proyecto está bajo la Licencia MIT - ver el archivo [LICENSE.md](LICENSE.md) para más detalles.
+Este proyecto está bajo la Licencia MIT.
 
 ## 🤝 Contribuciones
 
@@ -111,4 +79,4 @@ Las contribuciones son bienvenidas. Para cambios importantes, por favor abre pri
 Si tienes alguna pregunta o necesitas ayuda, por favor abre un issue en el repositorio o contacta al autor.
 
 ---
-Desarrollador del sofware por Jose Huanca Otiniano 
+Desarrollador del software por Jose Huanca Otiniano 
